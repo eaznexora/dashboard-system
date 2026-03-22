@@ -62,7 +62,12 @@
       </div>
       <div class="input-group">
         <label for="password">Password</label>
-        <input type="password" id="password" class="input-box" placeholder="••••••••" required>
+        <div style="position: relative;">
+          <input type="password" id="password" class="input-box" placeholder="••••••••" required style="padding-right: 2.5rem;">
+          <button type="button" id="toggle-pwd" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.25rem; display: flex;">
+            <i class="ph ph-eye" id="eye-icon"></i>
+          </button>
+        </div>
       </div>
       
       <div class="error-msg" id="error-msg">Invalid Agent Credentials</div>
@@ -78,6 +83,22 @@
   <script src="js/auth.js"></script>
   <script>
     if(localStorage.getItem('eaznexora_admin') === 'true') { window.location.replace('admin-panel.html'); }
+
+    const togglePwd = document.getElementById('toggle-pwd');
+    const pwdInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eye-icon');
+    
+    togglePwd.addEventListener('click', () => {
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        eyeIcon.classList.remove('ph-eye');
+        eyeIcon.classList.add('ph-eye-slash');
+      } else {
+        pwdInput.type = 'password';
+        eyeIcon.classList.remove('ph-eye-slash');
+        eyeIcon.classList.add('ph-eye');
+      }
+    });
 
     document.getElementById('login-form').addEventListener('submit', (e) => {
       e.preventDefault();

@@ -56,11 +56,11 @@ function renderHeader(title) {
         <button class="mobile-toggle" id="open-sidebar">
           <i class="ph ph-list"></i>
         </button>
-        <h1 class="page-title">${title} Dashboard</h1>
+        <h1 class="page-title">${title}</h1>
       </div>
       <div class="header-right">
         <div class="user-profile">
-          <span id="user-status-badge" style="font-size:0.875rem; color: var(--text-secondary); background: var(--bg-color); padding: 0.25rem 0.5rem; border-radius: var(--radius-full); font-weight:600;">Viewer Mode</span>
+          <span id="user-status-badge" style="font-size:0.875rem; color: var(--text-secondary); background: var(--bg-color); padding: 0.25rem 0.75rem; border-radius: 2rem; font-weight:600; white-space: nowrap; display: flex; align-items: center; gap: 0.25rem;">Viewer</span>
           <div class="avatar"><i class="ph ph-user"></i></div>
         </div>
       </div>
@@ -107,7 +107,7 @@ function initApp(pageId, pageTitle) {
     // Update Badge
     const badge = document.getElementById('user-status-badge');
     if (badge && typeof window.checkAdminStatus === 'function' && window.checkAdminStatus()) {
-      badge.innerHTML = '<i class="ph ph-shield-check"></i> Admin Access';
+      badge.innerHTML = '<i class="ph ph-shield-check"></i> Admin';
       badge.style.color = '#fff';
       badge.style.background = 'var(--success-color)';
     }

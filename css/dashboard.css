@@ -88,6 +88,8 @@
   justify-content: space-between;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap; /* Enforce wrapping so elements don't push outside card bounds on 320px screens */
+  gap: 0.5rem;
 }
 .list-item:last-child {
   border-bottom: none;
@@ -97,8 +99,11 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  flex: 1; /* Allows it to take up available space and trigger wrap if needed */
+  min-width: 0;
 }
 .list-item-icon {
+  flex-shrink: 0;
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
@@ -113,12 +118,19 @@
   font-weight: 600;
   font-size: 0.875rem;
   color: var(--text-primary);
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; /* Prevent long strings from blowing up width */
 }
 .list-item-subtitle {
   font-size: 0.75rem;
   color: var(--text-secondary);
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis;
 }
 .list-item-right {
   font-weight: 600;
   font-size: 0.875rem;
+  white-space: nowrap;
 }

@@ -46,12 +46,26 @@ body.theme-green, body.theme-warm, body.theme-blue, body.theme-purple, body.them
 /* Reset & Base */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  font-size: 16px !important; /* Locks rem conversion to exactly 16px across all devices */
+  -webkit-text-size-adjust: 100%; /* Prevents iOS/Android from automatically inflating font sizes */
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overflow-x: clip;
+}
+
 body {
   font-family: var(--font-family);
   background-color: var(--bg-color);
   color: var(--text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+  width: 100%;
+  max-width: 100vw;
+  position: relative;
+  overflow-wrap: break-word; /* Prevents long numbers/strings from breaking grid structures */
 }
 
 /* Layout */
@@ -64,10 +78,12 @@ body {
 /* Header */
 .top-header {
   height: var(--header-height);
-  background-color: var(--card-bg);
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border-color);
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0 2rem; position: sticky; top: 0; z-index: 10;
+  padding: 0 2rem; position: sticky; top: 0; z-index: 40;
 }
 .header-left .page-title { font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
 .header-right { display: flex; align-items: center; gap: 1rem; }
@@ -111,6 +127,8 @@ body {
   .sidebar.open { transform: translateX(0); }
   .grid-cols-4, .grid-cols-2, .grid-cols-3, .layout-2-1 { grid-template-columns: 1fr; }
   .dashboard-content { padding: 1rem; }
-  .top-header { padding: 0 1rem; }
-  .header-left .page-title { font-size: 1.125rem; }
+  .top-header { padding: 0.5rem 1rem; height: auto; min-height: 60px; flex-wrap: wrap; gap: 0.5rem; position: sticky; top: 0; z-index: 40; }
+  .header-left .page-title { font-size: 1rem; line-height: 1.2; word-break: break-word; flex: 1; min-width: 100px; }
+  .user-profile { gap: 0.5rem; }
+  .avatar { width: 32px; height: 32px; font-size: 0.875rem; }
 }
