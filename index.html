@@ -1,15 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EazDash - Loading...</title>
-    <!-- Redirect to marketing.html by default -->
-    <meta http-equiv="refresh" content="0; url=marketing.html" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login | EazDash</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <link rel="stylesheet" href="css/globals.css">
+  <style>
+    body {
+      background-color: var(--bg-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: var(--font-family);
+    }
+    .login-container {
+      background-color: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 420px;
+      padding: 2.5rem 2rem;
+      border: 1px solid var(--border-color);
+      text-align: center;
+      margin: 1rem;
+    }
+    .login-logo {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.5px;
+    }
+    .login-header h2 {
+      font-size: 1.5rem;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+    .login-header p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 2rem;
+    }
+    .input-group {
+      text-align: left;
+      margin-bottom: 1.25rem;
+    }
+    .input-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+    .input-box {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text-primary);
+      background-color: var(--bg-color);
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .input-box:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+    .login-btn {
+      width: 100%;
+      padding: 0.875rem;
+      background-color: var(--accent-color);
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: transform 0.1s, filter 0.2s;
+      margin-top: 1.5rem;
+    }
+    .login-btn:hover {
+      filter: brightness(1.1);
+    }
+    .login-btn:active {
+      transform: scale(0.98);
+    }
+    .error-msg {
+      color: var(--danger-color);
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      display: none;
+    }
+    .back-btn {
+      margin-top: 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .back-btn:hover {
+      color: var(--text-primary);
+    }
+  </style>
 </head>
-<body>
-    <script>
-        window.location.href = "marketing.html";
-    </script>
+<body class="theme-blue">
+
+  <div class="login-container">
+    <div class="login-logo">
+      <i class="ph-fill ph-circles-four"></i>
+      EazDash
+    </div>
+    <div class="login-header">
+      <h2>Welcome Back</h2>
+      <p>Log in to access the Editor Mode</p>
+    </div>
+
+    <form id="login-form">
+      <div class="input-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" class="input-box" placeholder="Enter 'admin'" required autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="input-box" placeholder="Enter 'admin'" required>
+      </div>
+      
+      <div class="error-msg" id="error-msg">Invalid username or password</div>
+      
+      <button type="submit" class="login-btn">
+        <span>Sign In</span>
+        <i class="ph ph-arrow-right"></i>
+      </button>
+    </form>
+    
+    <a href="marketing.html" class="back-btn"><i class="ph ph-arrow-left"></i> Continue as Viewer</a>
+  </div>
+
+  <script>
+    // Auto redirect if already logged in
+    if(localStorage.getItem('eazdash_logged_in') === 'true') {
+      window.location.href = 'marketing.html';
+    }
+
+    const form = document.getElementById('login-form');
+    const userIn = document.getElementById('username');
+    const passIn = document.getElementById('password');
+    const errorMsg = document.getElementById('error-msg');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const u = userIn.value.trim();
+      const p = passIn.value.trim();
+
+      // Simple mock validation
+      if (u === 'admin' && p === 'admin') {
+        localStorage.setItem('eazdash_logged_in', 'true');
+        window.location.href = 'marketing.html';
+      } else {
+        errorMsg.style.display = 'block';
+      }
+    });
+  </script>
+
 </body>
 </html>

@@ -43,15 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.addEventListener('click', () => {
       const current = localStorage.getItem('eazdash_logged_in') === 'true';
       if(!current) {
-        // Mock a login flow
-        const pass = prompt("Enter any password to login as Admin/Editor:");
-        if(pass !== null && pass.trim() !== "") {
-          localStorage.setItem('eazdash_logged_in', 'true');
-        }
+        // Redirect to new admin login page
+        window.location.href = 'index.html';
       } else {
+        // Logout
         localStorage.setItem('eazdash_logged_in', 'false');
+        updateUI();
       }
-      updateUI();
     });
   }
 
