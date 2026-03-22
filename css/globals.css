@@ -69,9 +69,10 @@ body {
 }
 
 /* Layout */
-.app-container { display: flex; min-height: 100vh; }
+.app-container { display: flex; min-height: 100vh; overflow-x: hidden; }
 .main-content {
   flex: 1; margin-left: var(--sidebar-width);
+  min-width: 0; /* CRITICAL FIX: prevents flex children from blowing out layout past 100vw */
   transition: margin-left 0.3s ease; display: flex; flex-direction: column;
 }
 
@@ -105,6 +106,8 @@ body {
   padding: 1.5rem;
   border: 1px solid var(--border-color);
   transition: box-shadow 0.2s ease;
+  min-width: 0; /* CRITICAL FIX: prevents chart canvases from blowing out card width */
+  max-width: 100%;
 }
 .card:hover { box-shadow: var(--shadow-md); }
 
