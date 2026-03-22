@@ -48,9 +48,17 @@ const defaultAgencyData = {
   }
 };
 
+const STORE_VERSION = "1.0.1";
+
 window.EazStore = {
   get: () => {
     try {
+      const storedVer = localStorage.getItem('eaz_version');
+      if (storedVer !== STORE_VERSION) {
+        localStorage.removeItem('eaz_data');
+        localStorage.setItem('eaz_version', STORE_VERSION);
+        return defaultAgencyData;
+      }
       const stored = localStorage.getItem('eaz_data');
       return stored ? JSON.parse(stored) : defaultAgencyData;
     } catch (e) {
@@ -59,8 +67,10 @@ window.EazStore = {
   },
   save: (data) => {
     localStorage.setItem('eaz_data', JSON.stringify(data));
+    localStorage.setItem('eaz_version', STORE_VERSION);
   },
   reset: () => {
     localStorage.removeItem('eaz_data');
+    localStorage.removeItem('eaz_version');
   }
 };
