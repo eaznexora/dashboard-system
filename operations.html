@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Operations Dashboard | EazDash</title>
+  <title>Operations Dashboard | Tech Agency UI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,103 +15,41 @@
 </head>
 <body class="theme-blue">
   <div id="app" class="app-container"></div>
+  
+  <script src="js/store.js"></script>
   <script src="js/components.js"></script>
   <script src="js/auth.js"></script>
   <script>
-    initApp('operations', 'Operations');
+    initApp('operations', 'Operations / DevOps');
+    const store = window.EazStore.get().operations;
 
     const content = `
       <div class="grid-cols-4">
         <div class="card metric-card">
-          <div class="metric-title">Automation Success <div class="metric-icon"><i class="ph ph-check-circle"></i></div></div>
-          <div class="metric-value editable">99.8%</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+0.1%</span> vs last week</div>
+          <div class="metric-title">Deployment Success <div class="metric-icon"><i class="ph ph-check-circle"></i></div></div>
+          <div class="metric-value">${store.success}</div>
+          <div class="metric-change ${store.successPos?'positive':'negative'}"><i class="ph ${store.successPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.successChange}</span> vs last week</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Task Failures <div class="metric-icon"><i class="ph ph-warning-circle"></i></div></div>
-          <div class="metric-value editable">24</div>
-          <div class="metric-change negative"><i class="ph ph-trend-up"></i> <span class="editable">+4</span> vs last week</div>
+          <div class="metric-title">Build Failures <div class="metric-icon"><i class="ph ph-warning-circle"></i></div></div>
+          <div class="metric-value">${store.failures}</div>
+          <div class="metric-change ${store.failuresPos?'positive':'negative'}"><i class="ph ${store.failuresPos?'ph-trend-down':'ph-trend-up'}"></i> <span>${store.failuresChange}</span> vs last week</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Revenue Impact <div class="metric-icon"><i class="ph ph-chart-polar"></i></div></div>
-          <div class="metric-value editable">$4,200</div>
-          <div class="metric-change positive">Protected via failover</div>
+          <div class="metric-title">Downtime Impact <div class="metric-icon"><i class="ph ph-warning"></i></div></div>
+          <div class="metric-value">${store.downtime}</div>
+          <div class="metric-change ${store.downtimePos?'positive':'negative'}">${store.downtimeChange}</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">System Load <div class="metric-icon"><i class="ph ph-cpu"></i></div></div>
-          <div class="metric-value editable">42%</div>
-          <div class="metric-change positive">Stable</div>
+          <div class="metric-title">Server Load (Avg) <div class="metric-icon"><i class="ph ph-cpu"></i></div></div>
+          <div class="metric-value">${store.load}</div>
+          <div class="metric-change ${store.loadPos?'positive':'negative'}">${store.loadChange}</div>
         </div>
       </div>
 
       <div class="card chart-card" style="margin-bottom: 2rem;">
-        <h3 style="font-weight:600; margin-bottom:1rem;">System Load & Execution Time</h3>
-        <canvas id="sysLoadChart"></canvas>
-      </div>
-
-      <div class="grid-cols-2">
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-             <h3 style="font-weight:600; margin-bottom: 1rem;">Recent Failures / Logs</h3>
-             <button style="background:var(--accent-light); color:var(--accent-color); border:none; padding:0.25rem 0.5rem; border-radius:var(--radius-sm); font-size:0.75rem; font-weight:600; cursor:pointer;">Export</button>
-          </div>
-          <ul class="list-group">
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon" style="background:#fee2e2; color:#ef4444;"><i class="ph ph-warning"></i></div>
-                <div>
-                  <div class="list-item-title editable">API Timeout: Payment Gateway</div>
-                  <div class="list-item-subtitle editable">12 mins ago &bull; Retrying...</div>
-                </div>
-              </div>
-              <div class="list-item-right"><button style="border:1px solid var(--border-color); background:transparent; padding:0.25rem 0.5rem; border-radius:var(--radius-sm); cursor:pointer;">View</button></div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon" style="background:#fee2e2; color:#ef4444;"><i class="ph ph-x-circle"></i></div>
-                <div>
-                  <div class="list-item-title editable">Database Sync Failed</div>
-                  <div class="list-item-subtitle editable">1 hour ago &bull; Needs Manual Intervention</div>
-                </div>
-              </div>
-              <div class="list-item-right"><button style="border:1px solid var(--border-color); background:transparent; padding:0.25rem 0.5rem; border-radius:var(--radius-sm); cursor:pointer;">View</button></div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon" style="background:var(--accent-light); color:var(--accent-color);"><i class="ph ph-info"></i></div>
-                <div>
-                  <div class="list-item-title editable">High Memory Usage Warning</div>
-                  <div class="list-item-subtitle editable">3 hours ago &bull; Worker Node 4</div>
-                </div>
-              </div>
-              <div class="list-item-right"><button style="border:1px solid var(--border-color); background:transparent; padding:0.25rem 0.5rem; border-radius:var(--radius-sm); cursor:pointer;">View</button></div>
-            </li>
-          </ul>
-        </div>
-        
-        <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 1rem;">Reported Cases Tracker</h3>
-          <ul class="list-group">
-            <li class="list-item">
-               <div style="display:flex; justify-content:space-between; width:100%;">
-                 <span class="editable" style="font-weight:500;">User migration stuck at 99%</span>
-                 <span style="background:#fff7ed; color:#f97316; padding:0.2rem 0.5rem; border-radius:1rem; font-size:0.75rem; font-weight:600;">In Progress</span>
-               </div>
-            </li>
-            <li class="list-item">
-               <div style="display:flex; justify-content:space-between; width:100%;">
-                 <span class="editable" style="font-weight:500;">Mail server spam rejection</span>
-                 <span style="background:#ecfdf5; color:#10b981; padding:0.2rem 0.5rem; border-radius:1rem; font-size:0.75rem; font-weight:600;">Resolved</span>
-               </div>
-            </li>
-            <li class="list-item">
-               <div style="display:flex; justify-content:space-between; width:100%;">
-                 <span class="editable" style="font-weight:500;">Billing webhook failing</span>
-                 <span style="background:#fee2e2; color:#ef4444; padding:0.2rem 0.5rem; border-radius:1rem; font-size:0.75rem; font-weight:600;">Critical</span>
-               </div>
-            </li>
-          </ul>
-        </div>
+        <h3 style="font-weight:600; margin-bottom:1rem;">Client Servers Load & Resource Usage</h3>
+        <div class="chart-wrapper"><canvas id="sysLoadChart"></canvas></div>
       </div>
     `;
 
@@ -124,15 +62,15 @@
         labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
         datasets: [{
           label: 'CPU Load (%)',
-          data: [20, 15, 45, 60, 42, 35, 25],
-          borderColor: '#3b82f6',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          data: store.cpuChart,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.1)',
           fill: true,
           tension: 0.4
         }, {
           label: 'Memory Usage (%)',
-          data: [40, 40, 50, 75, 78, 55, 45],
-          borderColor: '#8b5cf6',
+          data: store.memChart,
+          borderColor: '#64748b',
           borderDash: [5, 5],
           fill: false,
           tension: 0.4

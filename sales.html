@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sales Dashboard | EazDash</title>
+  <title>Sales Dashboard | Tech Agency UI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,118 +12,51 @@
   <link rel="stylesheet" href="css/sidebar.css">
   <link rel="stylesheet" href="css/dashboard.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    .pipeline-stage {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      margin-bottom: 0.5rem;
-      background: var(--card-bg);
-      position: relative;
-    }
-    .pipeline-stage::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: var(--accent-light);
-      border-top-left-radius: var(--radius-md);
-      border-bottom-left-radius: var(--radius-md);
-    }
-    .pipeline-stage.stage-1::before { background: #cbd5e1; }
-    .pipeline-stage.stage-2::before { background: #93c5fd; }
-    .pipeline-stage.stage-3::before { background: #fcd34d; }
-    .pipeline-stage.stage-4::before { background: #f97316; }
-    .pipeline-stage.stage-5::before { background: #10b981; }
-  </style>
 </head>
 <body class="theme-beige">
   <div id="app" class="app-container"></div>
+  
+  <script src="js/store.js"></script>
   <script src="js/components.js"></script>
   <script src="js/auth.js"></script>
   <script>
-    initApp('sales', 'Sales');
+    initApp('sales', 'Sales & Projects');
+    const store = window.EazStore.get().sales;
 
     const content = `
       <div class="grid-cols-4">
         <div class="card metric-card">
-          <div class="metric-title">Daily Sales <div class="metric-icon"><i class="ph ph-handshake"></i></div></div>
-          <div class="metric-value editable">14</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+2</span> vs yesterday</div>
+          <div class="metric-title">New Contracts <div class="metric-icon"><i class="ph ph-handshake"></i></div></div>
+          <div class="metric-value">${store.contracts}</div>
+          <div class="metric-change ${store.contractsPos?'positive':'negative'}"><i class="ph ${store.contractsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.contractsChange}</span> vs yesterday</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Daily Revenue <div class="metric-icon"><i class="ph ph-coins"></i></div></div>
-          <div class="metric-value editable">$4,250</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+$400</span> vs yesterday</div>
+          <div class="metric-title">Daily Bookings <div class="metric-icon"><i class="ph ph-coins"></i></div></div>
+          <div class="metric-value">${store.bookings}</div>
+          <div class="metric-change ${store.bookingsPos?'positive':'negative'}"><i class="ph ${store.bookingsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.bookingsChange}</span> vs yesterday</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Win Rate <div class="metric-icon"><i class="ph ph-trophy"></i></div></div>
-          <div class="metric-value editable">32.4%</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+4.1%</span> vs last month</div>
+          <div class="metric-title">Proposal Win Rate <div class="metric-icon"><i class="ph ph-trophy"></i></div></div>
+          <div class="metric-value">${store.winRate}</div>
+          <div class="metric-change ${store.winRatePos?'positive':'negative'}"><i class="ph ${store.winRatePos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.winRateChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Avg Deal Size <div class="metric-icon"><i class="ph ph-briefcase"></i></div></div>
-          <div class="metric-value editable">$3,100</div>
-          <div class="metric-change negative"><i class="ph ph-trend-down"></i> <span class="editable">-$150</span> vs last month</div>
+          <div class="metric-title">Avg Project Value <div class="metric-icon"><i class="ph ph-briefcase"></i></div></div>
+          <div class="metric-value">${store.avgProj}</div>
+          <div class="metric-change ${store.avgProjPos?'positive':'negative'}"><i class="ph ${store.avgProjPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.avgProjChange}</span> vs last month</div>
         </div>
       </div>
 
-      <div class="grid-cols-2">
+      <div class="layout-2-1">
         <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem;">Sales Timeline & Target</h3>
-          <canvas id="salesLineChart"></canvas>
-        </div>
-        
-        <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 1rem;">Deal Pipeline Stages</h3>
-          <p style="color:var(--text-secondary); font-size:0.875rem; margin-bottom:1rem;">Flow from Contacted to Closed/Won</p>
-          
-          <div class="pipeline-stage stage-1">
-             <div>
-                <h4 style="font-weight:600;">1. Contacted / Lead</h4>
-                <div style="font-size:0.75rem; color:var(--text-secondary);">458 deals</div>
-             </div>
-             <div style="font-weight:700;" class="editable">$145,000</div>
-          </div>
-          <div class="pipeline-stage stage-2">
-             <div>
-                <h4 style="font-weight:600;">2. Qualified</h4>
-                <div style="font-size:0.75rem; color:var(--text-secondary);">214 deals</div>
-             </div>
-             <div style="font-weight:700;" class="editable">$95,000</div>
-          </div>
-          <div class="pipeline-stage stage-3">
-             <div>
-                <h4 style="font-weight:600;">3. Proposal Submitted</h4>
-                <div style="font-size:0.75rem; color:var(--text-secondary);">112 deals</div>
-             </div>
-             <div style="font-weight:700;" class="editable">$54,000</div>
-          </div>
-          <div class="pipeline-stage stage-4">
-             <div>
-                <h4 style="font-weight:600;">4. Negotiation</h4>
-                <div style="font-size:0.75rem; color:var(--text-secondary);">48 deals</div>
-             </div>
-             <div style="font-weight:700;" class="editable">$32,000</div>
-          </div>
-          <div class="pipeline-stage stage-5">
-             <div>
-                <h4 style="font-weight:600;">5. Closed / Won</h4>
-                <div style="font-size:0.75rem; color:var(--text-secondary);">38 deals (This Month)</div>
-             </div>
-             <div style="font-weight:700; color:var(--success-color);" class="editable">$24,500</div>
-          </div>
+          <h3 style="font-weight:600; margin-bottom:1rem;">Project Sales Timeline</h3>
+          <div class="chart-wrapper"><canvas id="salesLineChart"></canvas></div>
         </div>
       </div>
 
-      <div class="card" style="margin-bottom: 2rem;">
-         <h3 style="font-weight:600; margin-bottom:1rem;">Product Performance Comparison</h3>
-         <canvas id="productBarChart" style="height:300px; width:100%;"></canvas>
+      <div class="card chart-card" style="margin-bottom: 2rem;">
+         <h3 style="font-weight:600; margin-bottom:1rem;">Service Performance Comparison</h3>
+         <div class="chart-wrapper"><canvas id="productBarChart"></canvas></div>
       </div>
     `;
 
@@ -135,19 +68,12 @@
       data: {
         labels: ['W1', 'W2', 'W3', 'W4', 'W5'],
         datasets: [{
-          label: 'Actual Sales ($)',
-          data: [12000, 18000, 14000, 26000, 31000],
-          borderColor: '#d97706', // gold
+          label: 'Actual Sales (₹)',
+          data: store.salesLine,
+          borderColor: '#2563eb',
           borderWidth: 3,
           tension: 0.1,
           pointRadius: 4
-        }, {
-          label: 'Target',
-          data: [15000, 15000, 20000, 20000, 25000],
-          borderColor: '#94a3b8',
-          borderDash: [5, 5],
-          borderWidth: 2,
-          pointRadius: 0
         }]
       },
       options: {
@@ -156,7 +82,7 @@
         plugins: { legend: { position: 'top' } },
         scales: {
           x: { grid: { display:false } },
-          y: { grid: { borderDash:[5,5] } }
+          y: { grid: { borderDash:[5,5] }, ticks: { callback: function(val) { return '₹' + val/100000 + 'L'; } } }
         }
       }
     });
@@ -165,15 +91,11 @@
     new Chart(prodCtx, {
       type: 'bar',
       data: {
-        labels: ['Basic Plan', 'Pro Plan', 'Enterprise', 'Add-ons'],
+        labels: ['E-Commerce Builds', 'Custom Web Apps', 'UI/UX Design', 'SEO / PPC'],
         datasets: [{
           label: 'Q1 (Current)',
-          data: [15000, 42000, 85000, 12000],
-          backgroundColor: '#d97706'
-        }, {
-          label: 'Q4 (Previous)',
-          data: [12000, 38000, 65000, 10000],
-          backgroundColor: '#fde68a'
+          data: store.salesBar,
+          backgroundColor: '#2563eb'
         }]
       },
       options: {
@@ -182,11 +104,10 @@
         plugins: { legend: { position: 'top' } },
         scales: {
           x: { grid: { display:false } },
-          y: { grid: { borderDash:[5,5] } }
+          y: { grid: { borderDash:[5,5] }, ticks: { callback: function(val) { return '₹' + val/100000 + 'L'; } } }
         }
       }
     });
-
   </script>
 </body>
 </html>

@@ -29,7 +29,7 @@
 .metric-title {
   color: var(--text-secondary);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -49,6 +49,7 @@
   font-size: 1.875rem;
   font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: -0.025em;
 }
 .metric-change {
   font-size: 0.875rem;
@@ -62,15 +63,16 @@
 
 /* Chart Containers */
 .chart-card {
-  height: 400px;
   display: flex;
   flex-direction: column;
 }
-.chart-card canvas {
-  flex: 1;
-  width: 100% !important;
-  height: 100% !important;
+/* IMPORTANT: The relative wrapper fixes Chart.js infinite height scroll bug */
+.chart-wrapper {
+  position: relative;
+  height: 320px;
+  width: 100%;
 }
+/* Removed empty canvas rule to satisfy linter */
 
 /* Lists and Feeds */
 .list-group {
@@ -100,7 +102,7 @@
   width: 40px;
   height: 40px;
   border-radius: var(--radius-full);
-  background-color: var(--bg-color);
+  background-color: #f1f5f9;
   display: flex;
   align-items: center;
   justify-content: center;

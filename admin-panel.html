@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Central Admin Panel | EazDash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="css/globals.css">
+  <link rel="stylesheet" href="css/sidebar.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <style>
+    .admin-tabs { display:flex; gap:1rem; border-bottom:1px solid var(--border-color); margin-bottom:2rem; overflow-x: auto; padding-bottom: 0.5rem;}
+    .admin-tab { padding:0.75rem 1rem; cursor:pointer; font-weight:600; color:var(--text-secondary); border-bottom:3px solid transparent; white-space: nowrap; }
+    .admin-tab.active { color:var(--accent-color); border-bottom-color:var(--accent-color); }
+    .admin-section { display:none; }
+    .admin-section.active { display:block; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem;}
+    .form-group { display:flex; flex-direction:column; gap:0.5rem; }
+    .form-group label { font-size:0.875rem; font-weight:600; color:var(--text-primary); text-transform:capitalize; }
+    .form-control { padding:0.75rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:1rem; font-family:inherit; color:var(--text-primary); }
+    .form-control:focus { outline:none; border-color:var(--accent-color); }
+    .save-btn { background:var(--success-color); color:#fff; padding:0.75rem 2rem; border:none; border-radius:var(--radius-md); font-weight:600; font-size:1rem; cursor:pointer; display:flex; align-items:center; gap: 0.5rem; }
+  </style>
+</head>
+<body class="theme-blue">
+  <div id="app" class="app-container"></div>
+  
+  <script src="js/store.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/components.js"></script>
+  
+  <script>
+    if(!checkAdminStatus()) { window.location.replace('admin-login.html'); }
+    initApp('admin-panel', 'Central Admin Panel');
+
+    const adminHtml = `
+      <div class="card" style="margin-bottom: 2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
+           <h2 style="font-size:1.5rem; font-weight:700;">Global Metrics Config</h2>
+           <button class="save-btn" onclick="saveAllData()"><i class="ph ph-floppy-disk"></i> Save Data to Dashboards</button>
+        </div>
+        
+        <div class="admin-tabs" id="tabs">
+            <div class="admin-tab active" data-tab="marketing">Marketing</div>
+            <div class="admin-tab" data-tab="financial">Financial</div>
+            <div class="admin-tab" data-tab="operations">Operations</div>
+            <div class="admin-tab" data-tab="support">Support</div>
+            <div class="admin-tab" data-tab="sales">Sales</div>
+            <div class="admin-tab" data-tab="executive">Executive</div>
+        </div>
+        
+        <div id="forms-container"></div>
+      </div>
+    `;
+    document.getElementById('dashboard-content').innerHTML = adminHtml;
+
+    const storeData = window.EazStore.get();
+    
+    function generateFormSection(key, obj) {
+        let html = '<div class="admin-section ' + (key==='marketing'?'active':'') + '" id="section-' + key + '">';
+        html += '<div class="form-grid">';
+        
+        for (let prop in obj) {
+           if (typeof obj[prop] === 'boolean') {
+               html += '<div class="form-group"><label>' + prop + '</label>';
+               html += '<select class="form-control" data-key="'+key+'" data-prop="'+prop+'">';
+               html += '<option value="true" '+(obj[prop]?'selected':'')+'>Positive Trend (Green)</option>';
+               html += '<option value="false" '+(!obj[prop]?'selected':'')+'>Negative Trend (Red)</option>';
+               html += '</select></div>';
+           } else if (Array.isArray(obj[prop])) {
+               html += '<div class="form-group" style="grid-column: 1 / -1;">';
+               html += '<label>' + prop + ' (Chart Data, comma separated integers)</label>';
+               html += '<input type="text" class="form-control" data-key="'+key+'" data-prop="'+prop+'" value="' + obj[prop].join(', ') + '">';
+               html += '</div>';
+           } else {
+               html += '<div class="form-group"><label>' + prop + '</label>';
+               html += '<input type="text" class="form-control" data-key="'+key+'" data-prop="'+prop+'" value="' + obj[prop] + '"></div>';
+           }
+        }
+        
+        html += '</div></div>';
+        return html;
+    }
+
+    const formsContainer = document.getElementById('forms-container');
+    for (let section in storeData) {
+       formsContainer.innerHTML += generateFormSection(section, storeData[section]);
+    }
+
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+             document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+             document.querySelectorAll('.admin-section').forEach(s => s.classList.remove('active'));
+             tab.classList.add('active');
+             document.getElementById('section-' + tab.getAttribute('data-tab')).classList.add('active');
+        });
+    });
+
+    window.saveAllData = function() {
+        const newData = JSON.parse(JSON.stringify(storeData)); 
+        document.querySelectorAll('.form-control').forEach(input => {
+            const k = input.getAttribute('data-key');
+            const p = input.getAttribute('data-prop');
+            let val = input.value;
+            
+            if (input.tagName === 'SELECT') {
+               newData[k][p] = val === 'true';
+            } else if (Array.isArray(storeData[k][p])) {
+               newData[k][p] = val.split(',').map(s => isNaN(s) ? s.trim() : Number(s.trim()));
+            } else {
+               newData[k][p] = val; 
+            }
+        });
+        window.EazStore.save(newData);
+        alert('All Dashboards Synced and Saved Successfully!');
+    };
+  </script>
+</body>
+</html>

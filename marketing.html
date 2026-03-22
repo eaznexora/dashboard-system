@@ -3,185 +3,97 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Marketing Dashboard | EazDash</title>
-  
-  <!-- Fonts -->
+  <title>Marketing Dashboard | Tech Agency UI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Icons -->
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  
-  <!-- CSS -->
   <link rel="stylesheet" href="css/globals.css">
   <link rel="stylesheet" href="css/sidebar.css">
   <link rel="stylesheet" href="css/dashboard.css">
-  
-  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="theme-green">
-
-  <!-- Application Root -->
   <div id="app" class="app-container"></div>
-
-  <!-- Scripts -->
+  
+  <script src="js/store.js"></script>
   <script src="js/components.js"></script>
   <script src="js/auth.js"></script>
-  
   <script>
-    // Initialize standard layout
-    initApp('marketing', 'Marketing');
+    initApp('marketing', 'Digital Marketing');
+    const store = window.EazStore.get().marketing;
 
-    // Page Specific Content
     const content = `
       <div class="grid-cols-4">
         <div class="card metric-card">
-          <div class="metric-title">Total Users <div class="metric-icon"><i class="ph ph-users"></i></div></div>
-          <div class="metric-value editable">124,500</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+12.5%</span> than last month</div>
+          <div class="metric-title">Website Visitors <div class="metric-icon"><i class="ph ph-users"></i></div></div>
+          <div class="metric-value">${store.visitors}</div>
+          <div class="metric-change ${store.visitorsPos?'positive':'negative'}"><i class="ph ${store.visitorsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.visitorsChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Signups <div class="metric-icon"><i class="ph ph-user-plus"></i></div></div>
-          <div class="metric-value editable">8,240</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+5.2%</span> than last month</div>
+          <div class="metric-title">Leads Generated <div class="metric-icon"><i class="ph ph-user-plus"></i></div></div>
+          <div class="metric-value">${store.leads}</div>
+          <div class="metric-change ${store.leadsPos?'positive':'negative'}"><i class="ph ${store.leadsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.leadsChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Avg. CTR <div class="metric-icon"><i class="ph ph-cursor-click"></i></div></div>
-          <div class="metric-value editable">4.8%</div>
-          <div class="metric-change negative"><i class="ph ph-trend-down"></i> <span class="editable">-1.1%</span> than last month</div>
+          <div class="metric-title">Avg Lead Cost <div class="metric-icon"><i class="ph ph-cursor-click"></i></div></div>
+          <div class="metric-value">${store.cost}</div>
+          <div class="metric-change ${store.costPos?'positive':'negative'}"><i class="ph ${store.costPos?'ph-trend-down':'ph-trend-up'}"></i> <span>${store.costChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Conversion Rate <div class="metric-icon"><i class="ph ph-lightning"></i></div></div>
-          <div class="metric-value editable">2.4%</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+0.4%</span> than last month</div>
+          <div class="metric-title">Marketing Spend <div class="metric-icon"><i class="ph ph-chart-line-up"></i></div></div>
+          <div class="metric-value">${store.spend}</div>
+          <div class="metric-change ${store.spendPos?'positive':'negative'}"><span>${store.spendChange}</span></div>
         </div>
       </div>
 
       <div class="layout-2-1">
-        <!-- Chart -->
         <div class="card chart-card">
-          <div style="display:flex; justify-content:space-between; margin-bottom:1rem; align-items:center;">
-            <h3 style="font-weight:600;">Revenue Growth</h3>
-            <select style="padding:0.25rem 0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-color); outline:none;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+            <h3 style="font-weight:600;">Monthly Traffic vs Spend</h3>
+            <select style="border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.25rem; font-size:0.875rem;">
               <option>Last 7 Days</option>
               <option>Last 30 Days</option>
-              <option>This Year</option>
             </select>
           </div>
-          <canvas id="marketingChart"></canvas>
-        </div>
-
-        <!-- Top Pages -->
-        <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 0.5rem;">Top Landing Pages</h3>
-          <p style="color:var(--text-secondary); font-size:0.875rem;">Pages with highest traffic this week</p>
-          <ul class="list-group">
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon" style="background:var(--accent-light); color:var(--accent-color);"><i class="ph ph-house"></i></div>
-                <div>
-                  <div class="list-item-title editable">/home</div>
-                  <div class="list-item-subtitle editable">Direct Traffic</div>
-                </div>
-              </div>
-              <div class="list-item-right editable">45.2k</div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon" style="background:var(--accent-light); color:var(--accent-color);"><i class="ph ph-article"></i></div>
-                <div>
-                  <div class="list-item-title editable">/blog/top-strategies</div>
-                  <div class="list-item-subtitle editable">Organic Search</div>
-                </div>
-              </div>
-              <div class="list-item-right editable">22.1k</div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon" style="background:var(--accent-light); color:var(--accent-color);"><i class="ph ph-tag"></i></div>
-                <div>
-                  <div class="list-item-title editable">/pricing</div>
-                  <div class="list-item-subtitle editable">Referral</div>
-                </div>
-              </div>
-              <div class="list-item-right editable">18.5k</div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon" style="background:var(--accent-light); color:var(--accent-color);"><i class="ph ph-rocket"></i></div>
-                <div>
-                  <div class="list-item-title editable">/features</div>
-                  <div class="list-item-subtitle editable">Social</div>
-                </div>
-              </div>
-              <div class="list-item-right editable">12.0k</div>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="grid-cols-2">
-        <!-- Team Activity -->
-        <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 1rem;">Team Activity Feed</h3>
-          <ul class="list-group">
-            <li class="list-item">
-              <div class="list-item-left">
-                <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Avatar" style="width:40px;height:40px;border-radius:50%;" />
-                <div>
-                  <div class="list-item-title"><span class="editable">Sarah M.</span> published a new post</div>
-                  <div class="list-item-subtitle">2 mins ago</div>
-                </div>
-              </div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <img src="https://i.pravatar.cc/150?u=a04258114e29026702d" alt="Avatar" style="width:40px;height:40px;border-radius:50%;" />
-                <div>
-                  <div class="list-item-title"><span class="editable">John D.</span> updated the ad campaign budget</div>
-                  <div class="list-item-subtitle">1 hour ago</div>
-                </div>
-              </div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <img src="https://i.pravatar.cc/150?u=a048581f4e29026701d" alt="Avatar" style="width:40px;height:40px;border-radius:50%;" />
-                <div>
-                  <div class="list-item-title"><span class="editable">Emily R.</span> replied to support tickets</div>
-                  <div class="list-item-subtitle">3 hours ago</div>
-                </div>
-              </div>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Reminders Card -->
-        <div class="card" style="background-color: var(--accent-light); border: 1px solid var(--accent-color);">
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-             <h3 style="font-weight:600; color:var(--accent-color);"><i class="ph ph-bell"></i> Reminders</h3>
-             <button style="background:transparent; border:none; color:var(--accent-color); cursor:pointer;"><i class="ph ph-plus" style="font-size:1.25rem;"></i></button>
+          <div class="chart-wrapper">
+            <canvas id="marketingChart"></canvas>
           </div>
-          <ul class="list-group" style="margin-top:1.5rem;">
-             <li class="list-item">
-               <div style="display:flex; gap:0.75rem; align-items:flex-start;">
-                 <input type="checkbox" style="margin-top:0.25rem; accent-color:var(--accent-color);">
-                 <div>
-                   <div class="list-item-title editable">Review Q3 Marketing Strategy</div>
-                   <div class="list-item-subtitle">Due Today at 5 PM</div>
-                 </div>
-               </div>
-             </li>
-             <li class="list-item">
-               <div style="display:flex; gap:0.75rem; align-items:flex-start;">
-                 <input type="checkbox" style="margin-top:0.25rem; accent-color:var(--accent-color);">
-                 <div>
-                   <div class="list-item-title editable">Approve new creatives for Google Ads</div>
-                   <div class="list-item-subtitle">Tomorrow</div>
-                 </div>
-               </div>
-             </li>
+        </div>
+
+        <div class="card">
+          <h3 style="font-weight:600; margin-bottom: 1rem;">Top Landing Pages</h3>
+          <ul class="list-group">
+            <li class="list-item">
+              <div class="list-item-left">
+                <div class="list-item-icon"><i class="ph ph-browser"></i></div>
+                <div>
+                  <div class="list-item-title">/custom-web-apps</div>
+                  <div class="list-item-subtitle">45,200 visitors</div>
+                </div>
+              </div>
+              <div class="list-item-right" style="color:var(--success-color);">12.4% conv</div>
+            </li>
+            <li class="list-item">
+              <div class="list-item-left">
+                <div class="list-item-icon"><i class="ph ph-browser"></i></div>
+                <div>
+                  <div class="list-item-title">/seo-marketing</div>
+                  <div class="list-item-subtitle">32,100 visitors</div>
+                </div>
+              </div>
+              <div class="list-item-right" style="color:var(--success-color);">8.1% conv</div>
+            </li>
+            <li class="list-item">
+              <div class="list-item-left">
+                <div class="list-item-icon"><i class="ph ph-browser"></i></div>
+                <div>
+                  <div class="list-item-title">/contact-us</div>
+                  <div class="list-item-subtitle">18,400 visitors</div>
+                </div>
+              </div>
+              <div class="list-item-right" style="color:var(--success-color);">24.5% conv</div>
+            </li>
           </ul>
         </div>
       </div>
@@ -189,64 +101,42 @@
 
     document.getElementById('dashboard-content').innerHTML = content;
 
-    // Initialize Chart
     const ctx = document.getElementById('marketingChart').getContext('2d');
-    
-    // Gradient fill
     let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(16, 185, 129, 0.2)'); // green-500 fading out
-    gradient.addColorStop(1, 'rgba(16, 185, 129, 0)');
+    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)'); 
+    gradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
 
     new Chart(ctx, {
       type: 'line',
       data: {
         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
         datasets: [{
-          label: 'Revenue ($)',
-          data: [12000, 19000, 15000, 25000, 22000, 30000, 35000],
-          borderColor: '#10b981',
+          label: 'Traffic',
+          data: store.chart,
+          borderColor: '#2563eb',
           borderWidth: 3,
           backgroundColor: gradient,
           fill: true,
           tension: 0.4,
           pointBackgroundColor: '#fff',
-          pointBorderColor: '#10b981',
+          pointBorderColor: '#2563eb',
           pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
+          pointRadius: 4
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#0f172a',
-            titleFont: { family: 'Inter', size: 13 },
-            bodyFont: { family: 'Inter', size: 14, weight: 'bold' },
-            padding: 12,
-            cornerRadius: 8,
-            displayColors: false,
-          }
+          legend: { display: false }
         },
         scales: {
-          x: {
-            grid: { display: false, drawBorder: false },
-            ticks: { font: { family: 'Inter' }, color: '#64748b' }
-          },
-          y: {
-            border: { display: false },
-            grid: { color: '#e2e8f0', borderDash: [5, 5] },
-            ticks: {
-              font: { family: 'Inter' },
-              color: '#64748b',
-              callback: function(value) { return '$' + value / 1000 + 'k'; }
-            }
-          }
+          y: { grid: { borderDash: [5, 5] } },
+          x: { grid: { display: false } }
         }
       }
     });
+
   </script>
 </body>
 </html>

@@ -1,125 +1,64 @@
-/* Sidebar Styles */
-
+/* Clean Professional Sidebar */
 .sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
+  position: fixed; top: 0; left: 0; bottom: 0;
   width: var(--sidebar-width);
   background-color: var(--sidebar-bg);
-  border-right: 1px solid var(--border-color);
-  z-index: 50;
-  display: flex;
-  flex-direction: column;
+  border-right: 1px solid var(--sidebar-border);
+  z-index: 50; display: flex; flex-direction: column;
   transition: transform 0.3s ease;
-  box-shadow: var(--shadow-sm);
 }
 
 .sidebar-header {
   height: var(--header-height);
-  display: flex;
-  align-items: center;
-  padding: 0 1.5rem;
-  border-bottom: 1px solid var(--border-color);
+  display: flex; align-items: center; padding: 0 1.5rem;
+  border-bottom: 1px solid var(--sidebar-border);
   justify-content: space-between;
 }
 
 .logo {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--accent-color);
-  letter-spacing: -0.5px;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  font-size: 1.5rem; font-weight: 800; color: var(--text-primary);
+  letter-spacing: -0.5px; display: flex; align-items: center; gap: 0.5rem;
 }
 
+.logo i { color: var(--accent-color); }
+
 .nav-links {
-  list-style: none;
-  padding: 1.5rem 1rem;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  list-style: none; padding: 1.5rem 1rem; flex: 1;
+  display: flex; flex-direction: column; gap: 0.25rem;
 }
 
 .nav-item {
-  display: flex;
-  align-items: center;
-  padding: 0.875rem 1rem;
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  text-decoration: none;
-  font-weight: 500;
-  transition: all 0.2s;
-  gap: 0.75rem;
+  display: flex; align-items: center; padding: 0.75rem 1rem;
+  border-radius: var(--radius-md); color: var(--sidebar-text);
+  text-decoration: none; font-weight: 500; transition: all 0.2s; gap: 0.75rem;
 }
 
-.nav-item i {
-  font-size: 1.25rem;
-}
-
-.nav-item:hover {
-  background-color: var(--bg-color);
-  color: var(--text-primary);
-}
+.nav-item i { font-size: 1.25rem; }
+.nav-item:hover { background-color: #f1f5f9; color: var(--sidebar-text-hover); }
 
 .nav-item.active {
   background-color: var(--accent-light);
-  color: var(--accent-color);
-  font-weight: 600;
+  color: var(--accent-color); font-weight: 600;
 }
 
-/* Sidebar Footer / Auth Area */
 .sidebar-footer {
-  padding: 1.5rem 1rem;
-  border-top: 1px solid var(--border-color);
+  padding: 1.5rem 1rem; border-top: 1px solid var(--sidebar-border);
 }
 
 .auth-btn {
-  width: 100%;
-  padding: 0.875rem;
-  border-radius: var(--radius-md);
-  background-color: var(--accent-color);
-  color: #fff;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: background-color 0.2s, transform 0.1s;
+  width: 100%; padding: 0.875rem; border-radius: var(--radius-md);
+  background-color: var(--accent-color); color: #fff;
+  border: none; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center;
+  justify-content: center; gap: 0.5rem; transition: background-color 0.2s;
 }
 
-.auth-btn:hover {
-  filter: brightness(1.1);
-  transform: scale(0.98);
-}
+.auth-btn:hover { background-color: #1d4ed8; /* Blue 700 */ }
+.auth-btn.btn-outline { background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
+.auth-btn.btn-outline:hover { background-color: var(--danger-color); color: #fff; }
 
-.auth-btn.btn-outline {
-  background-color: transparent;
-  color: var(--danger-color);
-  border: 1px solid var(--danger-color);
-}
+.mobile-toggle { display: none; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+.mobile-toggle#close-sidebar { color: var(--text-primary); }
+.mobile-toggle#open-sidebar { color: var(--text-primary); }
 
-.auth-btn.btn-outline:hover {
-  background-color: var(--danger-color);
-  color: #fff;
-}
-
-/* Mobile Toggle */
-.mobile-toggle {
-  display: none;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-@media (max-width: 768px) {
-  .mobile-toggle {
-    display: block;
-  }
-}
+@media (max-width: 768px) { .mobile-toggle { display: block; } }

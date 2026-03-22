@@ -43,10 +43,7 @@ function renderSidebar(activeId) {
         ${linksHtml}
       </div>
       <div class="sidebar-footer">
-        <button id="auth-toggle-btn" class="auth-btn">
-          <i class="ph ph-sign-in"></i>
-          <span id="auth-btn-text">Login to Edit</span>
-        </button>
+        <!-- Dynamic auth controls rendered by auth.js -->
       </div>
     </nav>
   `;
@@ -63,7 +60,7 @@ function renderHeader(title) {
       </div>
       <div class="header-right">
         <div class="user-profile">
-          <span id="user-status-badge" style="font-size:0.875rem; color: var(--text-secondary); background: var(--bg-color); padding: 0.25rem 0.5rem; border-radius: var(--radius-full);">Viewer Mode</span>
+          <span id="user-status-badge" style="font-size:0.875rem; color: var(--text-secondary); background: var(--bg-color); padding: 0.25rem 0.5rem; border-radius: var(--radius-full); font-weight:600;">Viewer Mode</span>
           <div class="avatar"><i class="ph ph-user"></i></div>
         </div>
       </div>
@@ -101,5 +98,18 @@ function initApp(pageId, pageTitle) {
     closeBtn.addEventListener('click', () => {
       sidebar.classList.remove('open');
     });
+  }
+
+  // Inject Admin Controls
+  if (typeof window.renderAdminControls === 'function') {
+    window.renderAdminControls(sidebar);
+    
+    // Update Badge
+    const badge = document.getElementById('user-status-badge');
+    if (badge && typeof window.checkAdminStatus === 'function' && window.checkAdminStatus()) {
+      badge.innerHTML = '<i class="ph ph-shield-check"></i> Admin Access';
+      badge.style.color = '#fff';
+      badge.style.background = 'var(--success-color)';
+    }
   }
 }

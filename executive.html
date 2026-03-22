@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Executive Dashboard | EazDash</title>
+  <title>Executive Dashboard | Tech Agency UI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,104 +15,49 @@
 </head>
 <body class="theme-mono">
   <div id="app" class="app-container"></div>
+  
+  <script src="js/store.js"></script>
   <script src="js/components.js"></script>
   <script src="js/auth.js"></script>
   <script>
     initApp('executive', 'Executive Overview');
+    const store = window.EazStore.get().executive;
 
     const content = `
       <div class="grid-cols-4">
         <div class="card metric-card">
-          <div class="metric-title">MRR <div class="metric-icon" style="background:transparent; color:#000;"><i class="ph ph-trend-up"></i></div></div>
-          <div class="metric-value editable">$142,500</div>
-          <div class="metric-change positive">Target: $150k</div>
+          <div class="metric-title">Monthly Revenue <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-trend-up"></i></div></div>
+          <div class="metric-value">${store.mrr}</div>
+          <div class="metric-change ${store.mrrPos?'positive':'negative'}"><span>${store.mrrChange}</span></div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Active Customers <div class="metric-icon" style="background:transparent; color:#000;"><i class="ph ph-buildings"></i></div></div>
-          <div class="metric-value editable">1,240</div>
-          <div class="metric-change positive">+24 this month</div>
+          <div class="metric-title">Active Retainers <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-buildings"></i></div></div>
+          <div class="metric-value">${store.retainers}</div>
+          <div class="metric-change ${store.retainersPos?'positive':'negative'}"><span>${store.retainersChange}</span></div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Gross Margin <div class="metric-icon" style="background:transparent; color:#000;"><i class="ph ph-scales"></i></div></div>
-          <div class="metric-value editable">76.4%</div>
-          <div class="metric-change positive">Industry Avg: 72%</div>
+          <div class="metric-title">Agency Gross Margin <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-scales"></i></div></div>
+          <div class="metric-value">${store.margin}</div>
+          <div class="metric-change ${store.marginPos?'positive':'negative'}"><span>${store.marginChange}</span></div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Runway <div class="metric-icon" style="background:transparent; color:#000;"><i class="ph ph-hourglass-high"></i></div></div>
-          <div class="metric-value editable">18 Months</div>
-          <div class="metric-change positive">Stable</div>
+          <div class="metric-title">Runway <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-hourglass-high"></i></div></div>
+          <div class="metric-value">${store.runway}</div>
+          <div class="metric-change ${store.runwayPos?'positive':'negative'}"><span>${store.runwayChange}</span></div>
         </div>
       </div>
 
       <div class="layout-2-1">
         <div class="card chart-card">
           <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">Revenue vs Expenses (YTD)</h3>
-          <canvas id="revExpChart"></canvas>
-        </div>
-        
-        <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 1rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">High-Impact Insights</h3>
-          <ul class="list-group">
-            <li class="list-item">
-               <div>
-                  <div style="font-size:0.875rem; font-weight:600; margin-bottom:0.25rem;">Customer Acquisition Cost</div>
-                  <div style="font-size:0.75rem; color:var(--text-secondary);">CAC has decreased by 12% due to improved organic SEO traffic.</div>
-               </div>
-            </li>
-            <li class="list-item">
-               <div>
-                  <div style="font-size:0.875rem; font-weight:600; margin-bottom:0.25rem;">Enterprise Pipeline</div>
-                  <div style="font-size:0.75rem; color:var(--text-secondary);">3 major contracts are in negotiation, potential +$850k ARR.</div>
-               </div>
-            </li>
-            <li class="list-item">
-               <div>
-                  <div style="font-size:0.875rem; font-weight:600; margin-bottom:0.25rem;">Cloud Infrastructure</div>
-                  <div style="font-size:0.75rem; color:var(--text-secondary);">AWS costs rose 8% last month. Review requested from Engineering.</div>
-               </div>
-            </li>
-          </ul>
+          <div class="chart-wrapper"><canvas id="revExpChart"></canvas></div>
         </div>
       </div>
-
+      
       <div class="grid-cols-2">
-        <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 1rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">Recent Key Transactions</h3>
-          <table style="width:100%; border-collapse:collapse; font-size:0.875rem;">
-            <thead>
-              <tr style="text-align:left; color:var(--text-secondary); border-bottom:1px solid var(--border-color);">
-                <th style="padding:0.75rem 0; font-weight:500;">Client</th>
-                <th style="padding:0.75rem 0; font-weight:500;">Type</th>
-                <th style="padding:0.75rem 0; font-weight:500;">Amount</th>
-                <th style="padding:0.75rem 0; font-weight:500;">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style="border-bottom:1px solid var(--border-color);">
-                <td style="padding:0.75rem 0; font-weight:600;">Acme Corp</td>
-                <td style="padding:0.75rem 0;">Annual Renewal</td>
-                <td style="padding:0.75rem 0; font-weight:600;" class="editable">+$125,000</td>
-                <td style="padding:0.75rem 0;"><span style="background:#ecfdf5; color:#10b981; padding:0.15rem 0.5rem; border-radius:1rem; font-size:0.75rem; font-weight:600;">Cleared</span></td>
-              </tr>
-              <tr style="border-bottom:1px solid var(--border-color);">
-                <td style="padding:0.75rem 0; font-weight:600;">Globex Inc</td>
-                <td style="padding:0.75rem 0;">New Contract</td>
-                <td style="padding:0.75rem 0; font-weight:600;" class="editable">+$45,000</td>
-                <td style="padding:0.75rem 0;"><span style="background:#fffbeb; color:#f59e0b; padding:0.15rem 0.5rem; border-radius:1rem; font-size:0.75rem; font-weight:600;">Processing</span></td>
-              </tr>
-              <tr style="border-bottom:1px solid var(--border-color);">
-                <td style="padding:0.75rem 0; font-weight:600;">AWS Hosting</td>
-                <td style="padding:0.75rem 0;">Infrastructure</td>
-                <td style="padding:0.75rem 0; font-weight:600;" class="editable">-$12,450</td>
-                <td style="padding:0.75rem 0;"><span style="background:#ecfdf5; color:#10b981; padding:0.15rem 0.5rem; border-radius:1rem; font-size:0.75rem; font-weight:600;">Cleared</span></td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
         <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">Growth Projections</h3>
-          <canvas id="growthChart"></canvas>
+          <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e2e8f0; padding-bottom:0.5rem;">Agency Growth Projections</h3>
+          <div class="chart-wrapper"><canvas id="growthChart"></canvas></div>
         </div>
       </div>
     `;
@@ -126,14 +71,14 @@
         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
         datasets: [{
           label: 'Revenue',
-          data: [120, 135, 125, 150, 145, 160],
-          backgroundColor: '#111827', // Black/dark grey
+          data: store.revBar,
+          backgroundColor: '#2563eb',
           barPercentage: 0.6,
           categoryPercentage: 0.8
         }, {
           label: 'Expenses',
-          data: [80, 85, 80, 95, 90, 100],
-          backgroundColor: '#9ca3af', // Gray
+          data: store.expBar,
+          backgroundColor: '#9ca3af',
           barPercentage: 0.6,
           categoryPercentage: 0.8
         }]
@@ -144,7 +89,7 @@
         plugins: { legend: { position: 'top' } },
         scales: {
           x: { grid: { display:false } },
-          y: { grid: { borderDash:[5,5] }, ticks:{ callback: function(val) { return '$' + val + 'k'; } } }
+          y: { grid: { borderDash:[5,5] }, ticks:{ callback: function(val) { return '₹' + val/100000 + 'L'; } } }
         }
       }
     });
@@ -155,14 +100,14 @@
       data: {
         labels: ['Q1', 'Q2', 'Q3', 'Q4 (Est)'],
         datasets: [{
-          label: 'ARR Growth',
-          data: [1.2, 1.4, 1.8, 2.5],
-          borderColor: '#111827',
+          label: 'Revenue Growth',
+          data: store.growthLine,
+          borderColor: '#2563eb',
           backgroundColor: 'transparent',
           borderWidth: 3,
           tension: 0.4,
           pointBackgroundColor: '#fff',
-          pointBorderColor: '#111827',
+          pointBorderColor: '#2563eb',
           pointRadius: 5
         }]
       },
@@ -172,11 +117,10 @@
         plugins: { legend: { display:false } },
         scales: {
           x: { grid: { display:false } },
-          y: { grid: { borderDash:[5,5] }, ticks:{ callback: function(val) { return '$' + val + 'M'; } } }
+          y: { grid: { borderDash:[5,5] }, ticks:{ callback: function(val) { return '₹' + val + 'Cr'; } } }
         }
       }
     });
-
   </script>
 </body>
 </html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EazNexora Admin Login</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <link rel="stylesheet" href="css/globals.css">
+  <style>
+    body {
+      background-color: var(--bg-color);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; font-family: var(--font-family);
+    }
+    .login-container {
+      background-color: var(--card-bg); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg); width: 100%; max-width: 420px;
+      padding: 2.5rem 2rem; border: 1px solid var(--border-color);
+      text-align: center; margin: 1rem;
+    }
+    .login-logo {
+      font-size: 2rem; font-weight: 800; color: var(--accent-color);
+      display: flex; align-items: center; justify-content: center;
+      gap: 0.5rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;
+    }
+    .login-header h2 { font-size: 1.5rem; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .login-header p { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 2rem; }
+    .input-group { text-align: left; margin-bottom: 1.25rem; }
+    .input-group label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .input-box {
+      width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); font-size: 1rem; font-family: inherit; color: var(--text-primary);
+    }
+    .input-box:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px var(--accent-light); }
+    .login-btn {
+      width: 100%; padding: 0.875rem; background-color: var(--accent-color); color: #fff;
+      font-weight: 600; font-size: 1rem; border: none; border-radius: var(--radius-md);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;
+    }
+    .error-msg { color: var(--danger-color); font-size: 0.875rem; margin-top: 1rem; display: none; }
+    .back-btn { margin-top: 1.5rem; display: inline-flex; align-items: center; gap: 0.25rem; color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+  </style>
+</head>
+<body class="theme-blue">
+
+  <div class="login-container">
+    <div class="login-logo"><i class="ph-fill ph-circles-four"></i> EazDash</div>
+    <div class="login-header">
+      <h2>Agency Control</h2>
+      <p>Log in as eaznexora admin</p>
+    </div>
+
+    <form id="login-form">
+      <div class="input-group">
+        <label for="username">Username</label>
+        <input type="text" id="username" class="input-box" placeholder="Admin ID" required autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" class="input-box" placeholder="••••••••" required>
+      </div>
+      
+      <div class="error-msg" id="error-msg">Invalid Agent Credentials</div>
+      
+      <button type="submit" class="login-btn">
+        <span>Authenticate</span> <i class="ph ph-shield-check"></i>
+      </button>
+    </form>
+    
+    <a href="marketing.html" class="back-btn"><i class="ph ph-arrow-left"></i> Return to Dashboards</a>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    if(localStorage.getItem('eaznexora_admin') === 'true') { window.location.replace('admin-panel.html'); }
+
+    document.getElementById('login-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value.trim();
+      const err = document.getElementById('error-msg');
+
+      if (u === 'eaznexora' && p === 'naar@#..admin') {
+        localStorage.setItem('eaznexora_admin', 'true');
+        window.location.replace('admin-panel.html');
+      } else {
+        err.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>

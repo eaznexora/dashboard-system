@@ -1,58 +1,36 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // Try to find the auth button
-  const btn = document.getElementById('auth-toggle-btn');
-  const statusBadge = document.getElementById('user-status-badge');
+// Authentication and Session Management
+function checkAdminStatus() {
+  return localStorage.getItem('eaznexora_admin') === 'true';
+}
 
-  function updateUI() {
-    const isLoggedIn = localStorage.getItem('eazdash_logged_in') === 'true';
-    if(btn) {
-      if(isLoggedIn) {
-        btn.innerHTML = '<i class="ph ph-sign-out"></i><span id="auth-btn-text">Logout (Edit Mode)</span>';
-        btn.classList.add('btn-outline');
-      } else {
-         btn.innerHTML = '<i class="ph ph-sign-in"></i><span id="auth-btn-text">Login to Edit</span>';
-         btn.classList.remove('btn-outline');
-      }
-    }
-    
-    if(statusBadge) {
-      if(isLoggedIn) {
-        statusBadge.textContent = "Editor Mode";
-        statusBadge.style.color = "var(--success-color)";
-        statusBadge.style.background = "var(--accent-light)";
-      } else {
-        statusBadge.textContent = "Viewer Mode";
-        statusBadge.style.color = "var(--text-secondary)";
-        statusBadge.style.background = "var(--bg-color)";
-      }
-    }
+function handleLogout() {
+  localStorage.removeItem('eaznexora_admin');
+  window.location.replace('marketing.html');
+}
 
-    // Toggle contenteditable
-    document.querySelectorAll('.editable').forEach(el => {
-      if(isLoggedIn) {
-        el.setAttribute('contenteditable', 'true');
-        el.classList.add('is-editing');
-      } else {
-        el.removeAttribute('contenteditable');
-        el.classList.remove('is-editing');
-      }
-    });
+// Since the new architecture removes "click-to-edit" inline functionality,
+// We no longer toggle contenteditable properties.
+// We only use this file to manage the Central Admin Panel routing.
+
+// Expose a helper to re-render the sidebar's Admin buttons dynamically
+window.renderAdminControls = function(sidebarElement) {
+  const isAdmin = checkAdminStatus();
+  
+  const footerHtml = isAdmin ? `
+    <button onclick="window.location.href='admin-panel.html'" style="width:100%; padding:0.875rem; background:var(--accent-color); color:#fff; border:none; border-radius:var(--radius-md); font-weight:600; cursor:pointer; margin-bottom: 0.5rem;">
+      <i class="ph ph-gear"></i> Admin Panel
+    </button>
+    <button onclick="handleLogout()" style="width:100%; padding:0.75rem; background:none; color:var(--danger-color); border:1px solid var(--danger-color); border-radius:var(--radius-md); font-weight:600; cursor:pointer;">
+      Logout
+    </button>
+  ` : `
+    <button onclick="window.location.href='admin-login.html'" style="width:100%; padding:0.875rem; background:transparent; border:1px solid var(--border-color); color:var(--text-secondary); border-radius:var(--radius-md); font-weight:600; cursor:pointer;">
+      <i class="ph ph-lock-key"></i> Admin Login
+    </button>
+  `;
+  
+  const footerContainer = sidebarElement.querySelector('.sidebar-footer');
+  if(footerContainer) {
+    footerContainer.innerHTML = footerHtml;
   }
-
-  if(btn) {
-    btn.addEventListener('click', () => {
-      const current = localStorage.getItem('eazdash_logged_in') === 'true';
-      if(!current) {
-        // Redirect to new admin login page
-        window.location.href = 'index.html';
-      } else {
-        // Logout
-        localStorage.setItem('eazdash_logged_in', 'false');
-        updateUI();
-      }
-    });
-  }
-
-  // Initial Check
-  updateUI();
-});
+};

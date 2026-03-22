@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Financial Dashboard | EazDash</title>
+  <title>Financial Dashboard | Tech Agency UI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -15,115 +15,74 @@
 </head>
 <body class="theme-warm">
   <div id="app" class="app-container"></div>
+  
+  <script src="js/store.js"></script>
   <script src="js/components.js"></script>
   <script src="js/auth.js"></script>
   <script>
     initApp('financial', 'Financial');
+    const store = window.EazStore.get().financial;
 
     const content = `
       <div class="grid-cols-4">
         <div class="card metric-card">
-          <div class="metric-title">Total Revenue <div class="metric-icon"><i class="ph ph-currency-dollar"></i></div></div>
-          <div class="metric-value editable">$142,300</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+8.2%</span> vs last month</div>
+          <div class="metric-title">Monthly Revenue <div class="metric-icon"><i class="ph ph-currency-inr"></i></div></div>
+          <div class="metric-value">${store.revenue}</div>
+          <div class="metric-change ${store.revenuePos?'positive':'negative'}"><i class="ph ${store.revenuePos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.revenueChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Orders <div class="metric-icon"><i class="ph ph-shopping-cart"></i></div></div>
-          <div class="metric-value editable">1,420</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+3.1%</span> vs last month</div>
+          <div class="metric-title">Invoices Paid <div class="metric-icon"><i class="ph ph-receipt"></i></div></div>
+          <div class="metric-value">${store.invoices}</div>
+          <div class="metric-change ${store.invoicesPos?'positive':'negative'}"><i class="ph ${store.invoicesPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.invoicesChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
           <div class="metric-title">Profit Margin <div class="metric-icon"><i class="ph ph-chart-line-up"></i></div></div>
-          <div class="metric-value editable">24.5%</div>
-          <div class="metric-change negative"><i class="ph ph-trend-down"></i> <span class="editable">-0.8%</span> vs last month</div>
+          <div class="metric-value">${store.margin}</div>
+          <div class="metric-change ${store.marginPos?'positive':'negative'}"><i class="ph ${store.marginPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.marginChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
           <div class="metric-title">Cash Flow <div class="metric-icon"><i class="ph ph-bank"></i></div></div>
-          <div class="metric-value editable">$85,240</div>
-          <div class="metric-change positive"><i class="ph ph-trend-up"></i> <span class="editable">+14.2%</span> vs last month</div>
+          <div class="metric-value">${store.cashflow}</div>
+          <div class="metric-change ${store.cashflowPos?'positive':'negative'}"><i class="ph ${store.cashflowPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.cashflowChange}</span> vs last month</div>
         </div>
       </div>
 
       <div class="grid-cols-2">
         <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem;">Monthly Revenue</h3>
-          <canvas id="revenueBarChart"></canvas>
+          <h3 style="font-weight:600; margin-bottom:1rem;">Monthly Revenue (₹)</h3>
+          <div class="chart-wrapper"><canvas id="revenueBarChart"></canvas></div>
         </div>
         <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem;">Profit Margin Gauge / Expense Breakdown</h3>
-          <canvas id="expenseDoughnutChart"></canvas>
+          <h3 style="font-weight:600; margin-bottom:1rem;">Agency Expense Breakdown</h3>
+          <div class="chart-wrapper"><canvas id="expenseDoughnutChart"></canvas></div>
         </div>
       </div>
-
+      
       <div class="grid-cols-2">
         <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 1rem;">Recent Orders</h3>
+          <h3 style="font-weight:600; margin-bottom: 1rem;">Recent Invoices</h3>
           <ul class="list-group">
             <li class="list-item">
               <div class="list-item-left">
                 <div class="list-item-icon"><i class="ph ph-receipt"></i></div>
-                <div>
-                  <div class="list-item-title editable">ORD-2023-091</div>
-                  <div class="list-item-subtitle editable">Enterprise Plan (Annual)</div>
-                </div>
+                <div><div class="list-item-title">INV-2023-091</div><div class="list-item-subtitle">Custom E-Commerce Build</div></div>
               </div>
-              <div class="list-item-right" style="color:var(--success-color);">+$12,000</div>
+              <div class="list-item-right" style="color:var(--success-color);">+₹2,50,000</div>
             </li>
             <li class="list-item">
               <div class="list-item-left">
                 <div class="list-item-icon"><i class="ph ph-receipt"></i></div>
-                <div>
-                  <div class="list-item-title editable">ORD-2023-092</div>
-                  <div class="list-item-subtitle editable">Pro Plan (Monthly)</div>
-                </div>
+                <div><div class="list-item-title">INV-2023-092</div><div class="list-item-subtitle">SEO Retainer (Monthly)</div></div>
               </div>
-              <div class="list-item-right" style="color:var(--success-color);">+$99</div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon"><i class="ph ph-receipt"></i></div>
-                <div>
-                  <div class="list-item-title editable">ORD-2023-093</div>
-                  <div class="list-item-subtitle editable">Custom Integration</div>
-                </div>
-              </div>
-              <div class="list-item-right" style="color:var(--success-color);">+$4,500</div>
+              <div class="list-item-right" style="color:var(--success-color);">+₹35,000</div>
             </li>
           </ul>
-        </div>
-        
-        <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 1rem;">Customer Stats</h3>
-          <div style="display:flex; flex-direction:column; gap:1.5rem;">
-             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem;">
-                <div>
-                   <div style="font-size:0.875rem; color:var(--text-secondary);">Customer Acquisition Cost (CAC)</div>
-                   <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary);" class="editable">$120</div>
-                </div>
-                <div style="color:var(--success-color); font-weight:600;"><i class="ph ph-trend-down"></i> -5%</div>
-             </div>
-             <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-color); padding-bottom:1rem;">
-                <div>
-                   <div style="font-size:0.875rem; color:var(--text-secondary);">Lifetime Value (LTV)</div>
-                   <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary);" class="editable">$3,200</div>
-                </div>
-                <div style="color:var(--success-color); font-weight:600;"><i class="ph ph-trend-up"></i> +12%</div>
-             </div>
-             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <div>
-                   <div style="font-size:0.875rem; color:var(--text-secondary);">Churn Rate</div>
-                   <div style="font-size:1.5rem; font-weight:700; color:var(--text-primary);" class="editable">2.1%</div>
-                </div>
-                <div style="color:var(--danger-color); font-weight:600;"><i class="ph ph-trend-up"></i> +0.2%</div>
-             </div>
-          </div>
         </div>
       </div>
     `;
 
     document.getElementById('dashboard-content').innerHTML = content;
 
-    // Charts
     const barCtx = document.getElementById('revenueBarChart').getContext('2d');
     new Chart(barCtx, {
       type: 'bar',
@@ -131,8 +90,8 @@
         labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
         datasets: [{
           label: 'Revenue',
-          data: [65000, 59000, 80000, 81000, 56000, 142000],
-          backgroundColor: '#f97316',
+          data: store.revenueChart,
+          backgroundColor: '#2563eb',
           borderRadius: 4
         }]
       },
@@ -142,7 +101,7 @@
         plugins: { legend: { display: false } },
         scales: {
           x: { grid: { display: false } },
-          y: { grid: { borderDash: [5, 5] }, ticks: { callback: function(val) { return '$' + val/1000 + 'k'; } } }
+          y: { grid: { borderDash: [5, 5] }, ticks: { callback: function(val) { return '₹' + val/1000 + 'k'; } } }
         }
       }
     });
@@ -151,10 +110,10 @@
     new Chart(doughCtx, {
       type: 'doughnut',
       data: {
-        labels: ['Payroll', 'Marketing', 'Infrastructure', 'Office'],
+        labels: ['Payroll (Devs)', 'Marketing', 'Server Infra', 'Office & Misc'],
         datasets: [{
-          data: [45, 25, 20, 10],
-          backgroundColor: ['#f97316', '#fdba74', '#fed7aa', '#ffedd5'],
+          data: store.expenseChart,
+          backgroundColor: ['#2563eb', '#0ea5e9', '#8b5cf6', '#cbd5e1'],
           borderWidth: 0,
           cutout: '70%'
         }]
