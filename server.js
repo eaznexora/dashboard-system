@@ -8,10 +8,10 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const dotenv = require('dotenv');
+const path = require('path');
 
-// Load environment variables directly from .env.local
-dotenv.config({ path: '.env.local' });
+// Load environment variables directly from .env.local (using absolute path for VPS reliability)
+dotenv.config({ path: path.join(__dirname, '.env.local') });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,10 +47,23 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 5000
-}).then(() => {
+}).then(async () => {
     console.log("######################################################");
     console.log("⚡ SUCCESS: Express Connected Cleanly to MongoDB Atlas! ⚡");
     console.log("######################################################");
+    
+    // AUTO-SEED: Ensure dashboard data exists on first VPS boot
+    const DashboardMetrics = require('./models/DashboardMetrics');
+    const count = await DashboardMetrics.countDocuments();
+    if (count === 0) {
+        console.log("📦 SEEDING: Initializing dashboard metrics...");
+        // Trigger the seed logic (reuse from routes/dashboard or simple bulk insert)
+        const { defaultMetrics } = require('./routes/dashboard'); // Use a getter/factory if needed
+        for (const [category, metrics] of Object.entries(defaultMetrics || {})) {
+            await DashboardMetrics.findOneAndUpdate({ category }, { metrics }, { upsert: true });
+        }
+        console.log("✅ SEEDED: Dashboard ready.");
+    }
 }).catch(err => {
     console.error("\n❌ FAILED TO REACH MONGODB! ❌");
     console.error("1. Did you add 0.0.0.0/0 to the Atlas Network Access Whitelist?");
@@ -67,7 +80,7 @@ const dashboardRoutes = require('./routes/dashboard');
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/tasks', taskRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/dashboard', dashboardRoutes.router);
 
 // Health Check
 app.get('/api/health', (req, res) => {

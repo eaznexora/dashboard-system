@@ -6,6 +6,7 @@ window.EazStore = {
     try {
       const res = await fetch(`/api/dashboard/${category}`);
       if (res.ok) return await res.json();
+      console.error(`Fetch failed for ${category}: Status ${res.status}`);
       return null;
     } catch (e) {
       console.error('Failed to fetch dashboard data:', e);
