@@ -41,8 +41,9 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
 
-    // httpOnly=false ensures offline Legacy JS files can extract JWT payload cleanly acting as local session storage manually
-    res.cookie('eaz_token', token, { httpOnly: false, secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 }); 
+    // In production (HTTPS), cookies must be secure
+    const isProd = process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https');
+    res.cookie('eaz_token', token, { httpOnly: false, secure: isProd, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: isProd ? 'none' : 'lax' }); 
 
     res.status(200).json({ message: 'Logged in successfully', role: user.role });
   } catch (error) {

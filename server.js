@@ -23,6 +23,20 @@ app.use(cors({ origin: true, credentials: true }));
 
 // Auth Guard Middleware — protects all HTML pages behind JWT
 const authGuard = require('./middleware/authGuard');
+
+// --- CRITICAL SECURITY HEADERS FOR GOOGLE OAUTH IN PRODUCTION ---
+// Google Identity Services (GSI) popup requires these specific headers 
+// when the site is running on a live HTTPS domain, otherwise the popup 
+// cannot pass the credential back to the parent window (Error 400).
+app.use((req, res, next) => {
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+    res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
+    
+    // Allow Google accounts specific framing
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://accounts.google.com");
+    next();
+});
+
 app.use(authGuard);
 
 // Serve static HTML/CSS/JS files (after auth guard so pages are protected)
