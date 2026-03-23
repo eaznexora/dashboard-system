@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Financial Dashboard | Tech Agency UI</title>
+  <title>Financial Dashboard | EazDash Agency</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,7 +20,7 @@
   <script src="js/components.js?version=1.0.1"></script>
   <script src="js/auth.js?version=1.0.1"></script>
   <script>
-    initApp('financial', 'Financial');
+    initApp('financial', 'Financial Forecasting');
     const store = window.EazStore.get().financial;
 
     const content = `
@@ -41,57 +41,111 @@
           <div class="metric-change ${store.marginPos?'positive':'negative'}"><i class="ph ${store.marginPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.marginChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Cash Flow <div class="metric-icon"><i class="ph ph-bank"></i></div></div>
+          <div class="metric-title">Free Cash Flow <div class="metric-icon"><i class="ph ph-bank"></i></div></div>
           <div class="metric-value">${store.cashflow}</div>
-          <div class="metric-change ${store.cashflowPos?'positive':'negative'}"><i class="ph ${store.cashflowPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.cashflowChange}</span> vs last month</div>
+          <div class="metric-change ${store.cashflowPos?'positive':'negative'}"><i class="ph ${store.cashflowPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.cashflowChange}</span></div>
         </div>
       </div>
 
+      <div class="card chart-card" style="margin-bottom: 2rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+          <h3 style="font-weight:600;">90-Day Cash Flow Forecast</h3>
+          <select id="timeframe-select" style="border:1px solid var(--border-color); border-radius:var(--radius-sm); padding:0.25rem 0.5rem; font-size:0.875rem; background:#fff; color:var(--text-primary); outline:none;">
+            <option value="q1">Q1 Forecast</option>
+            <option value="q2">Q2 Forecast</option>
+          </select>
+        </div>
+        <div class="chart-wrapper"><canvas id="cashForecastChart"></canvas></div>
+      </div>
+      
       <div class="grid-cols-2">
         <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem;">Monthly Revenue (₹)</h3>
-          <div class="chart-wrapper"><canvas id="revenueBarChart"></canvas></div>
+          <h3 style="font-weight:600; margin-bottom:1rem;">P&L Waterfall (Revenue → Net Income)</h3>
+          <div class="chart-wrapper"><canvas id="waterfallChart"></canvas></div>
         </div>
         <div class="card chart-card">
           <h3 style="font-weight:600; margin-bottom:1rem;">Agency Expense Breakdown</h3>
           <div class="chart-wrapper"><canvas id="expenseDoughnutChart"></canvas></div>
         </div>
       </div>
-      
-      <div class="grid-cols-2">
-        <div class="card">
-          <h3 style="font-weight:600; margin-bottom: 1rem;">Recent Invoices</h3>
-          <ul class="list-group">
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon"><i class="ph ph-receipt"></i></div>
-                <div><div class="list-item-title">INV-2023-091</div><div class="list-item-subtitle">Custom E-Commerce Build</div></div>
-              </div>
-              <div class="list-item-right" style="color:var(--success-color);">+₹2,50,000</div>
-            </li>
-            <li class="list-item">
-              <div class="list-item-left">
-                <div class="list-item-icon"><i class="ph ph-receipt"></i></div>
-                <div><div class="list-item-title">INV-2023-092</div><div class="list-item-subtitle">SEO Retainer (Monthly)</div></div>
-              </div>
-              <div class="list-item-right" style="color:var(--success-color);">+₹35,000</div>
-            </li>
-          </ul>
-        </div>
-      </div>
     `;
 
     document.getElementById('dashboard-content').innerHTML = content;
 
-    const barCtx = document.getElementById('revenueBarChart').getContext('2d');
-    new Chart(barCtx, {
+    // Line Chart: Cash Flow Expected vs Actual Forecasting
+    const cashCtx = document.getElementById('cashForecastChart').getContext('2d');
+    let cashFlowChart = new Chart(cashCtx, {
+      type: 'line',
+      data: {
+        labels: ['Month 1', 'Month 2', 'Month 3'],
+        datasets: [
+          {
+            label: 'Expected Income (₹)',
+            data: store.cashFlowIncomeQ1,
+            borderColor: '#22c55e',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            fill: true,
+            tension: 0.3,
+            borderWidth: 3
+          },
+          {
+            label: 'Expected Expenses (₹)',
+            data: store.cashFlowExpenseQ1,
+            borderColor: '#ef4444',
+            borderDash: [5, 5],
+            fill: false,
+            tension: 0.3,
+            borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { grid: { borderDash: [5, 5] }, ticks: { callback: function(val) { return '₹' + val/100000 + 'L'; } } }
+        }
+      }
+    });
+
+    // Handle Dropdown changes for Q1 vs Q2
+    document.getElementById('timeframe-select').addEventListener('change', (e) => {
+      const isQ1 = e.target.value === 'q1';
+      cashFlowChart.data.datasets[0].data = isQ1 ? store.cashFlowIncomeQ1 : store.cashFlowIncomeQ2;
+      cashFlowChart.data.datasets[1].data = isQ1 ? store.cashFlowExpenseQ1 : store.cashFlowExpenseQ2;
+      cashFlowChart.update();
+    });
+
+    // Waterfall Chart Logic (Floating Bar)
+    const waterfallLabels = ["Gross Revenue", "Payroll Cost", "Marketing", "Operations", "Net Income"];
+    let wData = store.plWaterfall; 
+    let floatingData = [ [0, wData[0]] ];
+    let bgColors = ['#2563eb']; 
+    let currentTotal = wData[0];
+
+    // Compute steps for intermediate costs (negative values)
+    for (let i = 1; i < wData.length - 1; i++) {
+        let expense = wData[i]; 
+        floatingData.push([currentTotal + expense, currentTotal]);
+        currentTotal += expense;
+        bgColors.push('#ef4444'); 
+    }
+    // Final Net profit bar (base to currentTotal)
+    floatingData.push([0, currentTotal]);
+    bgColors.push('#22c55e');
+
+    const wfCtx = document.getElementById('waterfallChart').getContext('2d');
+    new Chart(wfCtx, {
       type: 'bar',
       data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+        labels: waterfallLabels,
         datasets: [{
-          label: 'Revenue',
-          data: store.revenueChart,
-          backgroundColor: '#2563eb',
+          label: 'Value (₹)',
+          data: floatingData,
+          backgroundColor: bgColors,
+          borderWidth: 0,
           borderRadius: 4
         }]
       },
@@ -100,29 +154,30 @@
         maintainAspectRatio: false,
         plugins: { legend: { display: false } },
         scales: {
-          x: { grid: { display: false } },
+          x: { grid: { display: false }, ticks: { font: { size: 10 } } },
           y: { grid: { borderDash: [5, 5] }, ticks: { callback: function(val) { return '₹' + val/1000 + 'k'; } } }
         }
       }
     });
 
+    // Doughnut Chart (Billable vs Non-Billable Payroll + Other)
     const doughCtx = document.getElementById('expenseDoughnutChart').getContext('2d');
     new Chart(doughCtx, {
       type: 'doughnut',
       data: {
-        labels: ['Payroll (Devs)', 'Marketing', 'Server Infra', 'Office & Misc'],
+        labels: ['Payroll (Billable)', 'Payroll (Non-Billable)', 'Marketing', 'AWS/Server Infra', 'Misc Operations'],
         datasets: [{
           data: store.expenseChart,
-          backgroundColor: ['#2563eb', '#0ea5e9', '#8b5cf6', '#cbd5e1'],
+          backgroundColor: ['#22c55e', '#ef4444', '#0ea5e9', '#8b5cf6', '#cbd5e1'],
           borderWidth: 0,
-          cutout: '70%'
+          cutout: '65%'
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { position: 'right' }
+          legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 } } }
         }
       }
     });

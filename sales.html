@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sales Dashboard | Tech Agency UI</title>
+  <title>Sales Dashboard | EazDash Agency</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="css/sidebar.css?version=1.0.1">
   <link rel="stylesheet" href="css/dashboard.css?version=1.0.1">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
 <body class="theme-beige">
   <div id="app" class="app-container"></div>
@@ -27,84 +28,122 @@
       <div class="grid-cols-4">
         <div class="card metric-card">
           <div class="metric-title">New Contracts <div class="metric-icon"><i class="ph ph-handshake"></i></div></div>
-          <div class="metric-value">${store.contracts}</div>
-          <div class="metric-change ${store.contractsPos?'positive':'negative'}"><i class="ph ${store.contractsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.contractsChange}</span> vs yesterday</div>
+          <div class="metric-value">\${store.contracts}</div>
+          <div class="metric-change \${store.contractsPos?'positive':'negative'}"><i class="ph \${store.contractsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>\${store.contractsChange}</span> vs yesterday</div>
         </div>
         <div class="card metric-card">
           <div class="metric-title">Daily Bookings <div class="metric-icon"><i class="ph ph-coins"></i></div></div>
-          <div class="metric-value">${store.bookings}</div>
-          <div class="metric-change ${store.bookingsPos?'positive':'negative'}"><i class="ph ${store.bookingsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.bookingsChange}</span> vs yesterday</div>
+          <div class="metric-value">\${store.bookings}</div>
+          <div class="metric-change \${store.bookingsPos?'positive':'negative'}"><i class="ph \${store.bookingsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>\${store.bookingsChange}</span> vs yesterday</div>
         </div>
         <div class="card metric-card">
           <div class="metric-title">Proposal Win Rate <div class="metric-icon"><i class="ph ph-trophy"></i></div></div>
-          <div class="metric-value">${store.winRate}</div>
-          <div class="metric-change ${store.winRatePos?'positive':'negative'}"><i class="ph ${store.winRatePos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.winRateChange}</span> vs last month</div>
+          <div class="metric-value">\${store.winRate}</div>
+          <div class="metric-change \${store.winRatePos?'positive':'negative'}"><i class="ph \${store.winRatePos?'ph-trend-up':'ph-trend-down'}"></i> <span>\${store.winRateChange}</span> vs last month</div>
         </div>
         <div class="card metric-card">
           <div class="metric-title">Avg Project Value <div class="metric-icon"><i class="ph ph-briefcase"></i></div></div>
-          <div class="metric-value">${store.avgProj}</div>
-          <div class="metric-change ${store.avgProjPos?'positive':'negative'}"><i class="ph ${store.avgProjPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.avgProjChange}</span> vs last month</div>
+          <div class="metric-value">\${store.avgProj}</div>
+          <div class="metric-change \${store.avgProjPos?'positive':'negative'}"><i class="ph \${store.avgProjPos?'ph-trend-up':'ph-trend-down'}"></i> <span>\${store.avgProjChange}</span> vs last month</div>
         </div>
       </div>
 
-      <div class="layout-2-1">
+      <div class="grid-cols-2">
         <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem;">Project Sales Timeline</h3>
-          <div class="chart-wrapper"><canvas id="salesLineChart"></canvas></div>
+          <h3 style="font-weight:600; margin-bottom:1rem;">Sales Pipeline Funnel (Drop-off)</h3>
+          <div class="chart-wrapper"><canvas id="funnelChart"></canvas></div>
         </div>
       </div>
 
       <div class="card chart-card" style="margin-bottom: 2rem;">
-         <h3 style="font-weight:600; margin-bottom:1rem;">Service Performance Comparison</h3>
-         <div class="chart-wrapper"><canvas id="productBarChart"></canvas></div>
+         <h3 style="font-weight:600; margin-bottom:1rem;">Service Profitability Analysis (Revenue vs Cost)</h3>
+         <div class="chart-wrapper"><canvas id="profitBarChart"></canvas></div>
       </div>
     `;
 
     document.getElementById('dashboard-content').innerHTML = content;
+    Chart.register(ChartDataLabels); // Register plugin globally
 
-    const lineCtx = document.getElementById('salesLineChart').getContext('2d');
-    new Chart(lineCtx, {
-      type: 'line',
+    // Funnel Chart (Horizontal Bar simulating funnel)
+    const funnelCtx = document.getElementById('funnelChart').getContext('2d');
+    new Chart(funnelCtx, {
+      type: 'bar',
       data: {
-        labels: ['W1', 'W2', 'W3', 'W4', 'W5'],
+        labels: ['Initial Leads', 'Discovery Call', 'Proposal Sent', 'Contract Signed'],
         datasets: [{
-          label: 'Actual Sales (₹)',
-          data: store.salesLine,
-          borderColor: '#2563eb',
-          borderWidth: 3,
-          tension: 0.1,
-          pointRadius: 4
+          label: 'Count',
+          data: store.pipelineFunnel,
+          backgroundColor: ['#cbd5e1', '#94a3b8', '#64748b', '#2563eb'],
+          borderRadius: 4,
+          barPercentage: 0.8
         }]
       },
       options: {
+        indexAxis: 'y', // Makes it horizontal
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'top' } },
+        plugins: { 
+            legend: { display: false },
+            datalabels: {
+                color: '#fff',
+                font: { weight: '600' },
+                align: 'center',
+                formatter: Math.round
+            }
+        },
         scales: {
-          x: { grid: { display:false } },
-          y: { grid: { borderDash:[5,5] }, ticks: { callback: function(val) { return '₹' + val/100000 + 'L'; } } }
+          x: { grid: { display: false }, display: false },
+          y: { grid: { display: false } }
         }
       }
     });
 
-    const prodCtx = document.getElementById('productBarChart').getContext('2d');
-    new Chart(prodCtx, {
+    // Service Profitability Grouped Bar Chart with Margins Plugin
+    const profitCtx = document.getElementById('profitBarChart').getContext('2d');
+    new Chart(profitCtx, {
       type: 'bar',
       data: {
-        labels: ['E-Commerce Builds', 'Custom Web Apps', 'UI/UX Design', 'SEO / PPC'],
-        datasets: [{
-          label: 'Q1 (Current)',
-          data: store.salesBar,
-          backgroundColor: '#2563eb'
-        }]
+        labels: ['Custom Web Apps', 'E-Commerce Builds', 'UI/UX Design', 'SEO / PPC Campaigns'],
+        datasets: [
+          {
+            label: 'Total Revenue (₹)',
+            data: store.serviceRevenue,
+            backgroundColor: '#2563eb',
+            borderRadius: 4
+          },
+          {
+            label: 'Cost to Deliver (₹)',
+            data: store.serviceCost,
+            backgroundColor: '#ef4444',
+            borderRadius: 4
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { position: 'top' } },
+        plugins: { 
+            legend: { position: 'top' },
+            datalabels: {
+              color: function(context) { return context.datasetIndex === 0 ? '#1e40af' : 'transparent'; },
+              anchor: 'end',
+              align: 'top',
+              font: { weight: 'bold', size: 11 },
+              formatter: function(value, context) {
+                 if (context.datasetIndex === 0) {
+                    const cost = context.chart.data.datasets[1].data[context.dataIndex];
+                    const rev = value;
+                    const margin = Math.round(((rev - cost) / rev) * 100);
+                    return margin > 0 ? '+' + margin + '% Margin' : margin + '% Margin';
+                 }
+                 return null;
+              }
+            }
+        },
+        layout: { padding: { top: 25 } }, // Give room for datalabels
         scales: {
-          x: { grid: { display:false } },
-          y: { grid: { borderDash:[5,5] }, ticks: { callback: function(val) { return '₹' + val/100000 + 'L'; } } }
+          x: { grid: { display: false } },
+          y: { grid: { borderDash: [5,5] }, ticks: { callback: function(val) { return '₹' + val/100000 + 'L'; } } }
         }
       }
     });

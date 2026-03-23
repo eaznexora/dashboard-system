@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Operations Dashboard | Tech Agency UI</title>
+  <title>Operations Dashboard | EazDash Agency</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -20,60 +20,105 @@
   <script src="js/components.js?version=1.0.1"></script>
   <script src="js/auth.js?version=1.0.1"></script>
   <script>
-    initApp('operations', 'Operations / DevOps');
+    // Initialize standard shell
+    initApp('operations', 'Agency Operations');
     const store = window.EazStore.get().operations;
 
     const content = `
       <div class="grid-cols-4">
         <div class="card metric-card">
-          <div class="metric-title">Deployment Success <div class="metric-icon"><i class="ph ph-check-circle"></i></div></div>
-          <div class="metric-value">${store.success}</div>
-          <div class="metric-change ${store.successPos?'positive':'negative'}"><i class="ph ${store.successPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.successChange}</span> vs last week</div>
+          <div class="metric-title">Resource Utilization <div class="metric-icon"><i class="ph ph-users-three"></i></div></div>
+          <div class="metric-value">${store.utilization}</div>
+          <div class="metric-change ${store.utilizationPos?'positive':'negative'}"><i class="ph ${store.utilizationPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.utilizationChange}</span> vs last week</div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Build Failures <div class="metric-icon"><i class="ph ph-warning-circle"></i></div></div>
-          <div class="metric-value">${store.failures}</div>
-          <div class="metric-change ${store.failuresPos?'positive':'negative'}"><i class="ph ${store.failuresPos?'ph-trend-down':'ph-trend-up'}"></i> <span>${store.failuresChange}</span> vs last week</div>
+          <div class="metric-title">Uptime & Delivery <div class="metric-icon"><i class="ph ph-clock-countdown"></i></div></div>
+          <div class="metric-value">${store.deliveryVar}</div>
+          <div class="metric-change ${store.deliveryVarPos?'positive':'negative'}"><i class="ph ${store.deliveryVarPos?'ph-check-circle':'ph-warning-circle'}"></i> <span>${store.deliveryVarChange}</span></div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Downtime Impact <div class="metric-icon"><i class="ph ph-warning"></i></div></div>
-          <div class="metric-value">${store.downtime}</div>
-          <div class="metric-change ${store.downtimePos?'positive':'negative'}">${store.downtimeChange}</div>
+          <div class="metric-title">Active Projects <div class="metric-icon"><i class="ph ph-kanban"></i></div></div>
+          <div class="metric-value">${store.activeProjects}</div>
+          <div class="metric-change ${store.activeProjectsPos?'positive':'negative'}"><i class="ph ${store.activeProjectsPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.activeProjectsChange}</span></div>
         </div>
         <div class="card metric-card">
-          <div class="metric-title">Server Load (Avg) <div class="metric-icon"><i class="ph ph-cpu"></i></div></div>
-          <div class="metric-value">${store.load}</div>
-          <div class="metric-change ${store.loadPos?'positive':'negative'}">${store.loadChange}</div>
+          <div class="metric-title">Developer Bench Time <div class="metric-icon"><i class="ph ph-coffee"></i></div></div>
+          <div class="metric-value">${store.benchTime}</div>
+          <div class="metric-change ${store.benchTimePos?'positive':'negative'}"><i class="ph ${store.benchTimePos?'ph-trend-down':'ph-trend-up'}"></i> <span>${store.benchTimeChange}</span> vs last week</div>
+        </div>
+      </div>
+
+      <div class="layout-2-1">
+        <div class="card chart-card">
+          <h3 style="font-weight:600; margin-bottom:1rem;">Resource Workload Capacity (Hours)</h3>
+          <div class="chart-wrapper"><canvas id="utilizationChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <h3 style="font-weight:600; margin-bottom: 1rem;">Project Milestones</h3>
+          <ul class="list-group">
+            <li class="list-item">
+              <div class="list-item-left">
+                <div class="list-item-icon" style="background:#dcfce7; color:#16a34a;"><i class="ph ph-check-circle"></i></div>
+                <div>
+                  <div class="list-item-title">E-Commerce Build</div>
+                  <div class="list-item-subtitle" style="color:var(--success-color);">Phase 1 Delivered</div>
+                </div>
+              </div>
+            </li>
+            <li class="list-item">
+              <div class="list-item-left">
+                <div class="list-item-icon" style="background:#fef08a; color:#ea580c;"><i class="ph ph-warning-circle"></i></div>
+                <div>
+                  <div class="list-item-title">B2B Portal UI</div>
+                  <div class="list-item-subtitle" style="color:#ea580c;">Behind schedule (4 hrs)</div>
+                </div>
+              </div>
+            </li>
+            <li class="list-item">
+              <div class="list-item-left">
+                <div class="list-item-icon" style="background:#e0f2fe; color:#0284c7;"><i class="ph ph-spinner"></i></div>
+                <div>
+                  <div class="list-item-title">SEO Audit Campaign</div>
+                  <div class="list-item-subtitle">In Progress (70%)</div>
+                </div>
+              </div>
+            </li>
+          </ul>
         </div>
       </div>
 
       <div class="card chart-card" style="margin-bottom: 2rem;">
-        <h3 style="font-weight:600; margin-bottom:1rem;">Client Servers Load & Resource Usage</h3>
-        <div class="chart-wrapper"><canvas id="sysLoadChart"></canvas></div>
+        <h3 style="font-weight:600; margin-bottom:1rem;">Project Delivery Variance (Estimated vs Actual)</h3>
+        <div class="chart-wrapper"><canvas id="deliveryVarianceChart"></canvas></div>
       </div>
     `;
 
     document.getElementById('dashboard-content').innerHTML = content;
 
-    const sysCtx = document.getElementById('sysLoadChart').getContext('2d');
-    new Chart(sysCtx, {
+    // Resource Utilization (Design vs Dev Workload)
+    const utilCtx = document.getElementById('utilizationChart').getContext('2d');
+    new Chart(utilCtx, {
       type: 'line',
       data: {
-        labels: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
         datasets: [{
-          label: 'CPU Load (%)',
-          data: store.cpuChart,
+          label: 'Web Developers',
+          data: store.devWorkload,
           borderColor: '#2563eb',
           backgroundColor: 'rgba(37, 99, 235, 0.1)',
           fill: true,
-          tension: 0.4
+          tension: 0.4,
+          pointRadius: 3
         }, {
-          label: 'Memory Usage (%)',
-          data: store.memChart,
-          borderColor: '#64748b',
+          label: 'UI Designers',
+          data: store.designWorkload,
+          borderColor: '#0ea5e9',
           borderDash: [5, 5],
+          backgroundColor: 'transparent',
           fill: false,
-          tension: 0.4
+          tension: 0.4,
+          pointRadius: 3
         }]
       },
       options: {
@@ -82,7 +127,39 @@
         interaction: { mode: 'index', intersect: false },
         scales: {
           x: { grid: { display:false } },
-          y: { min: 0, max: 100, grid: { borderDash: [5,5] } }
+          y: { grid: { borderDash: [5,5] }, title: { display:true, text:'Billable Hours Logged' }, suggestedMin: 0 }
+        }
+      }
+    });
+
+    // Project Delivery Variance Grouped Bar Chart
+    const varCtx = document.getElementById('deliveryVarianceChart').getContext('2d');
+    new Chart(varCtx, {
+      type: 'bar',
+      data: {
+        labels: ['E-Commerce Build', 'B2B Portal', 'App Redesign', 'SEO Audit'],
+        datasets: [
+          {
+            label: 'Estimated Hours',
+            data: store.estHours,
+            backgroundColor: '#cbd5e1',
+            borderRadius: 4
+          },
+          {
+            label: 'Actual Logged Hours',
+            data: store.actHours,
+            backgroundColor: '#ef4444',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: 'top' } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { grid: { borderDash: [5, 5] }, title: { display: true, text: 'Total Hours' } }
         }
       }
     });

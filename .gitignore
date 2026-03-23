@@ -1,0 +1,46 @@
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# Next.js build output
+/.next/
+/out/
+/build
+
+# Testing
+/coverage
+
+# Local Environment Variables (CRITICAL - Contains MongoDB & Google Secrets)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+
+# Capacitor / Mobile Build Folders
+/android/
+/ios/
+
+# Custom Releases (Desktop & Mobile)
+/releases/
+
+# Debug & Temp Files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Editor Directories
+.vercel
+*.tsbuildinfo
+next-env.d.ts
+
+# Diagnostic test scripts
+test-mongo.js

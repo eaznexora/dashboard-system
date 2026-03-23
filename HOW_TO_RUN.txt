@@ -1,0 +1,114 @@
+╔══════════════════════════════════════════════════════════════╗
+║           EazDash — How To Start & Run Everything            ║
+╚══════════════════════════════════════════════════════════════╝
+
+⚠️  IMPORTANT: Do NOT use VS Code "Live Server" or "Open with Browser".
+    You MUST use the Node.js Express server below. It serves your HTML
+    files AND connects to MongoDB Atlas at the same time.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 1: INSTALL DEPENDENCIES (First Time Only)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Open a Terminal inside VS Code (Ctrl + `) and run:
+
+    cd "d:\Eaz Social\dashboard-system"
+    npm install
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 2: START THE SERVER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  In the same terminal, run:
+
+    node server.js
+
+  You should see this output:
+
+    ⚡ SUCCESS: Express Connected Cleanly to MongoDB Atlas! ⚡
+    🚀 EazDash Node Server Live: http://localhost:3000
+
+  If you see "FAILED TO REACH MONGODB" instead:
+    → Go to https://cloud.mongodb.com
+    → Click Security > Network Access
+    → Make sure 0.0.0.0/0 is listed and shows "Active"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 3: OPEN THE APP IN YOUR BROWSER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Open Google Chrome and go to:
+
+    http://localhost:3000
+
+  This will automatically redirect you to the Login page.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 4: CREATE AN ACCOUNT (First Time)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Option A — Email & Password:
+    1. Click "Don't have an account? Register"
+    2. Fill in your Name, Email, and Password
+    3. Click "Create Account"
+    4. You will be redirected to the Login page
+    5. Enter your Email and Password and click "Sign In"
+
+  Option B — Google Login:
+    1. Click the "Sign up with Google" button
+    2. Select your Google account in the popup
+    3. You will be automatically logged in and redirected
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  STEP 5: ACCESS THE DASHBOARDS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  After logging in, you land on marketing.html (the main dashboard).
+  From the sidebar you can navigate to all dashboards:
+
+    http://localhost:3000/marketing.html
+    http://localhost:3000/financial.html
+    http://localhost:3000/sales.html
+    http://localhost:3000/operations.html
+    http://localhost:3000/support.html
+    http://localhost:3000/executive.html
+
+  Admin Panel (requires Admin Login):
+    http://localhost:3000/admin-login.html
+    Credentials: Username = eaznexora  |  Password = naar@#..admin
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  HOW TO STOP THE SERVER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Press Ctrl + C in the terminal where server.js is running.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ENVIRONMENT FILE (.env.local)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  The .env.local file in the root folder contains your secrets:
+    - GOOGLE_CLIENT_ID
+    - GOOGLE_CLIENT_SECRET
+    - MONGODB_URI
+    - NEXTAUTH_URL
+    - NEXTAUTH_SECRET
+
+  ⚠️ NEVER push .env.local to GitHub. It is already in .gitignore.
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  QUICK REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Start:    node server.js
+  Stop:     Ctrl + C
+  URL:      http://localhost:3000
+  Database: MongoDB Atlas (cloud.mongodb.com)

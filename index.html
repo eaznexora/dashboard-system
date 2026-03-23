@@ -5,9 +5,14 @@
   <title>EazDash | Agency</title>
 </head>
 <body>
-  <!-- Direct Redirect to the Dashboard Application -->
+  <!-- Direct Redirect to the Dashboard Application checking session variables organically -->
+  <script src="js/auth.js"></script>
   <script>
-    window.location.replace("marketing.html");
+    if (!checkUserLogin() && !checkAdminStatus()) {
+      window.location.replace("login.html");
+    } else {
+      window.location.replace("marketing.html");
+    }
   </script>
 </body>
 </html>

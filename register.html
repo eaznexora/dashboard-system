@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EazDash | Create Workspace</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <link rel="stylesheet" href="css/globals.css?version=1.0.1">
+  <style>
+    body {
+      background-color: var(--bg-color);
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; font-family: var(--font-family);
+    }
+    .login-container {
+      background-color: var(--card-bg); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg); width: 100%; max-width: 420px;
+      padding: 2.5rem 2rem; border: 1px solid var(--border-color);
+      text-align: center; margin: 1rem;
+    }
+    .login-logo {
+      font-size: 2rem; font-weight: 800; color: var(--accent-color);
+      display: flex; align-items: center; justify-content: center;
+      gap: 0.5rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;
+    }
+    .login-header h2 { font-size: 1.5rem; color: var(--text-primary); margin-bottom: 0.25rem; }
+    .login-header p { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 2rem; }
+    .input-group { text-align: left; margin-bottom: 1.25rem; }
+    .input-group label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+    .input-box {
+      width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color);
+      border-radius: var(--radius-md); font-size: 1rem; font-family: inherit; color: var(--text-primary);
+    }
+    .input-box:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px var(--accent-light); }
+    .login-btn {
+      width: 100%; padding: 0.875rem; background-color: var(--accent-color); color: #fff;
+      font-weight: 600; font-size: 1rem; border: none; border-radius: var(--radius-md);
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;
+    }
+    .error-msg { color: var(--danger-color); font-size: 0.875rem; margin-top: 1rem; display: none; }
+    .success-msg { color: #10b981; font-size: 0.875rem; margin-top: 1rem; display: none; }
+    .back-btn { margin-top: 1.5rem; display: inline-flex; align-items: center; gap: 0.25rem; color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+  </style>
+</head>
+<body class="theme-blue">
+
+  <div class="login-container">
+    <div class="login-logo"><i class="ph-fill ph-circles-four"></i> EazDash</div>
+    <div class="login-header">
+      <h2>Create Workspace</h2>
+      <p>Register as a new agency employee</p>
+    </div>
+
+    <!-- Google Identity Services Wrapper -->
+    <div id="g_id_onload"
+         data-client_id="563129684674-mu927pdoovp92e805a4ifio0la1lr3q5.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleGoogleCallback"
+         data-auto_prompt="false">
+    </div>
+    
+    <div class="g_id_signin" style="margin-bottom: 1.5rem; display: flex; justify-content: center; width: 100%;"
+         data-type="standard"
+         data-shape="rectangular"
+         data-theme="outline"
+         data-text="signup_with"
+         data-size="large"
+         data-logo_alignment="center"
+         data-width="350">
+    </div>
+
+    <form id="register-form">
+      <div class="input-group">
+        <label for="reg-name">Full Name</label>
+        <input type="text" id="reg-name" class="input-box" placeholder="John Doe" required autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label for="reg-email">Email Address</label>
+        <input type="email" id="reg-email" class="input-box" placeholder="you@agency.com" required autocomplete="off">
+      </div>
+      <div class="input-group">
+        <label for="reg-password">Secure Password</label>
+        <div style="position: relative;">
+          <input type="password" id="reg-password" class="input-box" placeholder="••••••••" required style="padding-right: 2.5rem;">
+          <button type="button" id="toggle-pwd" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.25rem; display: flex;">
+            <i class="ph ph-eye" id="eye-icon"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="error-msg" id="error-msg"></div>
+      <div class="success-msg" id="success-msg">Account created! Redirecting to login...</div>
+      
+      <button type="submit" class="login-btn">
+        <span>Create Account</span> <i class="ph ph-user-plus"></i>
+      </button>
+    </form>
+    
+    <a href="login.html" class="back-btn">Already have an account? Sign In</a>
+  </div>
+
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="js/auth.js?version=1.0.3"></script> <!-- Updated version to break cached JS -->
+  <script>
+    if(checkUserLogin()) { window.location.replace('marketing.html'); }
+
+    const togglePwd = document.getElementById('toggle-pwd');
+    const pwdInput = document.getElementById('reg-password');
+    const eyeIcon = document.getElementById('eye-icon');
+    
+    togglePwd.addEventListener('click', () => {
+      if (pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        eyeIcon.classList.remove('ph-eye');
+        eyeIcon.classList.add('ph-eye-slash');
+      } else {
+        pwdInput.type = 'password';
+        eyeIcon.classList.remove('ph-eye-slash');
+        eyeIcon.classList.add('ph-eye');
+      }
+    });
+
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const n = document.getElementById('reg-name').value.trim();
+      const em = document.getElementById('reg-email').value.trim();
+      const p = document.getElementById('reg-password').value.trim();
+      const err = document.getElementById('error-msg');
+      const succ = document.getElementById('success-msg');
+
+      err.style.display = 'none';
+      succ.style.display = 'none';
+
+      const result = await registerUser(n, em, p);
+      if (result.success) {
+        succ.style.display = 'block';
+        setTimeout(() => window.location.replace('login.html'), 1500);
+      } else {
+        err.textContent = result.message;
+        err.style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
