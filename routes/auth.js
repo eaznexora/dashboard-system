@@ -8,6 +8,18 @@ const User = require('../models/User');
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_eaz_123';
 
+// --- Helper: Set JWT cookie (works on both localhost and production HTTPS) ---
+function setAuthCookie(res, token) {
+  const isProd = process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https');
+  res.cookie('eaz_token', token, {
+    httpOnly: false,       // JS needs to read the payload for role checks
+    secure: isProd,        // true on HTTPS production, false on localhost
+    maxAge: 7 * 24 * 60 * 60 * 1000,  // 7 days
+    sameSite: 'lax',       // 'lax' works for same-origin auth on all browsers
+    path: '/'              // Ensure cookie is available on all paths
+  });
+}
+
 // 1. STANDARD REGISTRATION PIPELINE
 router.post('/register', async (req, res) => {
   try {
@@ -40,10 +52,7 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(401).json({ message: 'Incorrect password provided.' });
 
     const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-
-    // In production (HTTPS), cookies must be secure
-    const isProd = process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https');
-    res.cookie('eaz_token', token, { httpOnly: false, secure: isProd, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: isProd ? 'none' : 'lax' }); 
+    setAuthCookie(res, token);
 
     res.status(200).json({ message: 'Logged in successfully', role: user.role });
   } catch (error) {
@@ -56,6 +65,13 @@ router.post('/login', async (req, res) => {
 router.post('/google', async (req, res) => {
   try {
     const { credential } = req.body;
+    
+    if (!credential) {
+      return res.status(400).json({ message: 'No credential received from Google' });
+    }
+
+    // Log for debugging on VPS
+    console.log('[GOOGLE_AUTH] Verifying token with CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.substring(0, 25) + '...' : 'MISSING!');
     
     // Explicitly verify the token signature sent from the Browser via Google Cloud instances
     const ticket = await client.verifyIdToken({
@@ -74,13 +90,12 @@ router.post('/google', async (req, res) => {
     }
 
     const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    const isProd = process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https');
-    res.cookie('eaz_token', token, { httpOnly: false, secure: isProd, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: isProd ? 'none' : 'lax' });
+    setAuthCookie(res, token);
 
     res.status(200).json({ message: 'Google Auth Extracted Successfully', role: user.role });
   } catch (error) {
-    console.error("[GOOGLE_OAUTH_ERROR]:", error);
-    res.status(500).json({ message: 'Error processing Google Cloud Identity Token' });
+    console.error("[GOOGLE_OAUTH_ERROR]:", error.message || error);
+    res.status(500).json({ message: 'Error processing Google Cloud Identity Token: ' + (error.message || 'Unknown error') });
   }
 });
 
@@ -91,8 +106,10 @@ router.post('/admin-login', async (req, res) => {
     const adminUser = process.env.ADMIN_USERNAME;
     const adminHash = process.env.ADMIN_PASSWORD_HASH;
 
+    console.log('[ADMIN_LOGIN] Checking credentials. ADMIN_USERNAME loaded:', !!adminUser, 'ADMIN_PASSWORD_HASH loaded:', !!adminHash, 'Hash length:', adminHash ? adminHash.length : 0);
+
     if (!adminUser || !adminHash) {
-      return res.status(500).json({ message: 'Admin credentials not configured on server.' });
+      return res.status(500).json({ message: 'Admin credentials not configured on server. Check .env.local file.' });
     }
 
     if (username !== adminUser) {
@@ -105,8 +122,7 @@ router.post('/admin-login', async (req, res) => {
     }
 
     const token = jwt.sign({ id: 'admin', role: 'ADMIN', name: 'EazNexora Admin', email: 'admin@eaznexora.com' }, JWT_SECRET, { expiresIn: '7d' });
-    const isProd = process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https');
-    res.cookie('eaz_token', token, { httpOnly: false, secure: isProd, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: isProd ? 'none' : 'lax' });
+    setAuthCookie(res, token);
 
     res.status(200).json({ message: 'Admin authenticated', role: 'ADMIN' });
   } catch (error) {
@@ -130,7 +146,7 @@ router.get('/me', (req, res) => {
 
 // 6. LOGOUT
 router.post('/logout', (req, res) => {
-  res.clearCookie('eaz_token');
+  res.clearCookie('eaz_token', { path: '/' });
   res.status(200).json({ message: 'Logged out successfully' });
 });
 

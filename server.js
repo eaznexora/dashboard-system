@@ -8,16 +8,16 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const path = require('path');
 const dotenv = require('dotenv');
 
-// Load environment variables directly from .env.local (using absolute path for VPS reliability)
-dotenv.config({ path: path.join(__dirname, '.env.local') });
+// Load environment variables directly from .env.local
+dotenv.config({ path: '.env.local' });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Parser Middleware (MUST come before routes and authGuard)
+app.set('trust proxy', 1); // Trust Nginx reverse proxy for HTTPS detection
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
@@ -48,24 +48,10 @@ const MONGODB_URI = process.env.MONGODB_URI;
 
 mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 5000
-}).then(async () => {
+}).then(() => {
     console.log("######################################################");
     console.log("⚡ SUCCESS: Express Connected Cleanly to MongoDB Atlas! ⚡");
     console.log("######################################################");
-    
-    // AUTO-SEED: Ensure dashboard data exists on first VPS boot
-    const DashboardMetrics = require('./models/DashboardMetrics');
-    const count = await DashboardMetrics.countDocuments();
-    if (count === 0) {
-        console.log("📦 SEEDING: Initializing dashboard metrics...");
-        // Trigger the seed logic (reuse from routes/dashboard or simple bulk insert)
-        const dashboardModule = require('./routes/dashboard');
-        const { defaultMetrics } = dashboardModule; 
-        for (const [category, metrics] of Object.entries(defaultMetrics || {})) {
-            await DashboardMetrics.findOneAndUpdate({ category }, { metrics }, { upsert: true });
-        }
-        console.log("✅ SEEDED: Dashboard ready.");
-    }
 }).catch(err => {
     console.error("\n❌ FAILED TO REACH MONGODB! ❌");
     console.error("1. Did you add 0.0.0.0/0 to the Atlas Network Access Whitelist?");
@@ -77,12 +63,12 @@ mongoose.connect(MONGODB_URI, {
 const authRoutes = require('./routes/auth');
 const employeeRoutes = require('./routes/employees');
 const taskRoutes = require('./routes/tasks');
-const dashboardModule = require('./routes/dashboard');
+const dashboardRoutes = require('./routes/dashboard');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/tasks', taskRoutes);
-app.use('/api/dashboard', dashboardModule.router);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -94,4 +80,11 @@ app.listen(PORT, () => {
     console.log(`\n======================================================`);
     console.log(`🚀 EazDash Node Server Live: http://localhost:${PORT}`);
     console.log(`======================================================\n`);
+    // Debug: Show loaded environment variables (masked)
+    console.log('ENV CHECK:');
+    console.log('  GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✅ SET (' + process.env.GOOGLE_CLIENT_ID.substring(0, 20) + '...)' : '❌ MISSING');
+    console.log('  MONGODB_URI:', process.env.MONGODB_URI ? '✅ SET' : '❌ MISSING');
+    console.log('  NEXTAUTH_URL:', process.env.NEXTAUTH_URL || '❌ MISSING');
+    console.log('  ADMIN_USERNAME:', process.env.ADMIN_USERNAME || '❌ MISSING');
+    console.log('  ADMIN_PASSWORD_HASH:', process.env.ADMIN_PASSWORD_HASH ? '✅ SET (' + process.env.ADMIN_PASSWORD_HASH.length + ' chars)' : '❌ MISSING');
 });
