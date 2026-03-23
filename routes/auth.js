@@ -73,6 +73,7 @@ router.post('/google', async (req, res) => {
         user = await User.create({ name, email, image: picture, password: dummyPassword, role: 'EMPLOYEE' });
     }
 
+    const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     const isProd = process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https');
     res.cookie('eaz_token', token, { httpOnly: false, secure: isProd, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: isProd ? 'none' : 'lax' });
 
