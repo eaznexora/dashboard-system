@@ -102,7 +102,10 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="js/auth.js?version=1.0.3"></script> <!-- Updated version to break cached JS -->
   <script>
-    if(checkUserLogin()) { window.location.replace('marketing.html'); }
+    if(checkUserLogin()) {
+      const u = getCurrentUser();
+      window.location.replace(u && u.role === 'ADMIN' ? 'marketing.html' : 'employee.html');
+    }
 
     const togglePwd = document.getElementById('toggle-pwd');
     const pwdInput = document.getElementById('login-password');
@@ -130,7 +133,7 @@
 
       const result = await loginUser(em, p);
       if (result.success) {
-        window.location.replace('marketing.html');
+        window.location.replace(result.role === 'ADMIN' ? 'marketing.html' : 'employee.html');
       } else {
         err.textContent = result.message;
         err.style.display = 'block';

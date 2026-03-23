@@ -44,3 +44,6 @@ next-env.d.ts
 
 # Diagnostic test scripts
 test-mongo.js
+
+# Text guide files (local only)
+*.txt

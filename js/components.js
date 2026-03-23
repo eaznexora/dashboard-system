@@ -50,6 +50,11 @@ function renderSidebar(activeId) {
 }
 
 function renderHeader(title) {
+  const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  const userName = user ? user.name : 'Guest';
+  const userRole = user ? user.role : 'Viewer';
+  const isAdmin = userRole === 'ADMIN';
+
   return `
     <header class="top-header">
       <div class="header-left" style="display:flex; align-items:center; gap: 1rem;">
@@ -58,11 +63,12 @@ function renderHeader(title) {
         </button>
         <h1 class="page-title">${title}</h1>
       </div>
-      <div class="header-right">
-        <div class="user-profile">
-          <span id="user-status-badge" style="font-size:0.875rem; color: var(--text-secondary); background: var(--bg-color); padding: 0.25rem 0.75rem; border-radius: 2rem; font-weight:600; white-space: nowrap; display: flex; align-items: center; gap: 0.25rem;">Viewer</span>
-          <div class="avatar"><i class="ph ph-user"></i></div>
-        </div>
+      <div class="header-right" style="display:flex; align-items:center; gap:0.75rem;">
+        <span id="user-status-badge" style="font-size:0.8rem; color: ${isAdmin ? '#fff' : 'var(--text-secondary)'}; background: ${isAdmin ? 'var(--success-color)' : 'var(--bg-color)'}; padding: 0.25rem 0.75rem; border-radius: 2rem; font-weight:600; white-space: nowrap; display: flex; align-items: center; gap: 0.25rem;">
+          <i class="ph ${isAdmin ? 'ph-shield-check' : 'ph-user'}"></i> ${userRole}
+        </span>
+        <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">${userName}</div>
+        <div class="avatar"><i class="ph ph-user"></i></div>
       </div>
     </header>
   `;
@@ -70,6 +76,11 @@ function renderHeader(title) {
 
 // Automatically inject upon loading JS
 function initApp(pageId, pageTitle) {
+  // Auth guard — redirect if not logged in (skip for login/register)
+  if (typeof requireAuth === 'function' && pageId !== 'login' && pageId !== 'register') {
+    requireAuth();
+  }
+
   const appContainer = document.getElementById('app');
   if(!appContainer) return;
 
@@ -103,13 +114,5 @@ function initApp(pageId, pageTitle) {
   // Inject Admin Controls
   if (typeof window.renderAdminControls === 'function') {
     window.renderAdminControls(sidebar);
-    
-    // Update Badge
-    const badge = document.getElementById('user-status-badge');
-    if (badge && typeof window.checkAdminStatus === 'function' && window.checkAdminStatus()) {
-      badge.innerHTML = '<i class="ph ph-shield-check"></i> Admin';
-      badge.style.color = '#fff';
-      badge.style.background = 'var(--success-color)';
-    }
   }
 }

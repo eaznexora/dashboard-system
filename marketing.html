@@ -21,7 +21,10 @@
   <script src="js/auth.js?version=1.0.1"></script>
   <script>
     initApp('marketing', 'Digital Marketing');
-    const store = window.EazStore.get().marketing;
+
+    // Fetch live data from MongoDB
+    (async () => {
+      const store = await window.EazStore.getCategory('marketing') || window.EazStore.get().marketing;
 
     const content = `
       <div class="grid-cols-4">
@@ -103,7 +106,7 @@
 
     const ctx = document.getElementById('marketingChart').getContext('2d');
     let gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)'); 
+    gradient.addColorStop(0, 'rgba(37, 99, 235, 0.2)');
     gradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
 
     new Chart(ctx, {
@@ -127,15 +130,14 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false }
-        },
+        plugins: { legend: { display: false } },
         scales: {
           y: { grid: { borderDash: [5, 5] } },
           x: { grid: { display: false } }
         }
       }
     });
+    })();
 
   </script>
 </body>

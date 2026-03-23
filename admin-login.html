@@ -70,7 +70,7 @@
         </div>
       </div>
       
-      <div class="error-msg" id="error-msg">Invalid Agent Credentials</div>
+      <div class="error-msg" id="error-msg"></div>
       
       <button type="submit" class="login-btn">
         <span>Authenticate</span> <i class="ph ph-shield-check"></i>
@@ -80,10 +80,7 @@
     <a href="marketing.html" class="back-btn"><i class="ph ph-arrow-left"></i> Return to Dashboards</a>
   </div>
 
-  <script src="js/auth.js?version=1.0.1"></script>
   <script>
-    if(localStorage.getItem('eaznexora_admin') === 'true') { window.location.replace('admin-panel.html'); }
-
     const togglePwd = document.getElementById('toggle-pwd');
     const pwdInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eye-icon');
@@ -100,16 +97,29 @@
       }
     });
 
-    document.getElementById('login-form').addEventListener('submit', (e) => {
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       const u = document.getElementById('username').value.trim();
       const p = document.getElementById('password').value.trim();
       const err = document.getElementById('error-msg');
+      err.style.display = 'none';
 
-      if (u === 'eaznexora' && p === 'naar@#..admin') {
-        localStorage.setItem('eaznexora_admin', 'true');
-        window.location.replace('admin-panel.html');
-      } else {
+      try {
+        const res = await fetch('/api/auth/admin-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          window.location.replace('admin-panel.html');
+        } else {
+          err.textContent = data.message || 'Invalid Agent Credentials';
+          err.style.display = 'block';
+        }
+      } catch(e) {
+        err.textContent = 'Server unreachable. Is Node running?';
         err.style.display = 'block';
       }
     });

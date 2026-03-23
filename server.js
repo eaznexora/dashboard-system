@@ -10,28 +10,29 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 
-// Load environment variables directly from .env.local natively
+// Load environment variables directly from .env.local
 dotenv.config({ path: '.env.local' });
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware Layers
-app.use(cors({ origin: true, credentials: true })); 
-
-// SERVE THE PURE HTML PROTOTYPE NATIVELY 
-// This acts as a Web Server distributing your HTML/CSS/JS identical to 'Live Server' 
-app.use(express.static(__dirname)); 
-
-// Parser Middleware
+// Parser Middleware (MUST come before routes and authGuard)
 app.use(express.json());
 app.use(cookieParser());
+app.use(cors({ origin: true, credentials: true }));
 
-// Database Connection natively bypassing generic SRV blocks conditionally if passed
+// Auth Guard Middleware — protects all HTML pages behind JWT
+const authGuard = require('./middleware/authGuard');
+app.use(authGuard);
+
+// Serve static HTML/CSS/JS files (after auth guard so pages are protected)
+app.use(express.static(__dirname));
+
+// Database Connection
 const MONGODB_URI = process.env.MONGODB_URI;
 
-mongoose.connect(MONGODB_URI, { 
-    serverSelectionTimeoutMS: 5000 
+mongoose.connect(MONGODB_URI, {
+    serverSelectionTimeoutMS: 5000
 }).then(() => {
     console.log("######################################################");
     console.log("⚡ SUCCESS: Express Connected Cleanly to MongoDB Atlas! ⚡");
@@ -43,16 +44,23 @@ mongoose.connect(MONGODB_URI, {
     console.error("RAW ERROR INFO:", err.message);
 });
 
-// API Routes Configuration
+// API Routes
 const authRoutes = require('./routes/auth');
-app.use('/api/auth', authRoutes);
+const employeeRoutes = require('./routes/employees');
+const taskRoutes = require('./routes/tasks');
+const dashboardRoutes = require('./routes/dashboard');
 
-// Primary Test Route
+app.use('/api/auth', authRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+
+// Health Check
 app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'EazDash Backend API is structurally active and reachable.' });
+    res.json({ status: 'ok', message: 'EazDash Backend API is live.' });
 });
 
-// Boot the Server
+// Boot Server
 app.listen(PORT, () => {
     console.log(`\n======================================================`);
     console.log(`🚀 EazDash Node Server Live: http://localhost:${PORT}`);

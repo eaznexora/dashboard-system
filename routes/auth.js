@@ -82,7 +82,50 @@ router.post('/google', async (req, res) => {
   }
 });
 
-// 4. LOGOUT ROUTING
+// 4. ADMIN LOGIN (credentials from .env.local)
+router.post('/admin-login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    const adminUser = process.env.ADMIN_USERNAME;
+    const adminHash = process.env.ADMIN_PASSWORD_HASH;
+
+    if (!adminUser || !adminHash) {
+      return res.status(500).json({ message: 'Admin credentials not configured on server.' });
+    }
+
+    if (username !== adminUser) {
+      return res.status(401).json({ message: 'Invalid admin credentials.' });
+    }
+
+    const isMatch = await bcrypt.compare(password, adminHash);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid admin credentials.' });
+    }
+
+    const token = jwt.sign({ id: 'admin', role: 'ADMIN', name: 'EazNexora Admin', email: 'admin@eaznexora.com' }, JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('eaz_token', token, { httpOnly: false, secure: false, maxAge: 7 * 24 * 60 * 60 * 1000 });
+
+    res.status(200).json({ message: 'Admin authenticated', role: 'ADMIN' });
+  } catch (error) {
+    console.error("[ADMIN_LOGIN_ERROR]:", error);
+    res.status(500).json({ message: 'Internal admin auth error' });
+  }
+});
+
+// 5. GET CURRENT USER FROM JWT
+router.get('/me', (req, res) => {
+  const token = req.cookies?.eaz_token;
+  if (!token) return res.status(401).json({ message: 'Not authenticated' });
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    res.json({ id: decoded.id, name: decoded.name, email: decoded.email, role: decoded.role });
+  } catch (err) {
+    res.status(401).json({ message: 'Invalid or expired token' });
+  }
+});
+
+// 6. LOGOUT
 router.post('/logout', (req, res) => {
   res.clearCookie('eaz_token');
   res.status(200).json({ message: 'Logged out successfully' });
