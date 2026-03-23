@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const path = require('path');
+const dotenv = require('dotenv');
 
 // Load environment variables directly from .env.local (using absolute path for VPS reliability)
 dotenv.config({ path: path.join(__dirname, '.env.local') });
@@ -58,7 +59,8 @@ mongoose.connect(MONGODB_URI, {
     if (count === 0) {
         console.log("📦 SEEDING: Initializing dashboard metrics...");
         // Trigger the seed logic (reuse from routes/dashboard or simple bulk insert)
-        const { defaultMetrics } = require('./routes/dashboard'); // Use a getter/factory if needed
+        const dashboardModule = require('./routes/dashboard');
+        const { defaultMetrics } = dashboardModule; 
         for (const [category, metrics] of Object.entries(defaultMetrics || {})) {
             await DashboardMetrics.findOneAndUpdate({ category }, { metrics }, { upsert: true });
         }
@@ -75,12 +77,12 @@ mongoose.connect(MONGODB_URI, {
 const authRoutes = require('./routes/auth');
 const employeeRoutes = require('./routes/employees');
 const taskRoutes = require('./routes/tasks');
-const dashboardRoutes = require('./routes/dashboard');
+const dashboardModule = require('./routes/dashboard');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/tasks', taskRoutes);
-app.use('/api/dashboard', dashboardRoutes.router);
+app.use('/api/dashboard', dashboardModule.router);
 
 // Health Check
 app.get('/api/health', (req, res) => {
