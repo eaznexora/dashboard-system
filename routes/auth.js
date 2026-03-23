@@ -104,6 +104,7 @@ router.post('/admin-login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid admin credentials.' });
     }
 
+    const token = jwt.sign({ id: 'admin', role: 'ADMIN', name: 'EazNexora Admin', email: 'admin@eaznexora.com' }, JWT_SECRET, { expiresIn: '7d' });
     const isProd = process.env.NEXTAUTH_URL && process.env.NEXTAUTH_URL.startsWith('https');
     res.cookie('eaz_token', token, { httpOnly: false, secure: isProd, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: isProd ? 'none' : 'lax' });
 
