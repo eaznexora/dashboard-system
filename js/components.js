@@ -22,9 +22,9 @@ const NAV_ITEMS = [
   
   // Agency Expansion (New)
   { id: 'admin-panel', name: 'Employees', href: 'admin-panel.html', icon: '<i class="ph ph-users-three"></i>', adminOnly: true },
+  { id: 'clients', name: 'Clients (CRM)', href: 'clients.html', icon: '<i class="ph ph-address-book"></i>', adminOnly: true },
   { id: 'projects', name: 'Projects', href: 'projects.html', icon: '<i class="ph ph-kanban"></i>', adminOnly: true },
   { id: 'tasks', name: 'Global Tasks', href: 'tasks.html', icon: '<i class="ph ph-list-checks"></i>', adminOnly: true },
-  { id: 'clients', name: 'Clients (CRM)', href: 'clients.html', icon: '<i class="ph ph-address-book"></i>', adminOnly: true },
   { id: 'invoices', name: 'Invoices', href: 'invoices.html', icon: '<i class="ph ph-receipt"></i>', adminOnly: true },
   { id: 'reports', name: 'Reports', href: 'reports.html', icon: '<i class="ph ph-chart-pie"></i>' },
   { id: 'dashboard-matrix', name: 'Dashboard Matrix', href: 'matrix.html', icon: '<i class="ph ph-grid-four"></i>', adminOnly: true },
