@@ -247,7 +247,10 @@ const AdminPanel = {
             <h2 class="view-title">Project Command Center</h2>
             <p class="view-subtitle">${projects.length} Active Projects</p>
           </div>
-          <button class="btn btn-primary" onclick="AdminPanel.showAddProject()"><i class="ph ph-plus"></i> New Project</button>
+          <div style="display:flex; gap:0.5rem;">
+            <button class="btn btn-secondary" onclick="AdminPanel.showAddTask()"><i class="ph ph-list-plus"></i> Quick Task</button>
+            <button class="btn btn-primary" onclick="AdminPanel.showAddProject()"><i class="ph ph-plus"></i> New Project</button>
+          </div>
         </div>
         
         <div class="grid-cols-2">
@@ -342,6 +345,9 @@ const AdminPanel = {
           </div>
           <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary);">₹${p.budget?.toLocaleString() || 0}</div>
         </div>
+        <div style="margin-top:0.75rem; text-align:right;">
+           <button class="btn-text" style="font-size:0.7rem; color:var(--accent-color);" onclick="event.stopPropagation(); AdminPanel.showAddTask('${p._id}')"><i class="ph ph-plus-circle"></i> ADD TASK</button>
+        </div>
       </div>
     `;
   },
@@ -416,9 +422,11 @@ const AdminPanel = {
     `;
   },
 
-  async showAddTask(projectId) {
+  async showAddTask(projectId = null) {
     const empsRes = await fetch('/api/employees');
     const emps = await empsRes.json();
+    const projRes = await fetch('/api/projects');
+    const projs = await projRes.json();
 
     const modalHtml = `
       <div class="modal-overlay" id="task-modal">
@@ -428,10 +436,11 @@ const AdminPanel = {
             <button onclick="document.getElementById('task-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
           <div style="display:grid; gap:1rem;">
-            <input type="hidden" id="t-project" value="${projectId}">
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Task Title</label>
-              <input type="text" id="t-title" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project</label>
+              <select id="t-project" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                ${projs.map(p => `<option value="${p._id}" ${p._id === projectId ? 'selected' : ''}>${p.name}</option>`).join('')}
+              </select>
             </div>
             <div class="form-group">
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Assign To</label>
@@ -877,6 +886,127 @@ const AdminPanel = {
     } catch (err) {
       alert('Failed to generate invoice');
     }
+  },
+
+  // --- DASHBOARD MATRIX MODULE ---
+  async loadDashboardMatrix() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Loading matrix...</div>`;
+    
+    const categories = ['marketing', 'financial', 'operations', 'support', 'sales', 'executive'];
+    
+    try {
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Dashboard Matrix</h2>
+            <p class="view-subtitle">Manage the live data shown on all 6 analytics dashboards</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.seedAllMetrics()"><i class="ph ph-magic-wand"></i> Reset to Defaults</button>
+        </div>
+        
+        <div class="grid-cols-3">
+          ${categories.map(cat => `
+            <div class="card" onclick="AdminPanel.editCategoryMetrics('${cat}')" style="cursor:pointer; transition:transform 0.2s; position:relative; padding:1.5rem;">
+               <div style="font-size:2rem; margin-bottom:1rem; color:var(--accent-color);">
+                 ${PHO_ICONS[cat] || '<i class="ph ph-chart-line"></i>'}
+               </div>
+               <h4 style="text-transform:capitalize; font-weight:800; margin-bottom:0.5rem;">${cat} Dashboard</h4>
+               <p style="font-size:0.8rem; color:var(--text-secondary);">Click to edit visitors, revenue, charts, and other matrix data.</p>
+               <div style="margin-top:1.5rem; text-align:right;">
+                 <span style="font-size:0.75rem; font-weight:700; color:var(--accent-color);">EDIT DATA →</span>
+               </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<div class="error">Failed to load matrix.</div>`;
+    }
+  },
+
+  async editCategoryMetrics(category) {
+    const res = await fetch(`/api/dashboard/${category}`);
+    const metrics = await res.json();
+    
+    // Create a dynamic form for all fields except arrays (charts)
+    // For arrays, we'll provide a simple text box for comma separated values
+    const fieldsHtml = Object.keys(metrics).map(key => {
+      const val = metrics[key];
+      const isArray = Array.isArray(val);
+      
+      return `
+        <div class="form-group" style="margin-bottom:1.25rem;">
+          <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem;">${key.replace(/([A-Z])/g, ' $1')}</label>
+          ${isArray ? `
+            <input type="text" class="form-control matrix-input" data-key="${key}" data-type="array" value="${val.join(', ')}" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            <small style="font-size:0.65rem; color:var(--text-secondary);">Comma-separated numbers for the chart</small>
+          ` : `
+            <input type="text" class="form-control matrix-input" data-key="${key}" data-type="string" value="${val}" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+          `}
+        </div>
+      `;
+    }).join('');
+
+    const modalHtml = `
+      <div class="modal-overlay" id="matrix-modal">
+        <div class="modal-content" style="max-width:700px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800; text-transform:capitalize;">${category} Matrix</h3>
+            <button onclick="document.getElementById('matrix-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="max-height:60vh; overflow-y:auto; padding-right:1rem; margin-bottom:1.5rem;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+              ${fieldsHtml}
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveDashboardMetrics('${category}')">Update live dashboard</button>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  async saveDashboardMetrics(category) {
+    const inputs = document.querySelectorAll('.matrix-input');
+    const metrics = {};
+    
+    inputs.forEach(input => {
+      const key = input.dataset.key;
+      const type = input.dataset.type;
+      let val = input.value;
+      
+      if (type === 'array') {
+        metrics[key] = val.split(',').map(v => Number(v.trim()));
+      } else if (val === 'true' || val === 'false') {
+        metrics[key] = val === 'true';
+      } else {
+        metrics[key] = val;
+      }
+    });
+
+    try {
+      const res = await fetch(`/api/dashboard/${category}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ metrics })
+      });
+      if (res.ok) {
+        document.getElementById('matrix-modal').remove();
+        alert(`${category.toUpperCase()} dashboard updated successfully!`);
+      }
+    } catch (err) {
+      alert('Failed to update matrix');
+    }
+  },
+
+  async seedAllMetrics() {
+    if (!confirm('Are you sure you want to reset all dashboard data to factory defaults?')) return;
+    try {
+      const res = await fetch('/api/dashboard/seed/all', { method: 'POST' });
+      if (res.ok) alert('All data reset to defaults.');
+    } catch (err) { alert('Seeding failed'); }
   },
 
   // --- ASSETS MODULE ---
