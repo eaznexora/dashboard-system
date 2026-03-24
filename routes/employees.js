@@ -6,19 +6,15 @@ const TimeLog = require('../models/TimeLog');
 // GET all employees (admin only)
 router.get('/', async (req, res) => {
   try {
-    const employees = await User.find({ role: 'EMPLOYEE' }).select('-password');
+    const employees = await User.find({ role: 'EMPLOYEE' }).select('-password').sort({ name: 1 });
     
-    // Attach active status (has open timelog)
-    const activeTimeLogs = await TimeLog.find({ clockOut: null }).populate('userId', 'name email');
-    const activeIds = activeTimeLogs.map(t => t.userId?._id?.toString());
+    // Check who is currently clocked in
+    const activeTimeLogs = await TimeLog.find({ clockOut: null });
+    const activeIds = activeTimeLogs.map(t => t.userId.toString());
 
     const result = employees.map(emp => ({
-      _id: emp._id,
-      name: emp.name,
-      email: emp.email,
-      image: emp.image,
-      isActive: activeIds.includes(emp._id.toString()),
-      createdAt: emp.createdAt
+      ...emp.toObject(),
+      isCurrentlyWorking: activeIds.includes(emp._id.toString())
     }));
 
     res.json(result);
@@ -28,19 +24,28 @@ router.get('/', async (req, res) => {
   }
 });
 
+// UPDATE employee (admin only - designation, department, isActive/fire, etc.)
+router.patch('/:id', async (req, res) => {
+  try {
+    const employee = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).select('-password');
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    res.json(employee);
+  } catch (err) {
+    console.error('[EMPLOYEE_UPDATE_ERROR]:', err);
+    res.status(500).json({ message: 'Failed to update employee' });
+  }
+});
+
 // CLOCK IN
 router.post('/clock-in', async (req, res) => {
   try {
     const userId = req.body.userId;
-    
-    // Check if already clocked in
     const existing = await TimeLog.findOne({ userId, clockOut: null });
-    if (existing) return res.status(400).json({ message: 'Already clocked in. Clock out first.' });
+    if (existing) return res.status(400).json({ message: 'Already clocked in.' });
 
     const log = await TimeLog.create({ userId, clockIn: new Date() });
     res.status(201).json({ message: 'Clocked in successfully', log });
   } catch (err) {
-    console.error('[CLOCK_IN_ERROR]:', err);
     res.status(500).json({ message: 'Clock-in failed' });
   }
 });
@@ -49,7 +54,6 @@ router.post('/clock-in', async (req, res) => {
 router.post('/clock-out', async (req, res) => {
   try {
     const userId = req.body.userId;
-    
     const log = await TimeLog.findOne({ userId, clockOut: null });
     if (!log) return res.status(400).json({ message: 'No active clock-in found.' });
 
@@ -59,12 +63,11 @@ router.post('/clock-out', async (req, res) => {
 
     res.json({ message: 'Clocked out successfully', totalHours: log.totalHours });
   } catch (err) {
-    console.error('[CLOCK_OUT_ERROR]:', err);
     res.status(500).json({ message: 'Clock-out failed' });
   }
 });
 
-// GET current status for a user
+// GET current status
 router.get('/status/:userId', async (req, res) => {
   try {
     const activeLog = await TimeLog.findOne({ userId: req.params.userId, clockOut: null });
@@ -74,24 +77,28 @@ router.get('/status/:userId', async (req, res) => {
   }
 });
 
-// GET work history for a user
+// GET history and today's hours
 router.get('/history/:userId', async (req, res) => {
   try {
     const logs = await TimeLog.find({ userId: req.params.userId }).sort({ clockIn: -1 }).limit(30);
+    
+    // Calculate today's hours
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayLogs = await TimeLog.find({ 
+      userId: req.params.userId, 
+      clockIn: { $gte: today } 
+    });
+    const todayHours = todayLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
+    
     const totalHours = logs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
-    res.json({ logs, totalHours: parseFloat(totalHours.toFixed(2)) });
+    res.json({ 
+      logs, 
+      totalHours: parseFloat(totalHours.toFixed(2)),
+      todayHours: parseFloat(todayHours.toFixed(2)) 
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to fetch history' });
-  }
-});
-
-// GET who is currently active (admin view)
-router.get('/tracking', async (req, res) => {
-  try {
-    const activeLogs = await TimeLog.find({ clockOut: null }).populate('userId', 'name email image');
-    res.json(activeLogs);
-  } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch active tracking' });
   }
 });
 

@@ -12,21 +12,38 @@ const PHO_ICONS = {
 };
 
 const NAV_ITEMS = [
-  { id: 'marketing', name: 'Marketing', href: 'marketing.html', icon: PHO_ICONS.marketing },
-  { id: 'financial', name: 'Financial', href: 'financial.html', icon: PHO_ICONS.financial },
-  { id: 'operations', name: 'Operations', href: 'operations.html', icon: PHO_ICONS.operations },
-  { id: 'support', name: 'Support', href: 'support.html', icon: PHO_ICONS.support },
-  { id: 'sales', name: 'Sales', href: 'sales.html', icon: PHO_ICONS.sales },
-  { id: 'executive', name: 'Executive', href: 'executive.html', icon: PHO_ICONS.executive },
+  // Analytics Dashboards (Existing)
+  { id: 'marketing', name: 'Marketing', href: 'marketing.html', icon: '<i class="ph ph-trend-up"></i>' },
+  { id: 'financial', name: 'Financial', href: 'financial.html', icon: '<i class="ph ph-currency-dollar"></i>' },
+  { id: 'operations', name: 'Operations', href: 'operations.html', icon: '<i class="ph ph-gear"></i>' },
+  { id: 'support', name: 'Support', href: 'support.html', icon: '<i class="ph ph-headset"></i>' },
+  { id: 'sales', name: 'Sales', href: 'sales.html', icon: '<i class="ph ph-briefcase"></i>' },
+  { id: 'executive', name: 'Executive', href: 'executive.html', icon: '<i class="ph ph-chart-pie-slice"></i>' },
+  
+  // Agency Expansion (New)
+  { id: 'admin-panel', name: 'Employees', href: 'admin-panel.html', icon: '<i class="ph ph-users-three"></i>', adminOnly: true },
+  { id: 'projects', name: 'Projects', href: 'projects.html', icon: '<i class="ph ph-kanban"></i>', adminOnly: true },
+  { id: 'clients', name: 'Clients (CRM)', href: 'clients.html', icon: '<i class="ph ph-address-book"></i>', adminOnly: true },
+  { id: 'invoices', name: 'Invoices', href: 'invoices.html', icon: '<i class="ph ph-receipt"></i>', adminOnly: true },
+  { id: 'assets', name: 'Asset Hub', href: 'assets.html', icon: '<i class="ph ph-folders"></i>' },
+  { id: 'reports', name: 'Reports', href: 'reports.html', icon: '<i class="ph ph-chart-pie"></i>', adminOnly: true },
 ];
 
 function renderSidebar(activeId) {
-  const linksHtml = NAV_ITEMS.map(item => `
-    <a href="${item.href}" class="nav-item ${item.id === activeId ? 'active' : ''}">
-      ${item.icon}
-      <span>${item.name}</span>
-    </a>
-  `).join('');
+  const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  const isEmployee = user && user.role === 'EMPLOYEE';
+
+  const linksHtml = NAV_ITEMS
+    .filter(item => {
+      if (item.adminOnly && isEmployee) return false;
+      return true;
+    })
+    .map(item => `
+      <a href="${item.href}" class="nav-item ${item.id === activeId ? 'active' : ''}">
+        ${item.icon}
+        <span>${item.name}</span>
+      </a>
+    `).join('');
 
   return `
     <nav class="sidebar" id="sidebar">

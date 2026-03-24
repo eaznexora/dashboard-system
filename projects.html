@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Team Management | EazDash</title>
+  <title>Projects | EazDash</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,15 +21,10 @@
   <script src="js/admin.js?version=1.0.1"></script>
   
   <script>
-    // Auth Guard
     const user = requireAuth();
     if (!user || user.role !== 'ADMIN') window.location.replace('admin-login.html');
-
-    // Initialize UI Shell
-    initApp('admin-panel', 'Team Management');
-
-    // Load Initial View
-    AdminPanel.loadEmployees();
+    initApp('projects', 'Project Command Center');
+    AdminPanel.loadProjects();
   </script>
 </body>
 </html>

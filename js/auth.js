@@ -98,6 +98,89 @@ async function handleGoogleCallback(response) {
 }
 window.handleGoogleCallback = handleGoogleCallback;
 
+// --- GOOGLE OAUTH INITIALIZATION ---
+async function initGoogleAuth() {
+  const btn = document.querySelector(".g_id_signin");
+  const fallbackId = "563129684674-mu927pdoovp92e805a4ifio0la1lr3q5.apps.googleusercontent.com"; // Verified from .env.local
+
+  try {
+    const res = await fetch('/api/config');
+    let googleClientId;
+    
+    if (res.ok) {
+      const data = await res.json();
+      googleClientId = data.googleClientId;
+    } else {
+      console.warn("Config endpoint unreachable, using fallback Client ID.");
+      googleClientId = fallbackId;
+    }
+    
+    if (!googleClientId) {
+      if (btn) btn.innerHTML = '<span style="color:var(--danger-color); font-size:0.8rem;">Configuration Missing</span>';
+      return;
+    }
+
+    // Polling for window.google
+    let attempts = 0;
+    const checkGoogle = setInterval(() => {
+      attempts++;
+      if (window.google && google.accounts.id) {
+        clearInterval(checkGoogle);
+        google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: window.handleGoogleCallback,
+          ux_mode: 'popup',
+          context: 'signin',
+        });
+        
+        if (btn) {
+          google.accounts.id.renderButton(btn, {
+            type: "standard",
+            shape: "rectangular",
+            theme: "outline",
+            text: "signin_with",
+            size: "large",
+            logo_alignment: "center",
+            width: 350
+          });
+        }
+      } else if (attempts > 30) { 
+        clearInterval(checkGoogle);
+        if (btn) btn.innerHTML = '<span style="color:var(--danger-color); font-size:0.8rem;">Network Error: Refresh page</span>';
+      }
+    }, 500);
+
+  } catch (e) {
+    console.error("Google Auth Init Failed:", e);
+    // Even on total fetch failure, try the fallback
+    if (btn) btn.innerHTML = '<div class="loading-dots">Initializing Secure Login...</div>';
+    setTimeout(() => {
+       if (window.google) initGoogleAuthFallback(fallbackId);
+    }, 1000);
+  }
+}
+
+function initGoogleAuthFallback(cid) {
+    const btn = document.querySelector(".g_id_signin");
+    google.accounts.id.initialize({
+      client_id: cid,
+      callback: window.handleGoogleCallback,
+      ux_mode: 'popup',
+    });
+    if (btn) {
+      google.accounts.id.renderButton(btn, {
+        type: "standard", shape: "rectangular", theme: "outline", text: "signin_with", size: "large", width: 350
+      });
+    }
+}
+
+// Auto-init for pages with the signin button
+window.addEventListener('load', () => {
+    if (document.querySelector(".g_id_signin")) {
+        initGoogleAuth(); 
+    }
+});
+
 // --- SIDEBAR CONTROLS ---
 window.renderAdminControls = function(sidebarElement) {
   const user = getCurrentUser();

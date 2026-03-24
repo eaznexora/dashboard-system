@@ -10,7 +10,10 @@ router.get('/', async (req, res) => {
     if (role !== 'ADMIN' && userId) {
       filter.assignedTo = userId;
     }
-    const tasks = await Task.find(filter).populate('assignedTo', 'name email').sort({ createdAt: -1 });
+    const tasks = await Task.find(filter)
+      .populate('assignedTo', 'name email image')
+      .populate('project', 'name color')
+      .sort({ createdAt: -1 });
     res.json(tasks);
   } catch (err) {
     console.error('[TASKS_LIST_ERROR]:', err);
@@ -18,11 +21,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// CREATE task (admin assigns)
+// CREATE task
 router.post('/', async (req, res) => {
   try {
-    const { title, description, assignedTo, project, priority, estimatedHours, deadline } = req.body;
-    const task = await Task.create({ title, description, assignedTo, project, priority, estimatedHours, deadline });
+    const task = await Task.create(req.body);
     res.status(201).json(task);
   } catch (err) {
     console.error('[TASK_CREATE_ERROR]:', err);
@@ -30,19 +32,33 @@ router.post('/', async (req, res) => {
   }
 });
 
-// UPDATE task status (employee marks progress)
-router.patch('/:id/status', async (req, res) => {
+// UPDATE task
+router.patch('/:id', async (req, res) => {
   try {
     const { status } = req.body;
-    const update = { status };
-    if (status === 'completed') update.completedAt = new Date();
+    if (status === 'completed') req.body.completedAt = new Date();
     
-    const task = await Task.findByIdAndUpdate(req.params.id, update, { new: true });
+    const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!task) return res.status(404).json({ message: 'Task not found' });
     res.json(task);
   } catch (err) {
-    console.error('[TASK_STATUS_ERROR]:', err);
+    console.error('[TASK_UPDATE_ERROR]:', err);
     res.status(500).json({ message: 'Failed to update task' });
+  }
+});
+
+// ADD COMMENT
+router.post('/:id/comments', async (req, res) => {
+  try {
+    const { userId, text } = req.body;
+    const task = await Task.findByIdAndUpdate(
+      req.params.id,
+      { $push: { comments: { userId, text } } },
+      { new: true }
+    ).populate('comments.userId', 'name image');
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to add comment' });
   }
 });
 
@@ -56,7 +72,7 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// GET task stats (counts by status)
+// GET task stats
 router.get('/stats', async (req, res) => {
   try {
     const total = await Task.countDocuments();

@@ -55,23 +55,9 @@
       <p>Log in to your workspace</p>
     </div>
 
-    <!-- Google Identity Services Wrapper -->
-    <div id="g_id_onload"
-         data-client_id="563129684674-mu927pdoovp92e805a4ifio0la1lr3q5.apps.googleusercontent.com"
-         data-context="signin"
-         data-ux_mode="popup"
-         data-callback="handleGoogleCallback"
-         data-auto_prompt="false">
-    </div>
-    
-    <div class="g_id_signin" style="margin-bottom: 1.5rem; display: flex; justify-content: center; width: 100%;"
-         data-type="standard"
-         data-shape="rectangular"
-         data-theme="outline"
-         data-text="signin_with"
-         data-size="large"
-         data-logo_alignment="center"
-         data-width="350">
+    <!-- Google Sign-In Button Container (Managed by js/auth.js) -->
+    <div class="g_id_signin" style="margin-bottom: 1.5rem; display: flex; justify-content: center; width: 100%;">
+      <div class="loading-dots" style="font-size:0.8rem; color:var(--text-secondary);">Initializing Google Secure Login...</div>
     </div>
 
     <form id="login-form">

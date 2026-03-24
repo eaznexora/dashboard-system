@@ -1,0 +1,771 @@
+/**
+ * Admin Panel Controller
+ * Handles Employees, Projects, Clients, and Invoices
+ */
+
+const AdminPanel = {
+  // --- EMPLOYEE MODULE ---
+  async loadEmployees() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Loading team data...</div>`;
+    
+    try {
+      const res = await fetch('/api/employees');
+      const emps = await res.json();
+      
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Team Management</h2>
+            <p class="view-subtitle">${emps.length} Total Members · ${emps.filter(e => e.isActive).length} Active</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
+        </div>
+        
+        <div class="grid-cols-3">
+          ${emps.map(emp => this.renderEmployeeCard(emp)).join('')}
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<div class="error">Failed to load employees.</div>`;
+    }
+  },
+
+  renderEmployeeCard(emp) {
+    const statusColor = emp.isCurrentlyWorking ? 'var(--success-color)' : 'var(--text-secondary)';
+    const statusText = emp.isCurrentlyWorking ? 'Working Now' : 'Offline';
+    
+    return `
+      <div class="card emp-card" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+          <div class="avatar" style="width:48px; height:48px; font-size:1.25rem;">
+            ${emp.image ? `<img src="${emp.image}" alt="">` : (emp.name ? emp.name[0].toUpperCase() : '?')}
+          </div>
+          <div class="status-badge" style="background:${emp.isActive ? 'var(--accent-light)' : '#fee2e2'}; color:${emp.isActive ? 'var(--accent-color)' : 'var(--danger-color)'}; font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:2rem; font-weight:700;">
+            ${emp.isActive ? 'ACTIVE' : 'INACTIVE'}
+          </div>
+        </div>
+        <div style="margin-bottom:1rem;">
+          <h4 style="font-weight:700; margin-bottom:0.15rem;">${emp.name}</h4>
+          <p style="font-size:0.8rem; color:var(--text-secondary);">${emp.designation || 'Software Engineer'} · ${emp.department || 'Dev'}</p>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.75rem; color:var(--text-secondary);">
+          <span class="active-dot" style="background:${statusColor}; width:8px; height:8px; border-radius:50%;"></span>
+          ${statusText}
+        </div>
+      </div>
+    `;
+  },
+
+  async viewEmployeeDetails(id) {
+    try {
+      const empsRes = await fetch('/api/employees');
+      const emps = await empsRes.json();
+      const emp = emps.find(e => e._id === id);
+      
+      const historyRes = await fetch(`/api/employees/history/${id}`);
+      const history = await historyRes.json();
+
+      const modalHtml = `
+        <div class="modal-overlay" id="emp-modal">
+          <div class="modal-content" style="max-width:600px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+              <h3 style="font-weight:800;">Employee details</h3>
+              <button onclick="document.getElementById('emp-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
+              <div>
+                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Designation</label>
+                <div style="font-weight:600;">${emp.designation || 'Not set'}</div>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Department</label>
+                <div style="font-weight:600;">${emp.department || 'Not set'}</div>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Today's work</label>
+                <div style="font-weight:600; color:var(--accent-color);">${history.todayHours || 0} hrs</div>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Account Status</label>
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                   <span style="font-weight:600; color:${emp.isActive ? 'var(--success-color)' : 'var(--danger-color)'}">${emp.isActive ? 'Active' : 'Fired/Inactive'}</span>
+                   <button onclick="AdminPanel.toggleEmployeeStatus('${emp._id}', ${!emp.isActive})" style="font-size:0.7rem; padding:0.2rem 0.5rem; border:1px solid #ddd; border-radius:4px; cursor:pointer;">
+                    ${emp.isActive ? 'Fire' : 'Reactivate'}
+                   </button>
+                </div>
+              </div>
+            </div>
+
+            <div style="border-top:1px solid var(--border-color); padding-top:1.5rem;">
+              <h4 style="font-weight:700; margin-bottom:1rem; font-size:0.875rem;">Recent Work Log</h4>
+              ${history.logs.length === 0 ? '<p style="font-size:0.875rem; color:var(--text-secondary);">No logs found.</p>' : `
+                <div style="max-height:200px; overflow-y:auto;">
+                  ${history.logs.map(log => `
+                    <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid #f8fafc; font-size:0.8rem;">
+                      <span>${new Date(log.clockIn).toLocaleDateString()}</span>
+                      <span style="font-weight:600;">${log.totalHours || 0} hrs</span>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.insertAdjacentHTML('beforeend', modalHtml);
+    } catch (err) {
+      alert('Error loading details');
+    }
+  },
+
+  async toggleEmployeeStatus(id, newStatus) {
+    if (!confirm(`Are you sure you want to ${newStatus ? 'reactivate' : 'FIRE'} this employee?`)) return;
+    try {
+      const res = await fetch(`/api/employees/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isActive: newStatus })
+      });
+      if (res.ok) {
+        document.getElementById('emp-modal')?.remove();
+        this.loadEmployees();
+      }
+    } catch (err) {
+      alert('Action failed');
+    }
+  },
+
+  // --- PROJECTS MODULE ---
+  async loadProjects() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Loading projects...</div>`;
+    
+    try {
+      const res = await fetch('/api/projects');
+      const projects = await res.json();
+      
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Project Command Center</h2>
+            <p class="view-subtitle">${projects.length} Active Projects</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddProject()"><i class="ph ph-plus"></i> New Project</button>
+        </div>
+        
+        <div class="grid-cols-2">
+          ${projects.map(p => this.renderProjectCard(p)).join('')}
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<div class="error">Failed to load projects.</div>`;
+    }
+  },
+
+  renderProjectCard(p) {
+    return `
+      <div class="card p-card" style="border-left: 4px solid ${p.color || 'var(--accent-color)'}; cursor:pointer;" onclick="AdminPanel.viewProjectDetails('${p._id}')">
+        <div style="display:flex; justify-content:space-between; margin-bottom:1rem;">
+          <h4 style="font-weight:700;">${p.name}</h4>
+          <span class="status-badge" style="font-size:0.65rem; background:var(--accent-light); color:var(--accent-color); padding:0.15rem 0.5rem; border-radius:1rem; font-weight:700;">
+            ${p.status.toUpperCase()}
+          </span>
+        </div>
+        <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:1.5rem; min-height:4.5em; overflow:hidden; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical;">${p.description || 'No description provided.'}</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #f1f5f9; padding-top:1rem;">
+          <div style="font-size:0.8rem; color:var(--text-secondary);">
+            <i class="ph ph-user-circle"></i> ${p.client?.company || 'Internal'}
+          </div>
+          <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary);">₹${p.budget?.toLocaleString() || 0}</div>
+        </div>
+      </div>
+    `;
+  },
+
+  async viewProjectDetails(id) {
+    const projRes = await fetch('/api/projects');
+    const projs = await projRes.json();
+    const p = projs.find(x => x._id === id);
+
+    const tasksRes = await fetch(`/api/tasks?project=${id}`);
+    const tasks = await tasksRes.json();
+
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `
+      <div class="view-header">
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <button class="btn btn-icon" onclick="AdminPanel.loadProjects()"><i class="ph ph-arrow-left"></i></button>
+          <div>
+            <h2 class="view-title">${p.name}</h2>
+            <p class="view-subtitle">${p.status.toUpperCase()} PROJECT</p>
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="AdminPanel.showAddTask('${id}')"><i class="ph ph-plus"></i> Add Task</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:2rem;">
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div style="padding:1.25rem; border-bottom:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+             <h3 style="font-weight:700; font-size:1rem;">Project Tasks</h3>
+             <span style="font-size:0.75rem; color:var(--text-secondary); font-weight:600;">${tasks.length} TOTAL</span>
+          </div>
+          <div style="display:grid; gap:0;">
+            ${tasks.length === 0 ? '<p style="color:var(--text-secondary); padding:4rem; text-align:center;">No tasks found for this project.</p>' : 
+              tasks.map(t => `
+                <div style="padding:1rem 1.25rem; border-bottom:1px solid #f8fafc; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'" onclick="AdminPanel.viewTaskDetails('${t._id}')">
+                   <div>
+                     <div style="font-weight:600; font-size:0.9rem;">${t.title}</div>
+                     <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.2rem;">
+                        <i class="ph ph-user"></i> ${t.assignedTo?.name || 'Unassigned'} · 
+                        <span style="color:${t.priority === 'high' ? 'var(--danger-color)' : 'var(--text-secondary)'}">${t.priority.toUpperCase()}</span>
+                     </div>
+                   </div>
+                   <div style="font-size:0.7rem; font-weight:800; color:var(--accent-color); background:var(--accent-light); padding:0.2rem 0.5rem; border-radius:4px;">${t.status.toUpperCase()}</div>
+                </div>
+              `).join('')}
+          </div>
+        </div>
+        <div style="display:grid; gap:1.5rem; align-content:start;">
+          <div class="card">
+            <h4 style="font-weight:700; margin-bottom:1rem; font-size:0.875rem;">Project Details</h4>
+            <div style="display:grid; gap:1.25rem;">
+              <div>
+                <label style="display:block; font-size:0.65rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.25rem;">Client</label>
+                <div style="font-size:0.9rem; font-weight:600;">${p.client?.company || 'Internal'}</div>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.65rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.25rem;">Current Budget</label>
+                <div style="font-size:1.1rem; font-weight:800; color:var(--success-color);">₹${p.budget?.toLocaleString() || 0}</div>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.65rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.25rem;">Lead Manager</label>
+                <div style="font-size:0.9rem; font-weight:600;">${p.lead?.name || 'Unassigned'}</div>
+              </div>
+            </div>
+          </div>
+          <div class="card" style="background:var(--accent-color); color:#fff; border:none;">
+             <h4 style="font-weight:700; margin-bottom:0.5rem; font-size:0.875rem;">Quick Report</h4>
+             <p style="font-size:0.75rem; opacity:0.9; line-height:1.4;">This project is currently tracking well with ${tasks.filter(t => t.status === 'completed').length}/${tasks.length} tasks completed.</p>
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  async showAddTask(projectId) {
+    const empsRes = await fetch('/api/employees');
+    const emps = await empsRes.json();
+
+    const modalHtml = `
+      <div class="modal-overlay" id="task-modal">
+        <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Create Project Task</h3>
+            <button onclick="document.getElementById('task-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1rem;">
+            <input type="hidden" id="t-project" value="${projectId}">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Task Title</label>
+              <input type="text" id="t-title" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Assign To</label>
+              <select id="t-assign" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                <option value="">-- Unassigned --</option>
+                ${emps.map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
+              </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Priority</label>
+                  <select id="t-priority" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Deadline</label>
+                  <input type="date" id="t-deadline" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Description</label>
+              <textarea id="t-desc" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" rows="3" placeholder="Explain the task clearly..."></textarea>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask()">Create Task</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  async saveTask() {
+    const body = {
+      title: document.getElementById('t-title').value,
+      description: document.getElementById('t-desc').value,
+      project: document.getElementById('t-project').value,
+      assignedTo: document.getElementById('t-assign').value || undefined,
+      priority: document.getElementById('t-priority').value,
+      deadline: document.getElementById('t-deadline').value || undefined,
+      status: 'pending'
+    };
+
+    if (!body.title) return alert('Title is required');
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        const projId = body.project;
+        document.getElementById('task-modal').remove();
+        this.viewProjectDetails(projId);
+      }
+    } catch (err) {
+      alert('Failed to save task');
+    }
+  },
+
+  async viewTaskDetails(taskId) {
+    // We fetch one task or use the cached list. For bulk, we'll hit /api/tasks?_id=... or just find in list
+    // To be simple, we'll fetch all tasks and find
+    const res = await fetch(`/api/tasks`);
+    const tasks = await res.json();
+    const t = tasks.find(x => x._id === taskId);
+
+    const modalHtml = `
+      <div class="modal-overlay" id="task-detail-modal">
+        <div class="modal-content" style="max-width:650px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2rem;">
+            <div>
+              <div style="font-size:0.7rem; font-weight:800; color:var(--accent-color); margin-bottom:0.4rem; text-transform:uppercase; letter-spacing:1px;">Task Inspection</div>
+              <h3 style="font-weight:800; font-size:1.5rem;">${t.title}</h3>
+            </div>
+            <button onclick="document.getElementById('task-detail-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          
+          <div style="background:#f8fafc; border-radius:12px; padding:1.5rem; margin-bottom:1.5rem;">
+             <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem;">Detailed Brief</label>
+             <div style="font-size:0.95rem; line-height:1.6; color:var(--text-primary); white-space:pre-wrap;">${t.description || 'No detailed brief provided for this task.'}</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; border-top:1px solid #f1f5f9; padding-top:1.5rem;">
+             <div>
+                <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem;">Assigned To</label>
+                <div style="font-weight:600; display:flex; align-items:center; gap:0.5rem;">
+                   <div class="avatar" style="width:24px; height:24px; font-size:0.6rem;">${t.assignedTo?.name ? t.assignedTo.name[0] : '?'}</div>
+                   ${t.assignedTo?.name || 'Unassigned'}
+                </div>
+             </div>
+             <div>
+                <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem;">Priority & Timeline</label>
+                <div style="font-weight:600; font-size:0.9rem;">
+                   <span style="color:${t.priority === 'high' || t.priority === 'urgent' ? 'var(--danger-color)' : 'var(--text-primary)'}">${t.priority.toUpperCase()}</span>
+                   ${t.deadline ? `<span style="color:var(--text-secondary); font-weight:400; margin-left:0.5rem;">· Due ${new Date(t.deadline).toLocaleDateString()}</span>` : ''}
+                </div>
+             </div>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  async loadClients() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Loading CRM...</div>`;
+    
+    try {
+      const res = await fetch('/api/clients');
+      const clients = await res.json();
+      
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Client CRM</h2>
+            <p class="view-subtitle">${clients.length} Total Leads & Clients</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddClient()"><i class="ph ph-user-plus"></i> Add Client</button>
+        </div>
+        
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Company</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Contact</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Status</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${clients.map(c => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:1rem; font-weight:600;">${c.company}</td>
+                  <td style="padding:1rem; font-size:0.875rem;">${c.contactName}<br><span style="color:var(--text-secondary); font-size:0.75rem;">${c.email}</span></td>
+                  <td style="padding:1rem;">
+                    <span style="padding:0.25rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700; background:var(--accent-light); color:var(--accent-color);">
+                      ${c.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style="padding:1rem;">
+                    <button onclick="AdminPanel.editClient('${c._id}')" style="background:none; border:none; cursor:pointer; color:var(--accent-color); font-weight:600; font-size:0.8rem;">Edit</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<div class="error">Failed to load CRM.</div>`;
+    }
+  },
+
+  showAddClient() {
+    const modalHtml = `
+      <div class="modal-overlay" id="client-modal">
+        <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Add New Client</h3>
+            <button onclick="document.getElementById('client-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1rem;">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Company Name</label>
+              <input type="text" id="c-company" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Contact Name</label>
+              <input type="text" id="c-name" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Email</label>
+              <input type="email" id="c-email" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
+              <select id="c-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                <option value="lead">Lead</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveClient()">Save Client</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  async saveClient() {
+    const body = {
+      company: document.getElementById('c-company').value,
+      contactName: document.getElementById('c-name').value,
+      email: document.getElementById('c-email').value,
+      status: document.getElementById('c-status').value
+    };
+
+    if (!body.company || !body.contactName || !body.email) return alert('Missing fields');
+
+    try {
+      const res = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        document.getElementById('client-modal').remove();
+        this.loadClients();
+      }
+    } catch (err) {
+      alert('Failed to save');
+    }
+  },
+
+  // --- BILLING MODULE ---
+  async loadInvoices() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Loading invoices...</div>`;
+    
+    try {
+      const res = await fetch('/api/invoices');
+      const invoices = await res.json();
+      
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Billing & Invoices</h2>
+            <p class="view-subtitle">${invoices.length} Invoices Found</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddInvoice()"><i class="ph ph-receipt"></i> Create Invoice</button>
+        </div>
+        
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">INV #</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Client</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Amount</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Status</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Due Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoices.map(inv => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:1rem; font-weight:700;">${inv.invoiceNumber}</td>
+                  <td style="padding:1rem; font-size:0.875rem;">${inv.client?.company || 'Unknown'}</td>
+                  <td style="padding:1rem; font-weight:700;">₹${inv.total?.toLocaleString()}</td>
+                  <td style="padding:1rem;">
+                    <span style="padding:0.25rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700; 
+                      background:${inv.status==='paid'?'#d1fae5':inv.status==='overdue'?'#fee2e2':'#fef3c7'};
+                      color:${inv.status==='paid'?'#065f46':inv.status==='overdue'?'#991b1b':'#92400e'};">
+                      ${inv.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style="padding:1rem; color:var(--text-secondary); font-size:0.875rem;">${new Date(inv.dueDate).toLocaleDateString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<div class="error">Failed to load invoices.</div>`;
+    }
+  },
+
+  async showAddInvoice() {
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const projRes = await fetch('/api/projects');
+    const projs = await projRes.json();
+
+    const modalHtml = `
+      <div class="modal-overlay" id="inv-modal">
+        <div class="modal-content" style="max-width:800px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Generate Invoice</h3>
+            <button onclick="document.getElementById('inv-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
+              <select id="i-client" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                ${clients.map(c => `<option value="${c._id}">${c.company}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Link to Project</label>
+              <select id="i-project" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                <option value="">-- No Project --</option>
+                ${projs.map(p => `<option value="${p._id}">${p.name}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+          
+          <div style="margin-bottom:1.5rem;">
+            <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:0.5rem;">Invoice Items</label>
+            <div id="i-items-container" style="display:grid; gap:0.5rem;">
+               <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:0.5rem;">
+                  <input type="text" class="form-control item-desc" placeholder="Service description" style="padding:0.5rem;">
+                  <input type="number" class="form-control item-rate" placeholder="Rate" style="padding:0.5rem;">
+                  <input type="number" class="form-control item-qty" placeholder="Qty" value="1" style="padding:0.5rem;">
+               </div>
+            </div>
+            <button class="btn" style="padding:0.5rem; margin-top:0.5rem; font-size:0.75rem;" onclick="AdminPanel.addInvoiceItem()"><i class="ph ph-plus"></i> Add Another Item</button>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Due Date</label>
+              <input type="date" id="i-due" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+          </div>
+
+          <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveInvoice()">Generate & Send Invoice</button>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  addInvoiceItem() {
+    const container = document.getElementById('i-items-container');
+    const itemHtml = `
+      <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:0.5rem;">
+        <input type="text" class="form-control item-desc" placeholder="Service description" style="padding:0.5rem;">
+        <input type="number" class="form-control item-rate" placeholder="Rate" style="padding:0.5rem;">
+        <input type="number" class="form-control item-qty" placeholder="Qty" value="1" style="padding:0.5rem;">
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', itemHtml);
+  },
+
+  async saveInvoice() {
+    const itemDescs = document.querySelectorAll('.item-desc');
+    const itemRates = document.querySelectorAll('.item-rate');
+    const itemQtys = document.querySelectorAll('.item-qty');
+    
+    const items = [];
+    let subtotal = 0;
+
+    itemDescs.forEach((el, i) => {
+      const desc = el.value;
+      const rate = Number(itemRates[i].value);
+      const qty = Number(itemQtys[i].value);
+      if (desc && rate) {
+        items.push({ description: desc, rate, quantity: qty, amount: rate * qty });
+        subtotal += rate * qty;
+      }
+    });
+
+    const body = {
+      client: document.getElementById('i-client').value,
+      project: document.getElementById('i-project').value || undefined,
+      items,
+      subtotal,
+      tax: 0, 
+      total: subtotal,
+      dueDate: document.getElementById('i-due').value,
+      status: 'sent'
+    };
+
+    try {
+      const res = await fetch('/api/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        document.getElementById('inv-modal').remove();
+        this.loadInvoices();
+      }
+    } catch (err) {
+      alert('Failed to generate invoice');
+    }
+  },
+
+  // --- ASSETS MODULE ---
+  async loadAssets() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `
+      <div class="view-header">
+        <div>
+          <h2 class="view-title">Asset Hub</h2>
+          <p class="view-subtitle">Central file management for all projects</p>
+        </div>
+        <button class="btn btn-primary" onclick="alert('Asset upload coming soon')"><i class="ph ph-upload"></i> Upload Asset</button>
+      </div>
+      <div class="card" style="text-align:center; padding:4rem; color:var(--text-secondary);">
+         <i class="ph ph-folders" style="font-size:3rem; margin-bottom:1rem; opacity:0.5;"></i>
+         <p>Asset management is coming soon.</p>
+      </div>
+    `;
+  },
+
+  // --- REPORTS MODULE ---
+  async loadReports() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Generating reports...</div>`;
+    
+    try {
+      const res = await fetch('/api/reports');
+      const data = await res.json();
+      
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Agency Intelligence</h2>
+            <p class="view-subtitle">Real-time performance metrics and financial tracking</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.loadReports()"><i class="ph ph-arrows-clockwise"></i> Refresh Data</button>
+        </div>
+        
+        <div class="grid-cols-3" style="margin-bottom:2rem;">
+           <div class="card">
+              <div class="metric-title">Total Revenue <i class="ph ph-chart-line-up"></i></div>
+              <div class="metric-value" style="font-size:1.5rem; font-weight:800; color:var(--accent-color);">₹${data.totalRevenue?.toLocaleString() || 0}</div>
+           </div>
+           <div class="card">
+              <div class="metric-title">Avg Productivity <i class="ph ph-lightning"></i></div>
+              <div class="metric-value" style="font-size:1.5rem; font-weight:800; color:var(--accent-color);">${data.avgProductivity || 0}%</div>
+           </div>
+           <div class="card">
+              <div class="metric-title">Active Projects <i class="ph ph-stack"></i></div>
+              <div class="metric-value" style="font-size:1.5rem; font-weight:800; color:var(--accent-color);">${data.activeProjectsCount || 0}</div>
+           </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 2fr 1fr; gap:2rem;">
+           <div class="card">
+              <h4 style="font-weight:700; margin-bottom:1.5rem; font-size:0.875rem;">Revenue Forecast</h4>
+              <div id="revenue-chart" style="min-height:350px;"></div>
+           </div>
+           <div class="card">
+              <h4 style="font-weight:700; margin-bottom:1.5rem; font-size:0.875rem;">Task Distribution</h4>
+              <div id="task-chart" style="min-height:350px;"></div>
+           </div>
+        </div>
+
+        <div class="card" style="margin-top:2rem;">
+           <h4 style="font-weight:700; margin-bottom:1.5rem; font-size:0.875rem;">Employee Utilization (Resource Capacity)</h4>
+           <div id="util-chart" style="min-height:250px;"></div>
+        </div>
+      `;
+      container.innerHTML = html;
+      
+      this.initCharts(data);
+    } catch (err) {
+      container.innerHTML = `<div class="error">Failed to generate reports.</div>`;
+    }
+  },
+
+  initCharts(data) {
+    if (!window.ApexCharts) return console.error('ApexCharts not loaded');
+    
+    // 1. Revenue Area Chart
+    new ApexCharts(document.querySelector("#revenue-chart"), {
+      series: [{ name: 'Revenue', data: data.revenueHistory || [31, 40, 28, 51, 42, 109, 100] }],
+      chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      colors: ['#2563eb'],
+      dataLabels: { enabled: false },
+      stroke: { curve: 'smooth' },
+      xaxis: { categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"] },
+      tooltip: { x: { format: 'dd/MM/yy HH:mm' } }
+    }).render();
+
+    // 2. Task Pie Chart
+    new ApexCharts(document.querySelector("#task-chart"), {
+      series: data.taskStats || [25, 35, 15, 25],
+      chart: { type: 'donut', height: 350 },
+      labels: ['Pending', 'Working', 'Review', 'Done'],
+      colors: ['#f59e0b', '#2563eb', '#8b5cf6', '#10b981'],
+      legend: { position: 'bottom' }
+    }).render();
+
+    // 3. Employee Utilization bar chart
+    new ApexCharts(document.querySelector("#util-chart"), {
+      series: [{ name: 'Hours Worked', data: data.employeeHours || [40, 38, 45, 32, 42, 39] }],
+      chart: { type: 'bar', height: 250, toolbar: { show: false } },
+      plotOptions: { bar: { borderRadius: 4, horizontal: true } },
+      colors: ['#6366f1'],
+      xaxis: { categories: data.employeeNames || ["Alex", "Sara", "Mike", "John", "Lara", "Dev"] }
+    }).render();
+  }
+};

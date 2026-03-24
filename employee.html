@@ -8,224 +8,63 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link rel="stylesheet" href="css/globals.css?version=1.0.2">
-  <link rel="stylesheet" href="css/sidebar.css?version=1.0.2">
-  <link rel="stylesheet" href="css/dashboard.css?version=1.0.2">
-  <style>
-    .clock-card { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem; }
-    .clock-btn { padding:0.875rem 2rem; border:none; border-radius:var(--radius-md); font-weight:700; font-size:1rem; cursor:pointer; display:flex; align-items:center; gap:0.5rem; color:#fff; }
-    .clock-in-btn { background:#10b981; }
-    .clock-out-btn { background:#ef4444; }
-    .clock-btn:disabled { opacity:0.5; cursor:not-allowed; }
-    .timer-display { font-size:2rem; font-weight:800; color:var(--accent-color); font-variant-numeric:tabular-nums; }
-    .task-item { display:flex; align-items:center; justify-content:space-between; padding:1rem; border:1px solid var(--border-color); border-radius:var(--radius-md); margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem; }
-    .task-item:hover { border-color:var(--accent-color); }
-    .task-title { font-weight:600; color:var(--text-primary); }
-    .task-meta { font-size:0.8rem; color:var(--text-secondary); margin-top:0.25rem; }
-    .status-badge { padding:0.25rem 0.75rem; border-radius:2rem; font-size:0.75rem; font-weight:600; }
-    .status-pending { background:#fef3c7; color:#92400e; }
-    .status-in-progress { background:#dbeafe; color:#1e40af; }
-    .status-completed { background:#d1fae5; color:#065f46; }
-    .history-row { display:flex; justify-content:space-between; padding:0.75rem 0; border-bottom:1px solid var(--border-color); font-size:0.875rem; }
-    .stat-number { font-size:2rem; font-weight:800; color:var(--accent-color); }
-    .status-select { padding:0.35rem 0.5rem; border:1px solid var(--border-color); border-radius:var(--radius-sm); font-size:0.8rem; cursor:pointer; }
-  </style>
+  <link rel="stylesheet" href="css/globals.css?version=1.0.3">
+  <link rel="stylesheet" href="css/sidebar.css?version=1.0.3">
+  <link rel="stylesheet" href="css/admin.css?version=1.0.1">
+  <link rel="stylesheet" href="css/employee.css?version=1.0.1">
 </head>
 <body class="theme-blue">
   <div id="app" class="app-container"></div>
-
+  
+  <script src="js/store.js?version=1.0.2"></script>
   <script src="js/auth.js?version=1.0.3"></script>
-  <script src="js/components.js?version=1.0.3"></script>
+  <script src="js/components.js?version=1.0.4"></script>
+  <script src="js/employee.js?version=1.0.1"></script>
+  
   <script>
     const user = requireAuth();
-    if (!user) throw new Error('Not authenticated');
-
-    // Employees see a simplified sidebar
+    if (!user) window.location.replace('login.html');
+    
     initApp('employee', 'My Workspace');
 
     const content = `
-      <!-- Clock In/Out Section -->
-      <div class="card" style="margin-bottom:1.5rem;">
-        <div class="clock-card">
-          <div>
-            <h3 style="font-weight:700; margin-bottom:0.25rem;">Work Session</h3>
-            <p style="color:var(--text-secondary); font-size:0.875rem;" id="clock-status">Checking status...</p>
+      <div style="display:grid; grid-template-columns: 1fr 340px; gap:2rem;">
+        <div>
+          <!-- Time Tracking Card -->
+          <div class="card" style="margin-bottom:2rem; background:linear-gradient(135deg, #2563eb, #1e40af); color:#fff; border:none;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <div id="clock-status" style="font-size:0.75rem; letter-spacing:1px; margin-bottom:0.5rem;">CHECKING STATUS...</div>
+                <div id="timer" style="font-size:2.5rem; font-weight:800; font-variant-numeric:tabular-nums;">00:00:00</div>
+                <div style="font-size:0.875rem; opacity:0.8; margin-top:0.25rem;">Current Work Session</div>
+              </div>
+              <div>
+                <button class="btn" id="btn-clock-in" onclick="EmployeePortal.clockIn()" style="background:#fff; color:var(--accent-color); padding:1rem 2rem; font-size:1rem;">Clock In</button>
+                <button class="btn" id="btn-clock-out" onclick="EmployeePortal.clockOut()" style="background:#ef4444; color:#fff; padding:1rem 2rem; font-size:1rem; display:none;">Clock Out</button>
+              </div>
+            </div>
           </div>
-          <div style="display:flex; align-items:center; gap:1rem;">
-            <div class="timer-display" id="timer">00:00:00</div>
-            <button class="clock-btn clock-in-btn" id="btn-clock-in" onclick="clockIn()"><i class="ph ph-play"></i> Clock In</button>
-            <button class="clock-btn clock-out-btn" id="btn-clock-out" onclick="clockOut()" style="display:none;"><i class="ph ph-stop"></i> Clock Out</button>
+
+          <!-- Kanban Board -->
+          <h3 style="font-weight:800; margin-bottom:1.5rem; font-size:1.25rem;">My Board</h3>
+          <div id="kanban-board"></div>
+        </div>
+
+        <div style="display:grid; gap:2rem; align-content:start;">
+          <div class="card">
+            <h4 style="font-weight:700; margin-bottom:1.25rem; font-size:0.875rem;">Recent Activity</h4>
+            <div id="history-list"></div>
           </div>
-        </div>
-      </div>
-
-      <!-- Stats Row -->
-      <div class="grid-cols-4" style="margin-bottom:1.5rem;">
-        <div class="card metric-card">
-          <div class="metric-title">Total Tasks <div class="metric-icon"><i class="ph ph-list-checks"></i></div></div>
-          <div class="metric-value" id="stat-total">-</div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">In Progress <div class="metric-icon"><i class="ph ph-spinner"></i></div></div>
-          <div class="metric-value" id="stat-progress">-</div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">Completed <div class="metric-icon"><i class="ph ph-check-circle"></i></div></div>
-          <div class="metric-value" id="stat-completed">-</div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">Hours This Month <div class="metric-icon"><i class="ph ph-clock"></i></div></div>
-          <div class="metric-value" id="stat-hours">-</div>
-        </div>
-      </div>
-
-      <!-- Two Column Layout -->
-      <div class="layout-2-1">
-        <!-- Tasks -->
-        <div class="card">
-          <h3 style="font-weight:700; margin-bottom:1rem;"><i class="ph ph-kanban"></i> My Tasks</h3>
-          <div id="task-list"><p style="color:var(--text-secondary);">Loading tasks...</p></div>
-        </div>
-
-        <!-- Work History -->
-        <div class="card">
-          <h3 style="font-weight:700; margin-bottom:1rem;"><i class="ph ph-clock-countdown"></i> Recent Sessions</h3>
-          <div id="history-list"><p style="color:var(--text-secondary);">Loading history...</p></div>
+          <div class="card" style="background:#f8fafc; border:1px dashed var(--border-color);">
+             <h4 style="font-weight:700; margin-bottom:0.5rem; font-size:0.875rem;">Need Help?</h4>
+             <p style="font-size:0.75rem; color:var(--text-secondary); line-height:1.4;">Contact your project lead or check the documentation for guidance on complex tasks.</p>
+          </div>
         </div>
       </div>
     `;
     document.getElementById('dashboard-content').innerHTML = content;
 
-    // --- TIMER ---
-    let timerInterval = null;
-    let clockInTime = null;
-
-    function startTimer(startDate) {
-      clockInTime = new Date(startDate);
-      timerInterval = setInterval(() => {
-        const diff = Date.now() - clockInTime.getTime();
-        const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
-        const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
-        const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
-        document.getElementById('timer').textContent = `${h}:${m}:${s}`;
-      }, 1000);
-    }
-
-    function stopTimer() {
-      clearInterval(timerInterval);
-      document.getElementById('timer').textContent = '00:00:00';
-    }
-
-    // --- CLOCK IN/OUT ---
-    async function clockIn() {
-      const res = await fetch('/api/employees/clock-in', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: user.id })
-      });
-      const data = await res.json();
-      if (res.ok) { loadClockStatus(); loadHistory(); }
-      else alert(data.message);
-    }
-
-    async function clockOut() {
-      const res = await fetch('/api/employees/clock-out', {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ userId: user.id })
-      });
-      const data = await res.json();
-      if (res.ok) { stopTimer(); loadClockStatus(); loadHistory(); }
-      else alert(data.message);
-    }
-
-    async function loadClockStatus() {
-      const res = await fetch(`/api/employees/status/${user.id}`);
-      const data = await res.json();
-      const btnIn = document.getElementById('btn-clock-in');
-      const btnOut = document.getElementById('btn-clock-out');
-      const status = document.getElementById('clock-status');
-
-      if (data.isClockedIn) {
-        btnIn.style.display = 'none';
-        btnOut.style.display = 'flex';
-        status.innerHTML = '<span style="color:#10b981;font-weight:600;">● Active — Working</span>';
-        startTimer(data.log.clockIn);
-      } else {
-        btnIn.style.display = 'flex';
-        btnOut.style.display = 'none';
-        status.innerHTML = '<span style="color:var(--text-secondary);">○ Not clocked in</span>';
-        stopTimer();
-      }
-    }
-
-    // --- TASKS ---
-    async function loadTasks() {
-      const res = await fetch(`/api/tasks?userId=${user.id}&role=${user.role}`);
-      const tasks = await res.json();
-      const container = document.getElementById('task-list');
-
-      // Stats
-      const total = tasks.length;
-      const inProg = tasks.filter(t => t.status === 'in-progress').length;
-      const done = tasks.filter(t => t.status === 'completed').length;
-      document.getElementById('stat-total').textContent = total;
-      document.getElementById('stat-progress').textContent = inProg;
-      document.getElementById('stat-completed').textContent = done;
-
-      if (tasks.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:2rem;">No tasks assigned yet.</p>';
-        return;
-      }
-
-      container.innerHTML = tasks.map(t => `
-        <div class="task-item">
-          <div>
-            <div class="task-title">${t.title}</div>
-            <div class="task-meta">${t.project || 'General'} · ${t.priority} priority${t.deadline ? ' · Due ' + new Date(t.deadline).toLocaleDateString() : ''}</div>
-          </div>
-          <div style="display:flex;align-items:center;gap:0.5rem;">
-            <span class="status-badge status-${t.status}">${t.status}</span>
-            <select class="status-select" onchange="updateTaskStatus('${t._id}', this.value)">
-              <option value="pending" ${t.status==='pending'?'selected':''}>Pending</option>
-              <option value="in-progress" ${t.status==='in-progress'?'selected':''}>In Progress</option>
-              <option value="completed" ${t.status==='completed'?'selected':''}>Completed</option>
-            </select>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    async function updateTaskStatus(taskId, status) {
-      await fetch(`/api/tasks/${taskId}/status`, {
-        method: 'PATCH', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ status })
-      });
-      loadTasks();
-    }
-
-    // --- WORK HISTORY ---
-    async function loadHistory() {
-      const res = await fetch(`/api/employees/history/${user.id}`);
-      const data = await res.json();
-      const container = document.getElementById('history-list');
-      document.getElementById('stat-hours').textContent = data.totalHours + 'h';
-
-      if (data.logs.length === 0) {
-        container.innerHTML = '<p style="color:var(--text-secondary);text-align:center;padding:1rem;">No sessions yet.</p>';
-        return;
-      }
-
-      container.innerHTML = data.logs.slice(0, 10).map(l => `
-        <div class="history-row">
-          <span>${new Date(l.clockIn).toLocaleDateString()} ${new Date(l.clockIn).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}</span>
-          <span style="font-weight:600;">${l.totalHours ? l.totalHours + 'h' : '<span style="color:#10b981;">Active</span>'}</span>
-        </div>
-      `).join('');
-    }
-
-    // --- INIT ---
-    loadClockStatus();
-    loadTasks();
-    loadHistory();
+    EmployeePortal.init(user);
   </script>
 </body>
 </html>

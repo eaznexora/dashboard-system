@@ -45,6 +45,7 @@ app.use(express.static(__dirname));
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI;
+const { checkOverdueInvoices } = require('./utils/automation');
 
 mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 5000
@@ -52,6 +53,10 @@ mongoose.connect(MONGODB_URI, {
     console.log("######################################################");
     console.log("⚡ SUCCESS: Express Connected Cleanly to MongoDB Atlas! ⚡");
     console.log("######################################################");
+    
+    // Start automation workers
+    setInterval(checkOverdueInvoices, 60 * 60 * 1000); // Every hour
+    checkOverdueInvoices(); // Run once on start
 }).catch(err => {
     console.error("\n❌ FAILED TO REACH MONGODB! ❌");
     console.error("1. Did you add 0.0.0.0/0 to the Atlas Network Access Whitelist?");
@@ -64,15 +69,28 @@ const authRoutes = require('./routes/auth');
 const employeeRoutes = require('./routes/employees');
 const taskRoutes = require('./routes/tasks');
 const dashboardRoutes = require('./routes/dashboard');
+const projectRoutes = require('./routes/projects');
+const clientRoutes = require('./routes/clients');
+const activityRoutes = require('./routes/activity');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/clients', clientRoutes);
+app.use('/api/activity', activityRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'EazDash Backend API is live.' });
+});
+
+// Public Config (for Client IDs)
+app.get('/api/config', (req, res) => {
+    res.json({ 
+        googleClientId: process.env.GOOGLE_CLIENT_ID 
+    });
 });
 
 // Boot Server
