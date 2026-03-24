@@ -12,24 +12,116 @@ const AdminPanel = {
     try {
       const res = await fetch('/api/employees');
       const emps = await res.json();
+      const activeEmps = emps.filter(e => e.isActive);
+      const inactiveEmps = emps.filter(e => !e.isActive);
       
       let html = `
         <div class="view-header">
           <div>
             <h2 class="view-title">Team Management</h2>
-            <p class="view-subtitle">${emps.length} Total Members · ${emps.filter(e => e.isActive).length} Active</p>
+            <p class="view-subtitle">${activeEmps.length} Active Members · ${inactiveEmps.length} Terminated</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
         </div>
         
-        <div class="grid-cols-3">
-          ${emps.map(emp => this.renderEmployeeCard(emp)).join('')}
+        <h3 style="font-size:0.875rem; font-weight:700; color:var(--text-secondary); margin-bottom:1rem; text-transform:uppercase; letter-spacing:0.05em;">Active Team</h3>
+        <div class="grid-cols-3" style="margin-bottom:2.5rem;">
+          ${activeEmps.length === 0 ? '<p style="grid-column:1/-1; padding:2rem; text-align:center; color:var(--text-secondary);">No active employees.</p>' : 
+            activeEmps.map(emp => this.renderEmployeeCard(emp)).join('')}
         </div>
+
+        ${inactiveEmps.length > 0 ? `
+          <h3 style="font-size:0.875rem; font-weight:700; color:var(--danger-color); margin-bottom:1rem; text-transform:uppercase; letter-spacing:0.05em;">Terminated / Fired</h3>
+          <div class="card" style="padding:0; overflow:hidden; opacity:0.75;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.875rem;">
+              <thead style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+                <tr>
+                  <th style="padding:0.75rem 1rem;">Name</th>
+                  <th style="padding:0.75rem 1rem;">Role</th>
+                  <th style="padding:0.75rem 1rem;">Status</th>
+                  <th style="padding:0.75rem 1rem;">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${inactiveEmps.map(emp => `
+                  <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:0.75rem 1rem; font-weight:600;">${emp.name}</td>
+                    <td style="padding:0.75rem 1rem; color:var(--text-secondary);">${emp.designation}</td>
+                    <td style="padding:0.75rem 1rem;"><span style="color:var(--danger-color); font-weight:700; font-size:0.7rem;">FIRED</span></td>
+                    <td style="padding:0.75rem 1rem;">
+                      <button class="btn-text" style="color:var(--accent-color);" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">Details</button>
+                    </td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        ` : ''}
       `;
       container.innerHTML = html;
     } catch (err) {
       container.innerHTML = `<div class="error">Failed to load employees.</div>`;
     }
+  },
+
+  showAddEmployee() {
+    const modalHtml = `
+      <div class="modal-overlay" id="emp-add-modal">
+        <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Add New Team Member</h3>
+            <button onclick="document.getElementById('emp-add-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1rem;">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Full Name</label>
+              <input type="text" id="ne-name" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Email</label>
+              <input type="email" id="ne-email" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Designation</label>
+                  <input type="text" id="ne-designation" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Department</label>
+                  <input type="text" id="ne-department" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveEmployee()">Create Member</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  async saveEmployee() {
+    const body = {
+      name: document.getElementById('ne-name').value,
+      email: document.getElementById('ne-email').value,
+      designation: document.getElementById('ne-designation').value,
+      department: document.getElementById('ne-department').value,
+      role: 'EMPLOYEE'
+    };
+    if(!body.name || !body.email) return alert('Name and Email are required');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('emp-add-modal').remove();
+        this.loadEmployees();
+      } else {
+        const err = await res.json();
+        alert(err.message || 'Error occurred');
+      }
+    } catch(err) { alert('Failed to save'); }
   },
 
   renderEmployeeCard(emp) {
@@ -88,12 +180,14 @@ const AdminPanel = {
                 <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Today's work</label>
                 <div style="font-weight:600; color:var(--accent-color);">${history.todayHours || 0} hrs</div>
               </div>
-              <div>
+               <div>
                 <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Account Status</label>
                 <div style="display:flex; align-items:center; gap:0.5rem;">
-                   <span style="font-weight:600; color:${emp.isActive ? 'var(--success-color)' : 'var(--danger-color)'}">${emp.isActive ? 'Active' : 'Fired/Inactive'}</span>
-                   <button onclick="AdminPanel.toggleEmployeeStatus('${emp._id}', ${!emp.isActive})" style="font-size:0.7rem; padding:0.2rem 0.5rem; border:1px solid #ddd; border-radius:4px; cursor:pointer;">
-                    ${emp.isActive ? 'Fire' : 'Reactivate'}
+                   <span style="font-weight:700; color:${emp.isActive ? 'var(--success-color)' : 'var(--danger-color)'}">${emp.isActive ? 'ACTIVE' : 'TERMINATED (FIRED)'}</span>
+                   <button onclick="AdminPanel.toggleEmployeeStatus('${emp._id}', ${!emp.isActive})" 
+                           class="btn" 
+                           style="font-size:0.7rem; padding:0.25rem 0.6rem; background:${emp.isActive ? '#fee2e2' : 'var(--accent-light)'}; color:${emp.isActive ? 'var(--danger-color)' : 'var(--accent-color)'}; border:none; font-weight:700;">
+                    ${emp.isActive ? 'FIRE NOW' : 'REACTIVATE'}
                    </button>
                 </div>
               </div>
@@ -164,6 +258,72 @@ const AdminPanel = {
     } catch (err) {
       container.innerHTML = `<div class="error">Failed to load projects.</div>`;
     }
+  },
+
+  async showAddProject() {
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const empsRes = await fetch('/api/employees');
+    const emps = await empsRes.json();
+
+    const modalHtml = `
+      <div class="modal-overlay" id="proj-add-modal">
+        <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Launch New Project</h3>
+            <button onclick="document.getElementById('proj-add-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1rem;">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Name</label>
+              <input type="text" id="np-name" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
+              <select id="np-client" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                ${clients.map(c => `<option value="${c._id}">${c.company}</option>`).join('')}
+              </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
+                  <input type="number" id="np-budget" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
+                  <select id="np-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                    ${emps.map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
+                  </select>
+               </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveProject()">Start Project</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  async saveProject() {
+    const body = {
+      name: document.getElementById('np-name').value,
+      client: document.getElementById('np-client').value,
+      budget: Number(document.getElementById('np-budget').value),
+      lead: document.getElementById('np-lead').value,
+      status: 'active'
+    };
+    if(!body.name) return alert('Name is required');
+    try {
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('proj-add-modal').remove();
+        this.loadProjects();
+      }
+    } catch(err) { alert('Failed to save project'); }
   },
 
   renderProjectCard(p) {
@@ -431,6 +591,64 @@ const AdminPanel = {
     } catch (err) {
       container.innerHTML = `<div class="error">Failed to load CRM.</div>`;
     }
+  },
+
+  async editClient(id) {
+    const res = await fetch('/api/clients');
+    const clients = await res.json();
+    const c = clients.find(x => x._id === id);
+
+    const modalHtml = `
+      <div class="modal-overlay" id="client-edit-modal">
+        <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Edit Client</h3>
+            <button onclick="document.getElementById('client-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1rem;">
+            <input type="hidden" id="ec-id" value="${c._id}">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Company Name</label>
+              <input type="text" id="ec-company" value="${c.company}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Contact Name</label>
+              <input type="text" id="ec-name" value="${c.contactName}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
+              <select id="ec-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                <option value="lead" ${c.status==='lead'?'selected':''}>Lead</option>
+                <option value="active" ${c.status==='active'?'selected':''}>Active</option>
+                <option value="inactive" ${c.status==='inactive'?'selected':''}>Inactive</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateClient()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  async updateClient() {
+    const id = document.getElementById('ec-id').value;
+    const body = {
+      company: document.getElementById('ec-company').value,
+      contactName: document.getElementById('ec-name').value,
+      status: document.getElementById('ec-status').value
+    };
+    try {
+      const res = await fetch(`/api/clients/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('client-edit-modal').remove();
+        this.loadClients();
+      }
+    } catch(err) { alert('Failed to update'); }
   },
 
   showAddClient() {

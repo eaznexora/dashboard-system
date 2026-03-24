@@ -48,6 +48,11 @@ router.post('/login', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user || !user.password) return res.status(401).json({ message: 'Invalid credentials or you must use Google to sign in.' });
 
+    // Block deactivated employees
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'Account deactivated. Please contact your administrator.' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: 'Incorrect password provided.' });
 
@@ -87,6 +92,11 @@ router.post('/google', async (req, res) => {
     if (!user) {
         const dummyPassword = await bcrypt.hash(Math.random().toString(36).slice(-8), 12);
         user = await User.create({ name, email, image: picture, password: dummyPassword, role: 'EMPLOYEE' });
+    }
+
+    // Block deactivated employees
+    if (user.isActive === false) {
+      return res.status(403).json({ message: 'Account deactivated. Please contact your administrator.' });
     }
 
     const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });

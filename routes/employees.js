@@ -27,8 +27,24 @@ router.get('/', async (req, res) => {
 // UPDATE employee (admin only - designation, department, isActive/fire, etc.)
 router.patch('/:id', async (req, res) => {
   try {
-    const employee = await User.findByIdAndUpdate(req.params.id, req.body, { new: true }).select('-password');
+    const { isActive } = req.body;
+    const employee = await User.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    // Handle 'Firing' logic: clock out if currently active
+    if (isActive === false && employee.isActive !== false) {
+      const activeLog = await TimeLog.findOne({ userId: employee._id, clockOut: null });
+      if (activeLog) {
+        activeLog.clockOut = new Date();
+        activeLog.totalHours = parseFloat(((activeLog.clockOut - activeLog.clockIn) / (1000 * 60 * 60)).toFixed(2));
+        await activeLog.save();
+        console.log(`[FIRE_AUTO_CLOCKOUT]: Employee ${employee.name} clocked out.`);
+      }
+    }
+
+    Object.assign(employee, req.body);
+    await employee.save();
+    
     res.json(employee);
   } catch (err) {
     console.error('[EMPLOYEE_UPDATE_ERROR]:', err);
