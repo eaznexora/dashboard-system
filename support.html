@@ -21,66 +21,69 @@
   <script src="js/auth.js?version=1.0.1"></script>
   <script>
     initApp('support', 'Client Support');
-    const store = window.EazStore.get().support;
 
-    const content = `
-      <div class="grid-cols-4">
-        <div class="card metric-card">
-          <div class="metric-title">Ave. Response Time <div class="metric-icon"><i class="ph ph-clock"></i></div></div>
-          <div class="metric-value">${store.response}</div>
-          <div class="metric-change ${store.responsePos?'positive':'negative'}"><i class="ph ${store.responsePos?'ph-trend-down':'ph-trend-up'}"></i> <span>${store.responseChange}</span> vs last week</div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">Resolution Rate <div class="metric-icon"><i class="ph ph-check-square"></i></div></div>
-          <div class="metric-value">${store.resolution}</div>
-          <div class="metric-change ${store.resolutionPos?'positive':'negative'}"><i class="ph ${store.resolutionPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.resolutionChange}</span> vs last week</div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">Active Tickets <div class="metric-icon"><i class="ph ph-ticket"></i></div></div>
-          <div class="metric-value">${store.tickets}</div>
-          <div class="metric-change ${store.ticketsPos?'positive':'negative'}"><span>${store.ticketsChange}</span></div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">CSAT Score <div class="metric-icon"><i class="ph ph-star"></i></div></div>
-          <div class="metric-value">${store.csat}</div>
-          <div class="metric-change ${store.csatPos?'positive':'negative'}"><span>${store.csatChange}</span></div>
-        </div>
-      </div>
+    (async () => {
+      const store = await window.EazStore.getCategory('support') || window.EazStore.get().support;
 
-      <div class="grid-cols-2">
-        <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem;">Support Requests Volume</h3>
-          <div class="chart-wrapper"><canvas id="supportVolumeChart"></canvas></div>
+      const content = `
+        <div class="grid-cols-4">
+          <div class="card metric-card">
+            <div class="metric-title">Ave. Response Time <div class="metric-icon"><i class="ph ph-clock"></i></div></div>
+            <div class="metric-value">${store.response}</div>
+            <div class="metric-change ${store.responsePos?'positive':'negative'}"><i class="ph ${store.responsePos?'ph-trend-down':'ph-trend-up'}"></i> <span>${store.responseChange}</span> vs last week</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">Resolution Rate <div class="metric-icon"><i class="ph ph-check-square"></i></div></div>
+            <div class="metric-value">${store.resolution}</div>
+            <div class="metric-change ${store.resolutionPos?'positive':'negative'}"><i class="ph ${store.resolutionPos?'ph-trend-up':'ph-trend-down'}"></i> <span>${store.resolutionChange}</span> vs last week</div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">Active Tickets <div class="metric-icon"><i class="ph ph-ticket"></i></div></div>
+            <div class="metric-value">${store.tickets}</div>
+            <div class="metric-change ${store.ticketsPos?'positive':'negative'}"><span>${store.ticketsChange}</span></div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">CSAT Score <div class="metric-icon"><i class="ph ph-star"></i></div></div>
+            <div class="metric-value">${store.csat}</div>
+            <div class="metric-change ${store.csatPos?'positive':'negative'}"><span>${store.csatChange}</span></div>
+          </div>
         </div>
-      </div>
-    `;
 
-    document.getElementById('dashboard-content').innerHTML = content;
+        <div class="grid-cols-2">
+          <div class="card chart-card">
+            <h3 style="font-weight:600; margin-bottom:1rem;">Support Requests Volume</h3>
+            <div class="chart-wrapper"><canvas id="supportVolumeChart"></canvas></div>
+          </div>
+        </div>
+      `;
 
-    const volCtx = document.getElementById('supportVolumeChart').getContext('2d');
-    new Chart(volCtx, {
-      type: 'line',
-      data: {
-        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: [{
-          label: 'Tickets Received',
-          data: store.volumeChart,
-          borderColor: '#2563eb',
-          backgroundColor: 'rgba(37, 99, 235, 0.2)',
-          fill: true,
-          tension: 0.4
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { display:false } },
-          y: { grid: { borderDash: [5,5] } }
+      document.getElementById('dashboard-content').innerHTML = content;
+
+      const volCtx = document.getElementById('supportVolumeChart').getContext('2d');
+      new Chart(volCtx, {
+        type: 'line',
+        data: {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          datasets: [{
+            label: 'Tickets Received',
+            data: store.volumeChart,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.2)',
+            fill: true,
+            tension: 0.4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display:false } },
+            y: { grid: { borderDash: [5,5] } }
+          }
         }
-      }
-    });
+      });
+    })();
   </script>
 </body>
 </html>

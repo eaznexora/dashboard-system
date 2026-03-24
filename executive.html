@@ -22,145 +22,148 @@
   <script src="js/auth.js?version=1.0.1"></script>
   <script>
     initApp('executive', 'Executive Overview');
-    const store = window.EazStore.get().executive;
 
-    const content = `
-      <div class="grid-cols-4">
-        <div class="card metric-card">
-          <div class="metric-title">Monthly Revenue <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-trend-up"></i></div></div>
-          <div class="metric-value">\${store.mrr}</div>
-          <div class="metric-change \${store.mrrPos?'positive':'negative'}"><span>\${store.mrrChange}</span></div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">Active Retainers <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-buildings"></i></div></div>
-          <div class="metric-value">\${store.retainers}</div>
-          <div class="metric-change \${store.retainersPos?'positive':'negative'}"><span>\${store.retainersChange}</span></div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">Agency Gross Margin <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-scales"></i></div></div>
-          <div class="metric-value">\${store.margin}</div>
-          <div class="metric-change \${store.marginPos?'positive':'negative'}"><span>\${store.marginChange}</span></div>
-        </div>
-        <div class="card metric-card">
-          <div class="metric-title">Runway <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-hourglass-high"></i></div></div>
-          <div class="metric-value">\${store.runway}</div>
-          <div class="metric-change \${store.runwayPos?'positive':'negative'}"><span>\${store.runwayChange}</span></div>
-        </div>
-      </div>
+    (async () => {
+      const store = await window.EazStore.getCategory('executive') || window.EazStore.get().executive;
 
-      <div class="layout-2-1">
-        <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">Revenue vs Expenses (YTD)</h3>
-          <div class="chart-wrapper"><canvas id="revExpChart"></canvas></div>
+      const content = `
+        <div class="grid-cols-4">
+          <div class="card metric-card">
+            <div class="metric-title">Monthly Revenue <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-trend-up"></i></div></div>
+            <div class="metric-value">${store.mrr}</div>
+            <div class="metric-change ${store.mrrPos?'positive':'negative'}"><span>${store.mrrChange}</span></div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">Active Retainers <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-buildings"></i></div></div>
+            <div class="metric-value">${store.retainers}</div>
+            <div class="metric-change ${store.retainersPos?'positive':'negative'}"><span>${store.retainersChange}</span></div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">Agency Gross Margin <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-scales"></i></div></div>
+            <div class="metric-value">${store.margin}</div>
+            <div class="metric-change ${store.marginPos?'positive':'negative'}"><span>${store.marginChange}</span></div>
+          </div>
+          <div class="card metric-card">
+            <div class="metric-title">Runway <div class="metric-icon" style="background:transparent; color:var(--accent-color);"><i class="ph ph-hourglass-high"></i></div></div>
+            <div class="metric-value">${store.runway}</div>
+            <div class="metric-change ${store.runwayPos?'positive':'negative'}"><span>${store.runwayChange}</span></div>
+          </div>
+        </div>
+
+        <div class="layout-2-1">
+          <div class="card chart-card">
+            <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">Revenue vs Expenses (YTD)</h3>
+            <div class="chart-wrapper"><canvas id="revExpChart"></canvas></div>
+          </div>
+          
+          <div class="card chart-card">
+            <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">Client Concentration Risk</h3>
+            <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:1rem;">Top 3 Accounts vs Remaining Portfolio Revenue Split.</p>
+            <div class="chart-wrapper"><canvas id="clientRiskChart"></canvas></div>
+          </div>
         </div>
         
-        <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">Client Concentration Risk</h3>
-          <p style="font-size:0.875rem; color:var(--text-secondary); margin-bottom:1rem;">Top 3 Accounts vs Remaining Portfolio Revenue Split.</p>
-          <div class="chart-wrapper"><canvas id="clientRiskChart"></canvas></div>
+        <div class="grid-cols-2">
+          <div class="card chart-card">
+            <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">Agency Growth Projections</h3>
+            <div class="chart-wrapper"><canvas id="growthChart"></canvas></div>
+          </div>
         </div>
-      </div>
-      
-      <div class="grid-cols-2">
-        <div class="card chart-card">
-          <h3 style="font-weight:600; margin-bottom:1rem; border-bottom:1px solid var(--border-color); padding-bottom:0.5rem;">Agency Growth Projections</h3>
-          <div class="chart-wrapper"><canvas id="growthChart"></canvas></div>
-        </div>
-      </div>
-    `;
+      `;
 
-    document.getElementById('dashboard-content').innerHTML = content;
-    Chart.register(ChartDataLabels);
+      document.getElementById('dashboard-content').innerHTML = content;
+      Chart.register(ChartDataLabels);
 
-    const revExpCtx = document.getElementById('revExpChart').getContext('2d');
-    new Chart(revExpCtx, {
-      type: 'bar',
-      data: {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-        datasets: [{
-          label: 'Revenue',
-          data: store.revBar,
-          backgroundColor: '#2563eb',
-          barPercentage: 0.6,
-          categoryPercentage: 0.8
-        }, {
-          label: 'Expenses',
-          data: store.expBar,
-          backgroundColor: '#9ca3af',
-          barPercentage: 0.6,
-          categoryPercentage: 0.8
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { 
-            legend: { position: 'top' },
-            datalabels: { display: false } // Hide labels for standard bar
+      const revExpCtx = document.getElementById('revExpChart').getContext('2d');
+      new Chart(revExpCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            label: 'Revenue',
+            data: store.revBar,
+            backgroundColor: '#2563eb',
+            barPercentage: 0.6,
+            categoryPercentage: 0.8
+          }, {
+            label: 'Expenses',
+            data: store.expBar,
+            backgroundColor: '#9ca3af',
+            barPercentage: 0.6,
+            categoryPercentage: 0.8
+          }]
         },
-        scales: {
-          x: { grid: { display:false } },
-          y: { grid: { borderDash:[5,5] }, ticks:{ callback: function(val) { return '₹' + val/100000 + 'L'; } } }
-        }
-      }
-    });
-
-    const riskCtx = document.getElementById('clientRiskChart').getContext('2d');
-    new Chart(riskCtx, {
-      type: 'pie',
-      data: {
-        labels: ['Top 3 Clients', 'All Other Clients'],
-        datasets: [{
-          data: store.clientRisk,
-          backgroundColor: ['#ef4444', '#cbd5e1'], // Red highlights concentration risk
-          borderWidth: 0
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        layout: { padding: { bottom: 20 } },
-        plugins: {
-          legend: { position: 'bottom' },
-          datalabels: {
-            color: '#fff',
-            font: { weight: 'bold', size: 14 },
-            formatter: (value) => value + '%'
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+              legend: { position: 'top' },
+              datalabels: { display: false }
+          },
+          scales: {
+            x: { grid: { display:false } },
+            y: { grid: { borderDash:[5,5] }, ticks:{ callback: function(val) { return '₹' + val/100000 + 'L'; } } }
           }
         }
-      }
-    });
+      });
 
-    const growthCtx = document.getElementById('growthChart').getContext('2d');
-    new Chart(growthCtx, {
-      type: 'line',
-      data: {
-        labels: ['Q1', 'Q2', 'Q3', 'Q4 (Est)'],
-        datasets: [{
-          label: 'Revenue Growth',
-          data: store.growthLine,
-          borderColor: '#2563eb',
-          backgroundColor: 'transparent',
-          borderWidth: 3,
-          tension: 0.4,
-          pointBackgroundColor: '#fff',
-          pointBorderColor: '#2563eb',
-          pointRadius: 5
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { 
-            legend: { display:false },
-            datalabels: { display: false } 
+      const riskCtx = document.getElementById('clientRiskChart').getContext('2d');
+      new Chart(riskCtx, {
+        type: 'pie',
+        data: {
+          labels: ['Top 3 Clients', 'All Other Clients'],
+          datasets: [{
+            data: store.clientRisk,
+            backgroundColor: ['#ef4444', '#cbd5e1'],
+            borderWidth: 0
+          }]
         },
-        scales: {
-          x: { grid: { display:false } },
-          y: { grid: { borderDash:[5,5] }, ticks:{ callback: function(val) { return '₹' + val + 'Cr'; } } }
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { bottom: 20 } },
+          plugins: {
+            legend: { position: 'bottom' },
+            datalabels: {
+              color: '#fff',
+              font: { weight: 'bold', size: 14 },
+              formatter: (value) => value + '%'
+            }
+          }
         }
-      }
-    });
+      });
+
+      const growthCtx = document.getElementById('growthChart').getContext('2d');
+      new Chart(growthCtx, {
+        type: 'line',
+        data: {
+          labels: ['Q1', 'Q2', 'Q3', 'Q4 (Est)'],
+          datasets: [{
+            label: 'Revenue Growth',
+            data: store.growthLine,
+            borderColor: '#2563eb',
+            backgroundColor: 'transparent',
+            borderWidth: 3,
+            tension: 0.4,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#2563eb',
+            pointRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { 
+              legend: { display:false },
+              datalabels: { display: false } 
+          },
+          scales: {
+            x: { grid: { display:false } },
+            y: { grid: { borderDash:[5,5] }, ticks:{ callback: function(val) { return '₹' + val + 'Cr'; } } }
+          }
+        }
+      });
+    })();
   </script>
 </body>
 </html>
