@@ -104,10 +104,10 @@ async function handleGoogleCallback(response) {
       const u = getCurrentUser();
       window.location.replace(u && u.role === 'ADMIN' ? 'marketing.html' : 'employee.html');
     } else {
-      alert("Google Login Failed: " + data.message);
+      toast("Google Login Failed: " + data.message, 'error');
     }
   } catch(e) {
-    alert("Server unreachable for Google login.");
+    toast("Server unreachable for Google login.", 'error');
   }
 }
 window.handleGoogleCallback = handleGoogleCallback;

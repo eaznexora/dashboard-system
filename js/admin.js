@@ -108,7 +108,7 @@ const AdminPanel = {
       department: document.getElementById('ne-department').value,
       role: 'EMPLOYEE'
     };
-    if(!body.name || !body.email) return alert('Name and Email are required');
+    if(!body.name || !body.email) return toast('Name and Email are required', 'warning');
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -120,52 +120,76 @@ const AdminPanel = {
         this.loadEmployees();
       } else {
         const err = await res.json();
-        alert(err.message || 'Error occurred');
+        toast(err.message || 'Error occurred', 'error');
       }
-    } catch(err) { alert('Failed to save'); }
+    } catch(err) { toast('Failed to save', 'error'); }
   },
 
   renderEmployeeCard(emp) {
     const statusColor = emp.isCurrentlyWorking ? 'var(--success-color)' : 'var(--text-secondary)';
     const statusText = emp.isCurrentlyWorking ? 'Working Now' : 'Offline';
     
+    // Professional gradients for initial placeholders
+    const gradients = [
+      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      'linear-gradient(135deg, #6a11cb 0%, #2575fc 100%)',
+      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+      'linear-gradient(135deg, #5ee7df 0%, #b490ca 100%)'
+    ];
+    const userGradient = gradients[Math.abs(emp.name ? emp.name.charCodeAt(0) : 0) % gradients.length];
+    
     return `
-      <div class="card emp-card" style="position:relative; transition: all 0.3s ease; border: 1px solid var(--border-color); overflow:hidden;">
-        <div style="position:absolute; top:1rem; right:1rem; display:flex; gap:0.5rem;">
-           <button class="btn-icon" onclick="event.stopPropagation(); AdminPanel.showEditEmployee('${emp._id}')" style="background:var(--accent-light); color:var(--accent-color); border-radius:6px; width:28px; height:28px;"><i class="ph ph-pencil-simple"></i></button>
+      <div class="card emp-card" style="position:relative; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--border-color); overflow:hidden; padding:1.25rem;">
+        <!-- Quick Actions -->
+        <div style="position:absolute; top:0.75rem; right:0.75rem; z-index:10;">
+           <button class="btn-icon" onclick="event.stopPropagation(); AdminPanel.showEditEmployee('${emp._id}')" 
+                   style="background:rgba(255,255,255,0.9); backdrop-filter:blur(4px); color:var(--text-secondary); border:1px solid var(--border-color); border-radius:50%; width:32px; height:32px; box-shadow:var(--shadow-sm); display:flex; align-items:center; justify-content:center; cursor:pointer;">
+             <i class="ph ph-pencil-simple" style="font-size:1.1rem;"></i>
+           </button>
         </div>
         
-        <div style="display:flex; gap:1.25rem; align-items:center; margin-bottom:1.25rem;" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
-          <div class="avatar" style="width:56px; height:56px; font-size:1.5rem; flex-shrink:0; border:2px solid ${emp.isCurrentlyWorking ? 'var(--success-color)' : 'transparent'};">
-            ${emp.image ? `<img src="${emp.image}" alt="">` : (emp.name ? emp.name[0].toUpperCase() : '?')}
+        <!-- Header: Identity -->
+        <div style="display:flex; gap:1.25rem; align-items:center; margin-bottom:1.5rem;" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
+          <div class="avatar-wrapper" style="position:relative; flex-shrink:0;">
+            <div class="avatar" style="width:64px; height:64px; border-radius:50%; font-size:1.5rem; overflow:hidden; border:3px solid ${emp.isCurrentlyWorking ? 'var(--success-color)' : 'white'}; background:${userGradient}; color:white; display:flex; align-items:center; justify-content:center; font-weight:800; box-shadow:var(--shadow-sm);">
+              ${emp.image ? `<img src="${emp.image}" style="width:100%; height:100%; object-fit:cover;" alt="">` : (emp.name ? emp.name[0].toUpperCase() : '?')}
+            </div>
+            ${emp.isCurrentlyWorking ? `<div style="position:absolute; bottom:2px; right:2px; width:14px; height:14px; background:var(--success-color); border:2px solid white; border-radius:50%; box-shadow:0 0 5px rgba(16,185,129,0.5);"></div>` : ''}
           </div>
-          <div>
-            <h4 style="font-weight:800; margin-bottom:0.15rem; font-size:1.1rem;">${emp.name}</h4>
-            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.02em;">
+          <div style="min-width:0;">
+            <h4 style="font-weight:800; margin-bottom:0.15rem; font-size:1.15rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-primary);">${emp.name}</h4>
+            <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; opacity:0.8;">
               ${emp.designation || 'Specialist'}
             </div>
           </div>
         </div>
 
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-bottom:1.25rem; background:#f8fafc; padding:0.75rem; border-radius:8px;">
-           <div>
-             <div style="font-size:0.6rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Department</div>
-             <div style="font-size:0.8rem; font-weight:600;">${emp.department || 'Creative'}</div>
+        <!-- Metric Grid -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1px; margin-bottom:1.5rem; background:var(--border-color); border:1px solid var(--border-color); border-radius:var(--radius-md); overflow:hidden;">
+           <div style="background:#fff; padding:0.875rem;">
+             <div style="font-size:0.6rem; color:var(--text-secondary); font-weight:800; text-transform:uppercase; margin-bottom:0.25rem; letter-spacing:0.02em;">Department</div>
+             <div style="font-size:0.85rem; font-weight:700; color:var(--text-primary);">${emp.department || 'Creative'}</div>
            </div>
-           <div>
-             <div style="font-size:0.6rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Current Task</div>
-             <div style="font-size:0.8rem; font-weight:700; color:${emp.isCurrentlyWorking ? 'var(--accent-color)' : 'var(--text-secondary)'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-               ${emp.isCurrentlyWorking ? (emp.lastProjectName || 'Active now') : 'None'}
+           <div style="background:#fff; padding:0.875rem;">
+             <div style="font-size:0.6rem; color:var(--text-secondary); font-weight:800; text-transform:uppercase; margin-bottom:0.25rem; letter-spacing:0.02em;">Current</div>
+             <div style="font-size:0.85rem; font-weight:700; color:${emp.isCurrentlyWorking ? 'var(--accent-color)' : 'var(--text-secondary)'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+               ${emp.isCurrentlyWorking ? (emp.lastProjectName || 'Active') : 'Idle'}
              </div>
            </div>
         </div>
 
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.75rem; font-weight:700;">
-            ${emp.isCurrentlyWorking ? `<div class="active-pulse"></div>` : `<span style="background:var(--text-secondary); width:10px; height:10px; border-radius:50%; opacity:0.5;"></span>`}
-            <span style="color:${statusColor}">${statusText.toUpperCase()}</span>
+        <!-- Dynamic Status Footer -->
+        <div style="display:flex; justify-content:space-between; align-items:center; padding-top:0.5rem;">
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            ${emp.isCurrentlyWorking ? `<div class="active-pulse"></div>` : `<div style="width:10px; height:10px; background:#cbd5e1; border-radius:50%;"></div>`}
+            <span style="font-size:0.75rem; font-weight:800; color:${statusColor}; letter-spacing:0.03em;">${statusText.toUpperCase()}</span>
           </div>
-          <button class="btn-text" style="font-size:0.75rem; font-weight:700; color:var(--accent-color);" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">PERFORMANCE LOGS →</button>
+          <button class="btn-text" 
+                  style="font-size:0.75rem; font-weight:900; color:var(--accent-color); border:none; background:none; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:all 0.2s;"
+                  onmouseover="this.style.transform='translateX(3px)'" onmouseout="this.style.transform='translateX(0)'"
+                  onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
+            PERFORMANCE <i class="ph ph-arrow-right" style="font-weight:bold;"></i>
+          </button>
         </div>
       </div>
     `;
@@ -222,7 +246,7 @@ const AdminPanel = {
         document.getElementById('emp-edit-modal').remove();
         this.loadEmployees();
       }
-    } catch(err) { alert('Failed to update'); }
+    } catch(err) { toast('Failed to update', 'error'); }
   },
 
   async viewEmployeeDetails(id) {
@@ -300,7 +324,7 @@ const AdminPanel = {
       `;
       document.body.insertAdjacentHTML('beforeend', modalHtml);
     } catch (err) {
-      alert('Error loading details');
+      toast('Error loading details', 'error');
     }
   },
 
@@ -317,7 +341,7 @@ const AdminPanel = {
         this.loadEmployees();
       }
     } catch (err) {
-      alert('Action failed');
+      toast('Action failed', 'error');
     }
   },
 
@@ -328,7 +352,7 @@ const AdminPanel = {
       if (res.ok) {
         this.loadEmployees();
       }
-    } catch (err) { alert('Deletion failed'); }
+    } catch (err) { toast('Deletion failed', 'error'); }
   },
 
   // --- GLOBAL TASKS MODULE ---
@@ -390,13 +414,13 @@ const AdminPanel = {
             <tbody>
               ${tasks.length === 0 ? '<tr><td colspan="6" style="padding:2rem; text-align:center; color:var(--text-secondary);">No tasks found.</td></tr>' : 
                 tasks.map(t => `
-                <tr style="border-bottom:1px solid #f1f5f9;">
+                <tr style="border-bottom:1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                   <td style="padding:1rem; font-weight:700;">${t.title}</td>
-                  <td style="padding:1rem; color:var(--text-secondary);">${t.projectName || '—'}</td>
+                  <td style="padding:1rem; color:var(--text-secondary);">${t.project?.name || '—'}</td>
                   <td style="padding:1rem;">
                     <div style="display:flex; align-items:center; gap:0.5rem;">
-                       <div class="avatar" style="width:24px; height:24px; font-size:0.7rem;">${t.assignedToName ? t.assignedToName[0] : '?'}</div>
-                       <span>${t.assignedToName || 'Unassigned'}</span>
+                       <div class="avatar" style="width:24px; height:24px; font-size:0.7rem;">${t.assignedTo?.name ? t.assignedTo.name[0] : '?'}</div>
+                       <span>${t.assignedTo?.name || 'Unassigned'}</span>
                     </div>
                   </td>
                   <td style="padding:1rem;">
@@ -404,9 +428,13 @@ const AdminPanel = {
                       ${t.status.toUpperCase()}
                     </span>
                   </td>
-                  <td style="padding:1rem; color:var(--text-secondary);">${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'No date'}</td>
+                  <td style="padding:1rem; color:var(--text-secondary);">${t.deadline ? new Date(t.deadline).toLocaleDateString() : 'No date'}</td>
                   <td style="padding:1rem;">
-                    <button class="btn-text" style="color:var(--accent-color);" onclick="AdminPanel.viewTaskDetails('${t._id}')">View</button>
+                    <div style="display:flex; gap:0.5rem;">
+                      <button class="btn-text" style="color:var(--accent-color);" onclick="AdminPanel.viewTaskDetails('${t._id}')">View</button>
+                      <button class="btn-text" style="color:var(--text-secondary);" onclick="AdminPanel.showEditTask('${t._id}')">Edit</button>
+                      <button class="btn-text" style="color:var(--danger-color);" onclick="AdminPanel.deleteGlobalTask('${t._id}')">Delete</button>
+                    </div>
                   </td>
                 </tr>
               `).join('')}
@@ -428,6 +456,41 @@ const AdminPanel = {
       case 'completed': return '#10b981';
       default: return '#64748b';
     }
+  },
+
+  async deleteGlobalTask(id) {
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    try {
+      const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+      if (res.ok) this.loadGlobalTasks();
+    } catch (err) { toast('Delete failed', 'error'); }
+  },
+
+  async showEditTask(id) {
+    const res = await fetch(`/api/tasks`);
+    const tasks = await res.json();
+    const t = tasks.find(x => x._id === id);
+    if(!t) return;
+
+    this.showAddTask(t.project?._id);
+    // After a slight delay to let the modal render, we fill the values
+    setTimeout(() => {
+      const modal = document.getElementById('task-modal');
+      if(modal) {
+        modal.querySelector('h3').innerText = 'Edit Task';
+        document.getElementById('t-title').value = t.title;
+        document.getElementById('t-desc').value = t.description || '';
+        document.getElementById('t-project').value = t.project?._id || '';
+        document.getElementById('t-assign').value = t.assignedTo?._id || '';
+        document.getElementById('t-priority').value = t.priority;
+        if(t.deadline) document.getElementById('t-deadline').value = new Date(t.deadline).toISOString().split('T')[0];
+        
+        // Update the button for saving
+        const btn = modal.querySelector('.btn-primary');
+        btn.innerText = 'Update Task';
+        btn.onclick = () => this.saveTask(id);
+      }
+    }, 100);
   },
 
   // --- PROJECTS MODULE ---
@@ -514,7 +577,7 @@ const AdminPanel = {
       lead: document.getElementById('np-lead').value,
       status: 'active'
     };
-    if(!body.name) return alert('Name is required');
+    if(!body.name) return toast('Name is required', 'warning');
     try {
       const res = await fetch('/api/projects', {
         method: 'POST',
@@ -525,7 +588,7 @@ const AdminPanel = {
         document.getElementById('proj-add-modal').remove();
         this.loadProjects();
       }
-    } catch(err) { alert('Failed to save project'); }
+    } catch(err) { toast('Failed to save project', 'error'); }
   },
 
   renderProjectCard(p) {
@@ -686,7 +749,7 @@ const AdminPanel = {
       status: 'pending'
     };
 
-    if (!body.title) return alert('Title is required');
+    if (!body.title) return toast('Title is required', 'warning');
 
     try {
       const res = await fetch('/api/tasks', {
@@ -700,7 +763,7 @@ const AdminPanel = {
         this.viewProjectDetails(projId);
       }
     } catch (err) {
-      alert('Failed to save task');
+      toast('Failed to save task', 'error');
     }
   },
 
@@ -856,7 +919,7 @@ const AdminPanel = {
         document.getElementById('client-edit-modal').remove();
         this.loadClients();
       }
-    } catch(err) { alert('Failed to update'); }
+    } catch(err) { toast('Failed to update', 'error'); }
   },
 
   showAddClient() {
@@ -904,7 +967,7 @@ const AdminPanel = {
       status: document.getElementById('c-status').value
     };
 
-    if (!body.company || !body.contactName || !body.email) return alert('Missing fields');
+    if (!body.company || !body.contactName || !body.email) return toast('Missing fields', 'warning');
 
     try {
       const res = await fetch('/api/clients', {
@@ -917,7 +980,7 @@ const AdminPanel = {
         this.loadClients();
       }
     } catch (err) {
-      alert('Failed to save');
+      toast('Failed to save', 'error');
     }
   },
 
@@ -1083,7 +1146,7 @@ const AdminPanel = {
         this.loadInvoices();
       }
     } catch (err) {
-      alert('Failed to generate invoice');
+      toast('Failed to generate invoice', 'error');
     }
   },
 
@@ -1193,10 +1256,10 @@ const AdminPanel = {
       });
       if (res.ok) {
         document.getElementById('matrix-modal').remove();
-        alert(`${category.toUpperCase()} dashboard updated successfully!`);
+        toast(`${category.toUpperCase()} dashboard updated successfully!`);
       }
     } catch (err) {
-      alert('Failed to update matrix');
+      toast('Failed to update matrix', 'error');
     }
   },
 
@@ -1204,8 +1267,8 @@ const AdminPanel = {
     if (!confirm('Are you sure you want to reset all dashboard data to factory defaults?')) return;
     try {
       const res = await fetch('/api/dashboard/seed/all', { method: 'POST' });
-      if (res.ok) alert('All data reset to defaults.');
-    } catch (err) { alert('Seeding failed'); }
+      if (res.ok) toast('All data reset to defaults.');
+    } catch (err) { toast('Seeding failed', 'error'); }
   },
 
   // --- ASSETS MODULE ---
@@ -1217,7 +1280,7 @@ const AdminPanel = {
           <h2 class="view-title">Asset Hub</h2>
           <p class="view-subtitle">Central file management for all projects</p>
         </div>
-        <button class="btn btn-primary" onclick="alert('Asset upload coming soon')"><i class="ph ph-upload"></i> Upload Asset</button>
+        <button class="btn btn-primary" onclick="toast('Asset upload coming soon', 'info')"><i class="ph ph-upload"></i> Upload Asset</button>
       </div>
       <div class="card" style="text-align:center; padding:4rem; color:var(--text-secondary);">
          <i class="ph ph-folders" style="font-size:3rem; margin-bottom:1rem; opacity:0.5;"></i>
@@ -1389,7 +1452,7 @@ const AdminPanel = {
         body: JSON.stringify({ status: 'resolved' })
       });
       if(res.ok) this.loadAdminIssues();
-    } catch(err) { alert('Failed to update issue'); }
+    } catch(err) { toast('Failed to update issue', 'error'); }
   },
 
   async loadEmployeeReportingView() {
@@ -1438,7 +1501,7 @@ const AdminPanel = {
     const description = document.getElementById('rep-desc').value;
     const user = getCurrentUser();
 
-    if(!title || !description) return alert('Please fill in both fields');
+    if(!title || !description) return toast('Please fill in both fields', 'warning');
 
     try {
       const res = await fetch('/api/issues', {
@@ -1447,12 +1510,14 @@ const AdminPanel = {
         body: JSON.stringify({ title, description, submittedBy: user.id })
       });
       if(res.ok) {
-        alert('Report submitted successfully.');
+        toast('Report submitted successfully.', 'success');
         document.getElementById('rep-title').value = '';
         document.getElementById('rep-desc').value = '';
         this.loadMyIssues(user.id);
+      } else {
+        toast('Failed to submit report.', 'error');
       }
-    } catch(err) { alert('Failed to submit'); }
+    } catch(err) { toast('Failed to submit', 'error'); }
   },
 
   async loadMyIssues(userId) {

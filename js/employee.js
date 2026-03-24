@@ -187,6 +187,9 @@ const EmployeePortal = {
     const res = await fetch(`/api/employees/history/${this.user.id}`);
     const data = await res.json();
     const container = document.getElementById('history-list');
+    const todayDisplay = document.getElementById('today-hrs-total');
+    if (todayDisplay) todayDisplay.textContent = `Today: ${data.todayHours || 0} hrs`;
+    
     if (!container) return;
 
     if (data.logs.length === 0) {
@@ -195,9 +198,15 @@ const EmployeePortal = {
     }
 
     container.innerHTML = data.logs.slice(0, 5).map(l => `
-      <div class="history-row" style="display:flex; justify-content:space-between; padding:0.75rem 0; border-bottom:1px solid #f8fafc; font-size:0.875rem;">
-        <span style="color:var(--text-secondary);">${new Date(l.clockIn).toLocaleDateString()}</span>
-        <span style="font-weight:700;">${l.totalHours || 0} hrs</span>
+      <div class="history-row" style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0; border-bottom:1px solid #f8fafc; font-size:0.875rem;">
+        <div>
+          <div style="font-weight:600; font-size:0.8rem;">${new Date(l.clockIn).toLocaleDateString()}</div>
+          <div style="font-size:0.7rem; color:var(--text-secondary);">
+            ${new Date(l.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - 
+            ${l.clockOut ? new Date(l.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}
+          </div>
+        </div>
+        <span style="font-weight:700; color:var(--accent-color);">${l.totalHours || 0} hrs</span>
       </div>
     `).join('');
   },
@@ -206,7 +215,7 @@ const EmployeePortal = {
     const title = document.getElementById('issue-title').value;
     const description = document.getElementById('issue-desc').value;
     
-    if(!title || !description) return alert('Please fill in both title and description');
+    if(!title || !description) return toast('Please fill in both title and description', 'warning');
 
     try {
       const res = await fetch('/api/issues', {
@@ -220,10 +229,10 @@ const EmployeePortal = {
       });
 
       if(res.ok) {
-        alert('Thank you. Your report has been submitted to Admin.');
+        toast('Thank you. Your report has been submitted to Admin.', 'success');
         document.getElementById('issue-title').value = '';
         document.getElementById('issue-desc').value = '';
       }
-    } catch(err) { alert('Submission failed'); }
+    } catch(err) { toast('Submission failed', 'error'); }
   }
 };

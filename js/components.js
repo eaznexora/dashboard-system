@@ -135,3 +135,39 @@ function initApp(pageId, pageTitle) {
     window.renderAdminControls(sidebar);
   }
 }
+
+// --- GLOBAL NOTIFICATION SYSTEM ---
+window.showNotification = function(message, type = 'success') {
+  let container = document.querySelector('.notification-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.className = 'notification-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  
+  const icons = {
+    success: 'ph-check-circle',
+    error: 'ph-warning-circle',
+    warning: 'ph-warning',
+    info: 'ph-info'
+  };
+
+  toast.innerHTML = `
+    <div class="toast-icon"><i class="ph-bold ${icons[type] || icons.info}"></i></div>
+    <div class="toast-message">${message}</div>
+  `;
+
+  container.appendChild(toast);
+
+  // Auto-remove after 4 seconds
+  setTimeout(() => {
+    toast.style.animation = 'toast-out 0.4s ease forwards';
+    setTimeout(() => toast.remove(), 400);
+  }, 4000);
+};
+
+// Alias for easier usage
+window.toast = window.showNotification;
