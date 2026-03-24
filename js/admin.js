@@ -2566,13 +2566,31 @@ const AdminPanel = {
       legend: { position: 'bottom' }
     }).render();
 
-    // 3. Employee Utilization bar chart
+    // 3. Employee Utilization bar chart (Raw Hours Today)
     new ApexCharts(document.querySelector("#util-chart"), {
-      series: [{ name: 'Hours Worked', data: data.employeeHours || [40, 38, 45, 32, 42, 39] }],
+      series: [{ name: 'Hours Worked', data: data.employeeHours }],
       chart: { type: 'bar', height: 250, toolbar: { show: false } },
-      plotOptions: { bar: { borderRadius: 4, horizontal: true } },
+      plotOptions: { 
+        bar: { 
+          borderRadius: 4, 
+          horizontal: true,
+          dataLabels: { position: 'top' }
+        } 
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function(val) { return val + " hrs"; },
+        offsetX: 30,
+        style: { fontSize: '10px', colors: ['#475569'] }
+      },
       colors: ['#6366f1'],
-      xaxis: { categories: data.employeeNames || ["Alex", "Sara", "Mike", "John", "Lara", "Dev"] }
+      xaxis: { 
+        categories: data.employeeNames,
+        title: { text: "Hours Worked Today" }
+      },
+      tooltip: {
+        y: { formatter: (val) => val + " hours" }
+      }
     }).render();
   },
 
