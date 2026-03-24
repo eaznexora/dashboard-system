@@ -19,11 +19,7 @@ const logActivity = async (actorId, action, target, targetId, metadata) => {
 
 const createOnboardingTasks = async (clientId, actorId) => {
   try {
-    const defaultTasks = [
-      { title: 'Kickoff meeting', priority: 'high', description: 'Schedule and conduct a kickoff meeting with the client.' },
-      { title: 'Collect brand assets', priority: 'medium', description: 'Request logos, brand guidelines, and other assets.' },
-      { title: 'Setup project workspace', priority: 'medium', description: 'Prepare internal tools and project folders.' }
-    ];
+    const defaultTasks = [];
 
     for (const t of defaultTasks) {
       await Task.create({

@@ -134,6 +134,11 @@ function initApp(pageId, pageTitle) {
   if (typeof window.renderAdminControls === 'function') {
     window.renderAdminControls(sidebar);
   }
+
+  // Professionalize all selects
+  if (typeof window.initCustomSelects === 'function') {
+    window.initCustomSelects();
+  }
 }
 
 // --- GLOBAL NOTIFICATION SYSTEM ---
@@ -171,3 +176,104 @@ window.showNotification = function(message, type = 'success') {
 
 // Alias for easier usage
 window.toast = window.showNotification;
+
+// --- PROFESSIONAL CONFIRMATION DIALOG ---
+window.confirmModal = function(title, message, onConfirm) {
+  const modalId = 'confirm-modal-' + Date.now();
+  const modalHtml = `
+    <div class="modal-overlay" id="${modalId}" style="z-index: 9999;">
+      <div class="modal-content" style="max-width: 400px; text-align: center; padding: 2.5rem;">
+        <div style="width: 64px; height: 64px; background: #fee2e2; color: #ef4444; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2rem;">
+          <i class="ph ph-warning-circle"></i>
+        </div>
+        <h3 style="font-weight: 800; font-size: 1.25rem; margin-bottom: 0.75rem; color: var(--text-primary);">${title}</h3>
+        <p style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.5; margin-bottom: 2rem;">${message}</p>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <button class="btn btn-secondary" id="${modalId}-cancel" style="justify-content: center; padding: 0.8rem;">Cancel</button>
+          <button class="btn btn-danger" id="${modalId}-confirm" style="justify-content: center; padding: 0.8rem;">Yes, Confirm</button>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+  document.getElementById(`${modalId}-cancel`).onclick = () => {
+    document.getElementById(modalId).remove();
+  };
+
+  document.getElementById(`${modalId}-confirm`).onclick = () => {
+    document.getElementById(modalId).remove();
+    if (typeof onConfirm === 'function') onConfirm();
+  };
+};
+
+// --- PREMIUM CUSTOM SELECTION ENGINE ---
+window.initCustomSelects = function() {
+  const selects = document.querySelectorAll('select:not(.custom-select-processed)');
+  
+  selects.forEach(select => {
+    select.classList.add('custom-select-processed');
+    select.style.display = 'none';
+    
+    // Create container
+    const container = document.createElement('div');
+    container.className = 'custom-select-container';
+    select.parentNode.insertBefore(container, select);
+    container.appendChild(select);
+    
+    // Create trigger
+    const trigger = document.createElement('div');
+    trigger.className = 'custom-select-trigger';
+    const selectedOption = select.options[select.selectedIndex];
+    trigger.innerHTML = `<span>${selectedOption ? selectedOption.text : 'Select...'}</span> <i class="ph ph-caret-down"></i>`;
+    container.appendChild(trigger);
+    
+    // Create options list
+    const optionsList = document.createElement('div');
+    optionsList.className = 'custom-select-options';
+    
+    Array.from(select.options).forEach((option, index) => {
+      const customOption = document.createElement('div');
+      customOption.className = `custom-option ${index === select.selectedIndex ? 'selected' : ''}`;
+      customOption.innerText = option.text;
+      customOption.dataset.value = option.value;
+      
+      customOption.onclick = (e) => {
+        e.stopPropagation();
+        select.selectedIndex = index;
+        trigger.querySelector('span').innerText = option.text;
+        
+        // Update selection UI
+        container.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+        customOption.classList.add('selected');
+        
+        // Close dropdown
+        container.classList.remove('open');
+        
+        // Trigger native change event
+        select.dispatchEvent(new Event('change'));
+      };
+      
+      optionsList.appendChild(customOption);
+    });
+    
+    container.appendChild(optionsList);
+    
+    // Toggle on click
+    trigger.onclick = (e) => {
+      e.stopPropagation();
+      // Close all other open selects
+      document.querySelectorAll('.custom-select-container.open').forEach(openSelect => {
+        if (openSelect !== container) openSelect.classList.remove('open');
+      });
+      container.classList.toggle('open');
+    };
+  });
+};
+
+// Close all custom selects when clicking outside
+document.addEventListener('click', () => {
+  document.querySelectorAll('.custom-select-container.open').forEach(container => {
+    container.classList.remove('open');
+  });
+});

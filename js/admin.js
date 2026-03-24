@@ -100,6 +100,7 @@ const AdminPanel = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
   },
 
   async saveEmployee() {
@@ -228,6 +229,7 @@ const AdminPanel = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
   },
 
   async updateEmployee() {
@@ -248,17 +250,6 @@ const AdminPanel = {
         this.loadEmployees();
       }
     } catch(err) { toast('Failed to save employee', 'error'); }
-  },
-
-  async deleteEmployee(id) {
-    if(!confirm('Are you sure you want to permanently delete this employee? This will remove all their data.')) return;
-    try {
-      const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
-      if(res.ok) {
-        toast('Employee deleted permanently');
-        this.loadEmployees();
-      }
-    } catch(err) { toast('Failed to delete employee', 'error'); }
   },
 
   async viewEmployeeDetails(id) {
@@ -335,36 +326,39 @@ const AdminPanel = {
         </div>
       `;
       document.body.insertAdjacentHTML('beforeend', modalHtml);
+      window.initCustomSelects();
     } catch (err) {
       toast('Error loading details', 'error');
     }
   },
 
   async toggleEmployeeStatus(id, newStatus) {
-    if (!confirm(`Are you sure you want to ${newStatus ? 'reactivate' : 'FIRE'} this employee?`)) return;
-    try {
-      const res = await fetch(`/api/employees/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ isActive: newStatus })
-      });
-      if (res.ok) {
-        document.getElementById('emp-modal')?.remove();
-        this.loadEmployees();
-      }
-    } catch (err) {
-      toast('Action failed', 'error');
-    }
+    const action = newStatus ? 'reactivate' : 'FIRE';
+    window.confirmModal(`${action.toUpperCase()} Member`, `Are you sure you want to ${action} this employee?`, async () => {
+      try {
+        const res = await fetch(`/api/employees/${id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ isActive: newStatus })
+        });
+        if (res.ok) {
+          document.getElementById('emp-modal')?.remove();
+          this.loadEmployees();
+        }
+      } catch (err) { toast('Action failed', 'error'); }
+    });
   },
 
   async deleteEmployee(id) {
-    if (!confirm('PERMANENT DELETION: Are you sure you want to completely remove this employee from the database? This cannot be undone.')) return;
-    try {
-      const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        this.loadEmployees();
-      }
-    } catch (err) { toast('Deletion failed', 'error'); }
+    window.confirmModal('Permanent Deletion', 'PERMANENT DELETION: Are you sure you want to completely remove this employee from the database? This cannot be undone.', async () => {
+      try {
+        const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          this.loadEmployees();
+          toast('Employee removed permanently');
+        }
+      } catch (err) { toast('Deletion failed', 'error'); }
+    });
   },
 
   // --- GLOBAL TASKS MODULE ---
@@ -471,11 +465,77 @@ const AdminPanel = {
   },
 
   async deleteGlobalTask(id) {
-    if (!confirm('Are you sure you want to delete this task?')) return;
-    try {
-      const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
-      if (res.ok) this.loadGlobalTasks();
-    } catch (err) { toast('Delete failed', 'error'); }
+    window.confirmModal('Delete Agency Task', 'Are you sure you want to delete this task from the master list?', async () => {
+      try {
+        const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          toast('Task deleted');
+          this.loadGlobalTasks();
+        }
+      } catch (err) { toast('Delete failed', 'error'); }
+    });
+  },
+
+  async showAddTask(projectId = null, taskId = null) {
+    const empsRes = await fetch('/api/employees');
+    const emps = await empsRes.json();
+    const projectsRes = await fetch('/api/projects');
+    const projects = await projectsRes.json();
+
+    const modalHtml = `
+      <div class="modal-overlay" id="task-modal">
+        <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Create New Task</h3>
+            <button onclick="document.getElementById('task-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1rem;">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Task Title</label>
+              <input type="text" id="t-title" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Description</label>
+              <textarea id="t-desc" class="form-control" rows="3" style="width:100%; border-radius:8px; padding:0.75rem; border:1px solid var(--border-color);"></textarea>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project</label>
+                  <select id="t-project" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                    <option value="">-- No Project --</option>
+                    ${projects.map(p => `<option value="${p._id}" ${projectId === p._id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                  </select>
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Assigned To</label>
+                  <select id="t-assign" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                    <option value="">-- Unassigned --</option>
+                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
+                  </select>
+               </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Priority</label>
+                  <select id="t-priority" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                    <option value="urgent">Urgent</option>
+                  </select>
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Deadline</label>
+                  <input type="date" id="t-deadline" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask()">Create Task</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
   },
 
   async showEditTask(id) {
@@ -484,7 +544,7 @@ const AdminPanel = {
     const t = tasks.find(x => x._id === id);
     if(!t) return;
 
-    this.showAddTask(t.project?._id);
+    this.showAddTask(t.project?._id, id);
     // After a slight delay to let the modal render, we fill the values
     setTimeout(() => {
       const modal = document.getElementById('task-modal');
@@ -579,6 +639,7 @@ const AdminPanel = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
   },
 
   async saveProject() {
@@ -649,7 +710,10 @@ const AdminPanel = {
             <p class="view-subtitle">${p.status.toUpperCase()} PROJECT</p>
           </div>
         </div>
-        <button class="btn btn-primary" onclick="AdminPanel.showAddTask('${id}')"><i class="ph ph-plus"></i> Add Task</button>
+        <div style="display:flex; gap:0.75rem;">
+          <button class="btn btn-danger" onclick="AdminPanel.deleteProject('${id}')"><i class="ph ph-trash"></i> Delete Project</button>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddTask('${id}')"><i class="ph ph-plus"></i> Add Task</button>
+        </div>
       </div>
 
       <div style="display:grid; grid-template-columns: 2fr 1fr; gap:2rem;">
@@ -689,7 +753,7 @@ const AdminPanel = {
               <div>
                 <label style="display:block; font-size:0.65rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.25rem;">Lead Manager</label>
                 <div style="font-size:0.9rem; font-weight:600;">${p.lead?.name || 'Unassigned'}</div>
-              </div>
+               </div>
             </div>
           </div>
           <div class="card" style="background:var(--accent-color); color:#fff; border:none;">
@@ -699,64 +763,7 @@ const AdminPanel = {
         </div>
       </div>
     `;
-  },
-
-  async showAddTask(projectId = null) {
-    const empsRes = await fetch('/api/employees');
-    const emps = await empsRes.json();
-    const projRes = await fetch('/api/projects');
-    const projs = await projRes.json();
-
-    const modalHtml = `
-      <div class="modal-overlay" id="task-modal">
-        <div class="modal-content">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <h3 style="font-weight:800;">Create Project Task</h3>
-            <button onclick="document.getElementById('task-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
-          </div>
-          <div style="display:grid; gap:1rem;">
-            <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Task Title</label>
-              <input type="text" id="t-title" class="form-control" placeholder="What needs to be done?" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-            </div>
-            <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project</label>
-              <select id="t-project" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                ${projs.map(p => `<option value="${p._id}" ${p._id === projectId ? 'selected' : ''}>${p.name}</option>`).join('')}
-              </select>
-            </div>
-            <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Assign To</label>
-              <select id="t-assign" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                <option value="">-- Unassigned --</option>
-                ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
-              </select>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Priority</label>
-                  <select id="t-priority" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
-               </div>
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Deadline</label>
-                  <input type="date" id="t-deadline" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-               </div>
-            </div>
-            <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Description</label>
-              <textarea id="t-desc" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" rows="3" placeholder="Explain the task clearly..."></textarea>
-            </div>
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask(${taskId ? `'${taskId}'` : ''})">${taskId ? 'Update Task' : 'Create Task'}</button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
   },
 
   async saveTask(taskId = null) {
@@ -839,6 +846,7 @@ const AdminPanel = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
   },
 
   async loadClients() {
@@ -949,6 +957,7 @@ const AdminPanel = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
   },
 
   async updateClient() {
@@ -1009,6 +1018,7 @@ const AdminPanel = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
   },
 
   async saveClient() {
@@ -1035,14 +1045,15 @@ const AdminPanel = {
   },
 
   async deleteClient(id) {
-    if(!confirm('Are you sure you want to remove this client? This cannot be undone.')) return;
-    try {
-      const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' });
-      if(res.ok) {
-        toast('Client removed successfully');
-        this.loadClients();
-      }
-    } catch(err) { toast('Failed to delete client', 'error'); }
+    window.confirmModal('Remove Client', 'Are you sure you want to remove this client from the CRM? This will not delete their projects, but will orphan them.', async () => {
+      try {
+        const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Client removed successfully');
+          this.loadClients();
+        }
+      } catch(err) { toast('Failed to delete client', 'error'); }
+    });
   },
 
   // --- BILLING MODULE ---
@@ -1172,6 +1183,7 @@ const AdminPanel = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
     this.updateInvoiceTotal();
   },
 
@@ -1246,14 +1258,27 @@ const AdminPanel = {
   },
 
   async deleteInvoice(id) {
-    if(!confirm('Are you sure you want to delete this invoice?')) return;
-    try {
-      const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' });
-      if(res.ok) {
-        toast('Invoice deleted successfully');
-        this.loadInvoices();
-      }
-    } catch(err) { toast('Failed to delete invoice', 'error'); }
+    window.confirmModal('Delete Invoice', 'Are you sure you want to delete this invoice? This action cannot be undone.', async () => {
+      try {
+        const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Invoice deleted successfully');
+          this.loadInvoices();
+        }
+      } catch(err) { toast('Failed to delete invoice', 'error'); }
+    });
+  },
+
+  async deleteProject(id) {
+    window.confirmModal('Delete Project', 'Are you sure? This will delete the project data permanently.', async () => {
+      try {
+        const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Project deleted');
+          this.loadProjects();
+        }
+      } catch(err) { toast('Failed to delete project', 'error'); }
+    });
   },
 
   async downloadInvoice(id) {
@@ -1481,11 +1506,12 @@ const AdminPanel = {
   },
 
   async seedAllMetrics() {
-    if (!confirm('Are you sure you want to reset all dashboard data to factory defaults?')) return;
-    try {
-      const res = await fetch('/api/dashboard/seed/all', { method: 'POST' });
-      if (res.ok) toast('All data reset to defaults.');
-    } catch (err) { toast('Seeding failed', 'error'); }
+    window.confirmModal('Factory Reset', 'Are you sure you want to reset all dashboard data to factory defaults? This will overwrite all current live metrics.', async () => {
+      try {
+        const res = await fetch('/api/dashboard/seed/all', { method: 'POST' });
+        if (res.ok) toast('All data reset to defaults.');
+      } catch (err) { toast('Seeding failed', 'error'); }
+    });
   },
 
   // --- ASSETS MODULE ---
