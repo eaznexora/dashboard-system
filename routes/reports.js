@@ -33,24 +33,34 @@ router.get('/', async (req, res) => {
     // 4. Avg Productivity (Based on Task Distribution - Completed %)
     const avgProductivity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    // 5. Revenue History (Paid Invoices per month)
+    // 5. Revenue Forecast (Forward-looking 7 months)
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
-    const revenueHistory = [];
+    const revenueHistory = new Array(7).fill(0);
     const categories = [];
 
-    for (let i = 6; i >= 0; i--) {
-      const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      categories.push(months[targetDate.getMonth()]);
-      
-      const monthlyTotal = invoices
-        .filter(inv => {
-          const invDate = new Date(inv.issueDate);
-          return invDate.getMonth() === targetDate.getMonth() && invDate.getFullYear() === targetDate.getFullYear();
-        })
-        .reduce((sum, inv) => sum + (inv.total || 0), 0);
-      
-      revenueHistory.push(monthlyTotal);
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        categories.push(months[d.getMonth()]);
+        
+        const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
+        const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+
+        projects.forEach(p => {
+            if (!p.budget || !p.startDate || !p.endDate) return;
+            
+            const pStart = new Date(p.startDate);
+            const pEnd = new Date(p.endDate);
+            
+            // If project is active during this month
+            if (pStart <= monthEnd && pEnd >= monthStart) {
+                // Calculate duration in months (min 1)
+                const monthDiff = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1;
+                const monthlyWeight = p.budget / monthDiff;
+                revenueHistory[i] += monthlyWeight;
+            }
+        });
+        revenueHistory[i] = Math.round(revenueHistory[i]);
     }
 
     // 6. Employee Utilization (Today's Working Hours - Only Active Employees)

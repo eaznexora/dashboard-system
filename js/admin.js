@@ -18,6 +18,7 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
+            <h2 class="view-title">Team Management</h2>
             <p class="view-subtitle">${activeEmps.length} Active Members · ${inactiveEmps.length} Terminated</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
@@ -379,6 +380,7 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
+            <h2 class="view-title">Agency Task Board</h2>
             <p class="view-subtitle">${tasks.length} total tasks across all projects</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddTask()"><i class="ph ph-plus"></i> Quick Task</button>
@@ -575,6 +577,7 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
+            <h2 class="view-title">Project Command Center</h2>
             <p class="view-subtitle">${projects.length} Active Projects</p>
           </div>
           <div style="display:flex; gap:0.5rem;">
@@ -857,6 +860,7 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
+            <h2 class="view-title">Client CRM & Lead Tracking</h2>
             <p class="view-subtitle">${clients.length} Total Leads & Clients</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddClient()"><i class="ph ph-user-plus"></i> Add Client</button>
@@ -1417,7 +1421,9 @@ const AdminPanel = {
        const invoices = await res.json();
        let html = `
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-          <h3 style="font-weight:700;">Invoices & Payments</h3>
+          <div>
+            <h4 style="font-weight:700;">Invoices & Payments</h4>
+          </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddInvoice()"><i class="ph ph-plus"></i> New Invoice</button>
         </div>
         <div class="card" style="padding:0; overflow:hidden;">
@@ -1588,6 +1594,7 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
+            <h2 class="view-title">Billing & Invoicing</h2>
             <p class="view-subtitle">${invoices.length} Invoices Found</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddInvoice()"><i class="ph ph-receipt"></i> Create Invoice</button>
@@ -2459,6 +2466,7 @@ const AdminPanel = {
     container.innerHTML = `
       <div class="view-header">
         <div>
+          <h2 class="view-title">Digital Asset Library</h2>
           <p class="view-subtitle">Central file management for all projects</p>
         </div>
         <button class="btn btn-primary" onclick="toast('Asset upload coming soon', 'info')"><i class="ph ph-upload"></i> Upload Asset</button>
@@ -2488,6 +2496,7 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
+            <h2 class="view-title">Agency Intelligence</h2>
             <p class="view-subtitle">Real-time performance metrics and financial tracking</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.loadReports()"><i class="ph ph-arrows-clockwise"></i> Refresh Data</button>
@@ -2546,15 +2555,33 @@ const AdminPanel = {
   initCharts(data) {
     if (!window.ApexCharts) return console.error('ApexCharts not loaded');
     
-    // 1. Revenue Area Chart
+    // 1. Revenue Area Chart (Forecast)
     new ApexCharts(document.querySelector("#revenue-chart"), {
-      series: [{ name: 'Revenue', data: data.revenueHistory || [31, 40, 28, 51, 42, 109, 100] }],
+      series: [{ name: 'Projected Revenue', data: data.revenueHistory }],
       chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-      colors: ['#2563eb'],
+      colors: ['#6366f1'],
       dataLabels: { enabled: false },
-      stroke: { curve: 'smooth' },
-      xaxis: { categories: data.revenueCategories || ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"] },
-      tooltip: { x: { format: 'dd/MM/yy HH:mm' } }
+      stroke: { curve: 'smooth', width: 3 },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 1,
+          opacityFrom: 0.45,
+          opacityTo: 0.05,
+          stops: [20, 100]
+        }
+      },
+      xaxis: { 
+        categories: data.revenueCategories,
+        labels: { style: { colors: '#64748b' } }
+      },
+      yaxis: {
+        labels: { 
+          style: { colors: '#64748b' },
+          formatter: (val) => '$' + val.toLocaleString()
+        }
+      },
+      tooltip: { theme: 'light', y: { formatter: (val) => '$' + val.toLocaleString() } }
     }).render();
 
     // 2. Task Pie Chart
@@ -2566,31 +2593,44 @@ const AdminPanel = {
       legend: { position: 'bottom' }
     }).render();
 
-    // 3. Employee Utilization bar chart (Raw Hours Today)
+    // 3. Employee Utilization (Professional Linear Style)
     new ApexCharts(document.querySelector("#util-chart"), {
-      series: [{ name: 'Hours Worked', data: data.employeeHours }],
-      chart: { type: 'bar', height: 250, toolbar: { show: false } },
+      series: [{ name: 'Hours Worked Today', data: data.employeeHours }],
+      chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       plotOptions: { 
         bar: { 
-          borderRadius: 4, 
+          borderRadius: 6, 
           horizontal: true,
+          distributed: true,
+          barHeight: '60%',
           dataLabels: { position: 'top' }
         } 
       },
+      colors: data.employeeHours.map(h => {
+        if (h >= 7) return '#10b981'; // Green (Highly Productive)
+        if (h >= 4) return '#3b82f6'; // Blue (Standard)
+        if (h >= 2) return '#f59e0b'; // Amber (Low)
+        return '#ef4444'; // Red (Critical)
+      }),
       dataLabels: {
         enabled: true,
-        formatter: function(val) { return val + " hrs"; },
-        offsetX: 30,
-        style: { fontSize: '10px', colors: ['#475569'] }
+        formatter: (val) => val + " hrs",
+        offsetX: 35,
+        style: { fontSize: '11px', fontWeight: 700, colors: ['#475569'] }
       },
-      colors: ['#6366f1'],
       xaxis: { 
         categories: data.employeeNames,
-        title: { text: "Hours Worked Today" }
+        labels: { style: { fontWeight: 600 } }
+      },
+      grid: {
+        borderColor: '#f1f5f9',
+        xaxis: { lines: { show: true } }
       },
       tooltip: {
-        y: { formatter: (val) => val + " hours" }
-      }
+        theme: 'dark',
+        y: { formatter: (val) => val + " hours today" }
+      },
+      legend: { show: false }
     }).render();
   },
 
