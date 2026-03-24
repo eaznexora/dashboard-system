@@ -74,6 +74,9 @@ const clientRoutes = require('./routes/clients');
 const activityRoutes = require('./routes/activity');
 const issueRoutes = require('./routes/issues');
 const reportRoutes = require('./routes/reports');
+const invoiceRoutes = require('./routes/invoices');
+const contractRoutes = require('./routes/contracts');
+const proposalRoutes = require('./routes/proposals');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
@@ -84,6 +87,9 @@ app.use('/api/clients', clientRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/invoices', invoiceRoutes);
+app.use('/api/contracts', contractRoutes);
+app.use('/api/proposals', proposalRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {

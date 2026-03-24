@@ -1392,6 +1392,426 @@ const AdminPanel = {
     printWindow.document.close();
   },
 
+  // --- PROPOSALS MODULE ---
+  async loadProposals() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Loading proposals...</div>`;
+    try {
+      const res = await fetch('/api/proposals');
+      const proposals = await res.json();
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Proposals & Pitches</h2>
+            <p class="view-subtitle">${proposals.length} Proposals in Pipeline</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddProposal()"><i class="ph ph-presentation-chart"></i> New Proposal</button>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">PROP #</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Project Title</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Client</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Value</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Status</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${proposals.map(p => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:1rem; font-weight:700;">${p.proposalId}</td>
+                  <td style="padding:1rem; font-size:0.875rem; font-weight:600;">${p.title}</td>
+                  <td style="padding:1rem; font-size:0.875rem;">${p.client?.company || 'Unknown'}</td>
+                  <td style="padding:1rem; font-weight:700;">₹${p.total?.toLocaleString()}</td>
+                  <td style="padding:1rem;">
+                    <span style="padding:0.25rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700; 
+                      background:${p.status==='accepted'?'#d1fae5':p.status==='rejected'?'#fee2e2':'#e0f2fe'};
+                      color:${p.status==='accepted'?'#065f46':p.status==='rejected'?'#991b1b':'#0369a1'};">
+                      ${p.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style="padding:1rem;">
+                    <div style="display:flex; gap:0.5rem;">
+                       <button class="btn-action" title="Download" onclick="AdminPanel.downloadProposal('${p._id}')"><i class="ph ph-download-simple"></i></button>
+                       <button class="btn-action btn-delete" title="Delete" onclick="AdminPanel.deleteProposal('${p._id}')"><i class="ph ph-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch(err) { container.innerHTML = `<div class="error">Failed to load proposals</div>`; }
+  },
+
+  async showAddProposal() {
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const modalHtml = `
+      <div class="modal-overlay" id="prop-modal">
+        <div class="modal-content" style="max-width:600px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Create Agency Proposal</h3>
+            <button onclick="document.getElementById('prop-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1.25rem;">
+            <div class="form-group">
+              <label>Project Title / Campaign Name</label>
+              <input type="text" id="p-title" class="form-control" placeholder="e.g. Q3 Social Media Growth Strategy">
+            </div>
+            <div class="form-group">
+              <label>Select Client</label>
+              <select id="p-client" class="form-control">
+                ${clients.map(c => `<option value="${c._id}">${c.company} (${c.contactName})</option>`).join('')}
+              </select>
+            </div>
+            <div style="background:#f8fafc; padding:1rem; border-radius:12px; border:1px dashed var(--border-color);">
+               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">Estimate / Line Items</label>
+               <div id="prop-items-container" style="margin-top:0.75rem; display:grid; gap:0.5rem;">
+                  <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.5rem;">
+                     <input type="text" placeholder="Service Name" class="form-control p-item-desc">
+                     <input type="number" placeholder="Cost (₹)" class="form-control p-item-val" oninput="AdminPanel.updateProposalTotal()">
+                  </div>
+               </div>
+               <button class="btn btn-secondary" style="margin-top:0.75rem; font-size:0.75rem; padding:0.4rem 0.8rem;" onclick="AdminPanel.addProposalLine()">+ Add Service</button>
+               <div style="margin-top:1rem; text-align:right; font-weight:800; font-size:1.1rem; color:var(--accent-color);" id="p-total-display">Total: ₹0</div>
+            </div>
+          </div>
+          <div style="margin-top:2rem;">
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveProposal()">Generate Proposal</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
+  },
+
+  addProposalLine() {
+    const container = document.getElementById('prop-items-container');
+    const html = `
+      <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.5rem;">
+         <input type="text" placeholder="Service Name" class="form-control p-item-desc">
+         <input type="number" placeholder="Cost (₹)" class="form-control p-item-val" oninput="AdminPanel.updateProposalTotal()">
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+  },
+
+  updateProposalTotal() {
+    const vals = document.querySelectorAll('.p-item-val');
+    let total = 0;
+    vals.forEach(v => total += (Number(v.value) || 0));
+    document.getElementById('p-total-display').innerText = `Total: ₹${total.toLocaleString()}`;
+  },
+
+  async saveProposal() {
+    const items = [];
+    const descs = document.querySelectorAll('.p-item-desc');
+    const vals = document.querySelectorAll('.p-item-val');
+    let total = 0;
+
+    descs.forEach((d, i) => {
+      const amount = Number(vals[i].value);
+      if(d.value && amount) {
+        items.push({ description: d.value, amount });
+        total += amount;
+      }
+    });
+
+    const body = {
+      title: document.getElementById('p-title').value,
+      client: document.getElementById('p-client').value,
+      items,
+      total,
+      status: 'sent'
+    };
+
+    try {
+      const res = await fetch('/api/proposals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('prop-modal').remove();
+        toast('Proposal generated successfully');
+        this.loadProposals();
+      }
+    } catch(err) { toast('Failed to save proposal', 'error'); }
+  },
+
+  async deleteProposal(id) {
+    window.confirmModal('Delete Proposal', 'Are you sure you want to remove this proposal?', async () => {
+      try {
+        const res = await fetch(`/api/proposals/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Proposal deleted');
+          this.loadProposals();
+        }
+      } catch(err) { toast('Failed to delete', 'error'); }
+    });
+  },
+
+  async downloadProposal(id) {
+    const res = await fetch('/api/proposals');
+    const props = await res.json();
+    const p = props.find(x => x._id === id);
+    if(!p) return;
+
+    const printWindow = window.open('', '_blank');
+    const html = `
+      <html>
+        <head>
+          <title>Proposal - ${p.title}</title>
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;700;800&display=swap');
+            body { font-family: 'Outfit', sans-serif; padding: 60px; color: #1e293b; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+            .cover { text-align: center; padding: 100px 0; border-bottom: 2px solid #f1f5f9; margin-bottom: 60px; }
+            .badge { background: #eff6ff; color: #2563eb; padding: 0.5rem 1rem; border-radius: 2rem; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.05em; }
+            h1 { font-size: 3rem; font-weight: 800; margin: 2rem 0; color: #0f172a; }
+            .section-title { font-size: 0.8rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem; }
+            .pricing-table { width: 100%; border-collapse: collapse; margin: 2rem 0; }
+            .pricing-table td { padding: 1.5rem 0; border-bottom: 1px solid #f1f5f9; }
+            .pricing-table .label { font-weight: 600; font-size: 1.1rem; }
+            .pricing-table .val { text-align: right; font-weight: 800; color: #2563eb; font-size: 1.25rem; }
+            .total-box { background: #0f172a; color: white; padding: 2rem; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; margin-top: 2rem; }
+          </style>
+        </head>
+        <body>
+          <div class="cover">
+            <span class="badge">Professional Proposal</span>
+            <h1>${p.title}</h1>
+            <p style="color: #64748b; font-size: 1.25rem;">Prepared for <strong>${p.client?.company || 'Valued Client'}</strong></p>
+            <p style="color: #94a3b8;">Proposal ID: ${p.proposalId} | Date: ${new Date(p.createdAt).toLocaleDateString()}</p>
+          </div>
+          
+          <div class="section-title">Scope of Engagement</div>
+          <p>We are thrilled to present this proposal for your upcoming project. Our team has curated a selection of services designed to maximize your brand's digital footprints and drive tangible growth.</p>
+          
+          <div class="section-title">Financial Investment</div>
+          <table class="pricing-table">
+            <tbody>
+              ${p.items.map(i => `
+                <tr>
+                  <td class="label">${i.description}</td>
+                  <td class="val">₹${i.amount.toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="total-box">
+            <span style="font-weight: 700; font-size: 1.25rem;">Total Campaign Investment</span>
+            <span style="font-weight: 800; font-size: 2rem;">₹${p.total.toLocaleString()}</span>
+          </div>
+
+          <div style="margin-top: 60px;">
+            <div class="section-title">Next Steps</div>
+            <p>To move forward with this proposal, please sign the digital contract or reach out to our account executive. This proposal is valid for 15 business days.</p>
+          </div>
+          
+          <div style="margin-top: 100px; padding-top: 40px; border-top: 1px solid #f1f5f9; text-align: center; color: #94a3b8; font-size: 0.875rem;">
+            Eaz Social Media Agency | Proprietary & Confidential Proposal
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+  },
+
+  // --- CONTRACTS MODULE ---
+  async loadContracts() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Loading legal documents...</div>`;
+    try {
+      const res = await fetch('/api/contracts');
+      const contracts = await res.json();
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Legal & Contracts</h2>
+            <p class="view-subtitle">${contracts.length} Signed Agreements</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddContract()"><i class="ph ph-scroll"></i> New Agreement</button>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">CTR #</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Agreement Name</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Client</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Status</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Date</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${contracts.map(c => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:1rem; font-weight:700;">${c.contractId}</td>
+                  <td style="padding:1rem; font-size:0.875rem; font-weight:600;">${c.title}</td>
+                  <td style="padding:1rem; font-size:0.875rem;">${c.client?.company || 'Unknown'}</td>
+                  <td style="padding:1rem;">
+                    <span style="padding:0.25rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700; 
+                      background:${c.status==='active'?'#d1fae5':c.status==='terminated'?'#fee2e2':'#e0f2fe'};
+                      color:${c.status==='active'?'#065f46':c.status==='terminated'?'#991b1b':'#0369a1'};">
+                      ${c.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style="padding:1rem; font-size:0.8rem; color:var(--text-secondary);">${new Date(c.createdAt).toLocaleDateString()}</td>
+                  <td style="padding:1rem;">
+                    <div style="display:flex; gap:0.5rem;">
+                       <button class="btn-action" title="Download" onclick="AdminPanel.downloadContract('${c._id}')"><i class="ph ph-file-pdf"></i></button>
+                       <button class="btn-action btn-delete" title="Delete" onclick="AdminPanel.deleteContract('${c._id}')"><i class="ph ph-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch(err) { container.innerHTML = `<div class="error">Failed to load contracts</div>`; }
+  },
+
+  async showAddContract() {
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const modalHtml = `
+      <div class="modal-overlay" id="ctr-modal">
+        <div class="modal-content" style="max-width:700px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Draft New Agreement</h3>
+            <button onclick="document.getElementById('ctr-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1.25rem;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+              <div class="form-group">
+                <label>Agreement Title</label>
+                <input type="text" id="c-title" class="form-control" placeholder="Service Level Agreement">
+              </div>
+              <div class="form-group">
+                <label>Client</label>
+                <select id="c-client" class="form-control">
+                  ${clients.map(cl => `<option value="${cl._id}">${cl.company}</option>`).join('')}
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Agreement Terms & Conditions</label>
+              <textarea id="c-content" class="form-control" style="min-height:200px; padding:1rem; font-family:monospace; font-size:0.85rem;" placeholder="Paste legal terms here..."></textarea>
+            </div>
+            <div class="form-group">
+              <label>Contract Value (₹)</label>
+              <input type="number" id="c-val" class="form-control" placeholder="Leave empty for T&M agreements">
+            </div>
+          </div>
+          <div style="margin-top:2rem;">
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveContract()">Execute Agreement</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
+  },
+
+  async saveContract() {
+    const body = {
+      title: document.getElementById('c-title').value,
+      client: document.getElementById('c-client').value,
+      content: document.getElementById('c-content').value,
+      value: Number(document.getElementById('c-val').value) || 0,
+      status: 'active'
+    };
+    try {
+      const res = await fetch('/api/contracts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('ctr-modal').remove();
+        toast('Agreement executed successfully');
+        this.loadContracts();
+      }
+    } catch(err) { toast('Failed to execute contract', 'error'); }
+  },
+
+  async deleteContract(id) {
+    window.confirmModal('Delete Agreement', 'Warning: Deleting a signed contract is a critical action. Continue?', async () => {
+      try {
+        const res = await fetch(`/api/contracts/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Contract removed');
+          this.loadContracts();
+        }
+      } catch(err) { toast('Failed to delete', 'error'); }
+    });
+  },
+
+  async downloadContract(id) {
+    const res = await fetch('/api/contracts');
+    const ctrs = await res.json();
+    const c = ctrs.find(x => x._id === id);
+    if(!c) return;
+
+    const printWindow = window.open('', '_blank');
+    const html = `
+      <html>
+        <head>
+          <title>Agreement - ${c.title}</title>
+          <style>
+             @import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;700&family=Inter:wght@400;700&display=swap');
+             body { font-family: 'Inter', sans-serif; padding: 80px; color: #1a202c; max-width: 800px; margin: 0 auto; line-height: 1.7; }
+             h1 { font-family: 'Crimson Pro', serif; font-size: 2.5rem; text-align: center; margin-bottom: 60px; text-decoration: underline; }
+             .legal-content { font-family: 'Crimson Pro', serif; font-size: 1.1rem; white-space: pre-wrap; margin: 40px 0; padding: 40px; border: 1px solid #e2e8f0; }
+             .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 80px; }
+             .sig-line { border-top: 1px solid #1a202c; margin-top: 60px; padding-top: 12px; font-weight: 700; font-size: 0.9rem; }
+          </style>
+        </head>
+        <body>
+          <h1>${c.title.toUpperCase()}</h1>
+          <p style="text-align:center; color:#718096;">Contract # ${c.contractId} | Dated: ${new Date(c.createdAt).toLocaleDateString()}</p>
+          
+          <p>This <strong>SERVICE LEVEL AGREEMENT</strong> is entered into between <strong>EAZ SOCIAL MEDIA AGENCY</strong> and <strong>${c.client?.company || 'CLIENT'}</strong> for the mutually agreed upon services and considerations described herein.</p>
+
+          <div class="legal-content">${c.content}</div>
+
+          <div style="margin-top:40px;">
+            <p><strong>Total Consideration:</strong> ₹${c.value.toLocaleString()}</p>
+          </div>
+
+          <div class="sig-grid">
+             <div>
+                <p>For <strong>Eaz Social Media Agency</strong></p>
+                <div class="sig-line">Authorized Signatory</div>
+             </div>
+             <div>
+                <p>For <strong>${c.client?.company || 'Client'}</strong></p>
+                <div class="sig-line">Authorized Signatory</div>
+             </div>
+          </div>
+          
+          <div style="margin-top:100px; font-size:0.75rem; color:#a0aec0; text-align:center;">
+             Page 1 of 1 | Eaz Social Confidential Agreement
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
+  },
+
   // --- DASHBOARD MATRIX MODULE ---
   async loadDashboardMatrix() {
     const container = document.getElementById('dashboard-content');
