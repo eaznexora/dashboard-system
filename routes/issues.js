@@ -44,4 +44,14 @@ router.patch('/:id', async (req, res) => {
     }
 });
 
+// DELETE issue
+router.delete('/:id', async (req, res) => {
+    try {
+        await Issue.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Issue deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ message: 'Delete failed' });
+    }
+});
+
 module.exports = router;

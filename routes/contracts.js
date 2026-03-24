@@ -32,6 +32,15 @@ router.post('/', async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+// UPDATE contract
+router.put('/:id', async (req, res) => {
+  try {
+    const updated = await Contract.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
 
 // DELETE contract
 router.delete('/:id', async (req, res) => {

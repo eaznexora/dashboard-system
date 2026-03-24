@@ -31,6 +31,15 @@ router.post('/', async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 });
+// UPDATE proposal
+router.put('/:id', async (req, res) => {
+  try {
+    const updated = await Proposal.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+});
 
 // DELETE proposal
 router.delete('/:id', async (req, res) => {

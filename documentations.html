@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentations Hub | EazDash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link rel="stylesheet" href="css/globals.css?version=1.0.3">
+  <link rel="stylesheet" href="css/sidebar.css?version=1.0.3">
+  <link rel="stylesheet" href="css/admin.css?version=1.0.1">
+  <style>
+    .doc-tabs { display: flex; gap: 1rem; margin-bottom: 2rem; background: var(--card-bg); padding: 0.5rem; border-radius: 12px; border: 1px solid var(--border-color); width: fit-content; }
+    .doc-tab { padding: 0.75rem 1.5rem; border-radius: 8px; cursor: pointer; font-weight: 700; font-size: 0.875rem; color: var(--text-secondary); transition: all 0.2s; border: none; background: none; }
+    .doc-tab.active { background: var(--accent-color); color: white; box-shadow: 0 4px 12px var(--accent-light); }
+    .doc-tab i { margin-right: 0.5rem; font-size: 1.1rem; }
+  </style>
+</head>
+<body class="theme-blue">
+  <div id="app" class="app-container"></div>
+  
+  <script src="js/store.js?version=1.0.2"></script>
+  <script src="js/auth.js?version=1.0.3"></script>
+  <script src="js/components.js?version=1.0.4"></script>
+  <script src="js/admin.js?version=1.0.1"></script>
+  
+  <script>
+    const user = requireAuth();
+    if (!user || user.role !== 'ADMIN') window.location.replace('admin-login.html');
+    initApp('documentations', 'Documentations Hub');
+    // Initialize the unified hub
+    AdminPanel.loadDocumentations();
+  </script>
+</body>
+</html>

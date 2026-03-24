@@ -1057,6 +1057,530 @@ const AdminPanel = {
   },
 
   // --- BILLING MODULE ---
+  // --- DOCUMENTATIONS HUB (UNIFIED PROPOSALS, CONTRACTS, INVOICES) ---
+  async loadDocumentations(activeTab = 'proposals') {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `
+      <div class="view-header" style="margin-bottom: 1.5rem;">
+        <div>
+          <h2 class="view-title">Documentations Hub</h2>
+          <p class="view-subtitle">Manage all agency legal and financial paperwork</p>
+        </div>
+      </div>
+
+      <div class="doc-tabs">
+        <button class="doc-tab ${activeTab === 'proposals' ? 'active' : ''}" onclick="AdminPanel.switchDocumentationTab('proposals')">
+          <i class="ph ph-presentation-chart"></i> Proposals
+        </button>
+        <button class="doc-tab ${activeTab === 'contracts' ? 'active' : ''}" onclick="AdminPanel.switchDocumentationTab('contracts')">
+          <i class="ph ph-scroll"></i> Contracts
+        </button>
+        <button class="doc-tab ${activeTab === 'invoices' ? 'active' : ''}" onclick="AdminPanel.switchDocumentationTab('invoices')">
+          <i class="ph ph-receipt"></i> Invoices
+        </button>
+      </div>
+
+      <div id="documentation-hub-content" class="fade-in">
+        <div class="loading">Initalizing module...</div>
+      </div>
+    `;
+
+    // Load the specific module
+    this.switchDocumentationTab(activeTab, false);
+  },
+
+  switchDocumentationTab(tab, updateButtons = true) {
+    if (updateButtons) {
+      document.querySelectorAll('.doc-tab').forEach(b => {
+        const isCurrent = b.innerText.toLowerCase().includes(tab);
+        b.classList.toggle('active', isCurrent);
+      });
+    }
+
+    const hubContent = document.getElementById('documentation-hub-content');
+    if (!hubContent) return;
+
+    switch (tab) {
+      case 'proposals': this.renderProposalsModule(hubContent); break;
+      case 'contracts': this.renderContractsModule(hubContent); break;
+      case 'invoices': this.renderInvoicesModule(hubContent); break;
+    }
+  },
+
+  // --- PROPOSALS MODULE ---
+  async renderProposalsModule(target) {
+    target.innerHTML = `<div class="loading">Loading proposals...</div>`;
+    try {
+      const res = await fetch('/api/proposals');
+      const proposals = await res.json();
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <h3 style="font-weight:700;">Active Proposals</h3>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddProposal()"><i class="ph ph-plus"></i> New Proposal</button>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">PROP #</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Project Title</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Client</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Value</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Status</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${proposals.map(p => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:1rem; font-weight:700;">${p.proposalId}</td>
+                  <td style="padding:1rem; font-size:0.875rem; font-weight:600;">${p.title}</td>
+                  <td style="padding:1rem; font-size:0.875rem;">${p.client?.company || 'Unknown'}</td>
+                  <td style="padding:1rem; font-weight:700;">₹${p.total?.toLocaleString()}</td>
+                  <td style="padding:1rem;">
+                    <span style="padding:0.25rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700; 
+                      background:${p.status==='accepted'?'#d1fae5':p.status==='rejected'?'#fee2e2':'#e0f2fe'};
+                      color:${p.status==='accepted'?'#065f46':p.status==='rejected'?'#991b1b':'#0369a1'};">
+                      ${p.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style="padding:1rem;">
+                    <div style="display:flex; gap:0.5rem;">
+                       <button class="btn-action" title="View/Download" onclick="AdminPanel.downloadProposal('${p._id}')"><i class="ph ph-file-pdf"></i></button>
+                       <button class="btn-action" title="Edit" onclick="AdminPanel.showEditProposal('${p._id}')"><i class="ph ph-pencil-simple"></i></button>
+                       <button class="btn-action btn-delete" title="Delete" onclick="AdminPanel.deleteProposal('${p._id}')"><i class="ph ph-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      target.innerHTML = html;
+    } catch(err) { target.innerHTML = `<div class="error">Failed to load proposals</div>`; }
+  },
+
+  async showEditProposal(id) {
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const propRes = await fetch(`/api/proposals/${id}`);
+    if(!propRes.ok) return toast('Could not fetch proposal details', 'error');
+    const p = await propRes.json();
+
+    const modalHtml = `
+      <div class="modal-overlay" id="prop-edit-modal">
+        <div class="modal-content" style="max-width:600px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Edit Proposal: ${p.proposalId}</h3>
+            <button onclick="document.getElementById('prop-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1.25rem;">
+            <div class="form-group">
+              <label>Project Title</label>
+              <input type="text" id="pe-title" class="form-control" value="${p.title}">
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+              <div class="form-group">
+                <label>Client</label>
+                <select id="pe-client" class="form-control">
+                  ${clients.map(c => `<option value="${c._id}" ${c._id===p.client?._id?'selected':''}>${c.company}</option>`).join('')}
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="pe-status" class="form-control">
+                  <option value="sent" ${p.status==='sent'?'selected':''}>SENT</option>
+                  <option value="accepted" ${p.status==='accepted'?'selected':''}>ACCEPTED</option>
+                  <option value="rejected" ${p.status==='rejected'?'selected':''}>REJECTED</option>
+                </select>
+              </div>
+            </div>
+            <div style="background:#f8fafc; padding:1rem; border-radius:12px; border:1px dashed var(--border-color);">
+               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">Estimate Items</label>
+               <div id="prop-edit-items" style="margin-top:0.75rem; display:grid; gap:0.5rem;">
+                  ${p.items.map(item => `
+                    <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.5rem;">
+                       <input type="text" placeholder="Service" class="form-control pe-item-desc" value="${item.description}">
+                       <input type="number" placeholder="Cost" class="form-control pe-item-val" value="${item.amount}" oninput="AdminPanel.updateEditProposalTotal()">
+                    </div>
+                  `).join('')}
+               </div>
+               <button class="btn btn-secondary" style="margin-top:0.75rem; font-size:0.75rem;" onclick="AdminPanel.addEditProposalLine()">+ Add Item</button>
+               <div style="margin-top:1rem; text-align:right; font-weight:800; font-size:1.1rem; color:var(--accent-color);" id="pe-total-display">Total: ₹${p.total.toLocaleString()}</div>
+            </div>
+          </div>
+          <div style="margin-top:2rem;">
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateProposal('${p._id}')">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
+  },
+
+  addEditProposalLine() {
+    const container = document.getElementById('prop-edit-items');
+    container.insertAdjacentHTML('beforeend', `
+       <div style="display:grid; grid-template-columns: 2fr 1fr; gap:0.5rem;">
+         <input type="text" placeholder="Service" class="form-control pe-item-desc">
+         <input type="number" placeholder="Cost" class="form-control pe-item-val" oninput="AdminPanel.updateEditProposalTotal()">
+      </div>
+    `);
+  },
+
+  updateEditProposalTotal() {
+    const vals = document.querySelectorAll('.pe-item-val');
+    let total = 0;
+    vals.forEach(v => total += (Number(v.value) || 0));
+    document.getElementById('pe-total-display').innerText = `Total: ₹${total.toLocaleString()}`;
+  },
+
+  async updateProposal(id) {
+    const items = [];
+    const descs = document.querySelectorAll('.pe-item-desc');
+    const vals = document.querySelectorAll('.pe-item-val');
+    let total = 0;
+    descs.forEach((d, i) => {
+      const amount = Number(vals[i].value);
+      if(d.value && amount) { items.push({ description: d.value, amount }); total += amount; }
+    });
+
+    const body = {
+      title: document.getElementById('pe-title').value,
+      client: document.getElementById('pe-client').value,
+      status: document.getElementById('pe-status').value,
+      items, total
+    };
+
+    try {
+      const res = await fetch(`/api/proposals/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('prop-edit-modal').remove();
+        toast('Proposal updated');
+        this.switchDocumentationTab('proposals');
+      }
+    } catch(err) { toast('Failed to update', 'error'); }
+  },
+
+  async deleteProposal(id) {
+    window.confirmModal('Delete Proposal', 'Are you sure you want to remove this proposal?', async () => {
+      try {
+        const res = await fetch(`/api/proposals/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Proposal deleted');
+          this.switchDocumentationTab('proposals');
+        }
+      } catch(err) { toast('Failed to delete', 'error'); }
+    });
+  },
+
+  // --- CONTRACTS MODULE ---
+  async renderContractsModule(target) {
+    target.innerHTML = `<div class="loading">Loading agreements...</div>`;
+    try {
+      const res = await fetch('/api/contracts');
+      const contracts = await res.json();
+      let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <h3 style="font-weight:700;">Legal Agreements</h3>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddContract()"><i class="ph ph-plus"></i> New Agreement</button>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">CTR #</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Agreement Name</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Client</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Status</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${contracts.map(c => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:1rem; font-weight:700;">${c.contractId}</td>
+                  <td style="padding:1rem; font-size:0.875rem; font-weight:600;">${c.title}</td>
+                  <td style="padding:1rem; font-size:0.875rem;">${c.client?.company || 'Unknown'}</td>
+                  <td style="padding:1rem;">
+                    <span style="padding:0.25rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700; 
+                      background:${c.status==='active'?'#d1fae5':c.status==='terminated'?'#fee2e2':'#e0f2fe'};
+                      color:${c.status==='active'?'#065f46':c.status==='terminated'?'#991b1b':'#0369a1'};">
+                      ${c.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style="padding:1rem;">
+                    <div style="display:flex; gap:0.5rem;">
+                       <button class="btn-action" title="Download" onclick="AdminPanel.downloadContract('${c._id}')"><i class="ph ph-file-pdf"></i></button>
+                       <button class="btn-action" title="Edit" onclick="AdminPanel.showEditContract('${c._id}')"><i class="ph ph-pencil-simple"></i></button>
+                       <button class="btn-action btn-delete" title="Delete" onclick="AdminPanel.deleteContract('${c._id}')"><i class="ph ph-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      target.innerHTML = html;
+    } catch(err) { target.innerHTML = `<div class="error">Failed to load contracts</div>`; }
+  },
+
+  async showEditContract(id) {
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const ctrRes = await fetch(`/api/contracts/${id}`);
+    if(!ctrRes.ok) return toast('Failed to load contract', 'error');
+    const c = await ctrRes.json();
+
+    const modalHtml = `
+      <div class="modal-overlay" id="ctr-edit-modal">
+        <div class="modal-content" style="max-width:700px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Modify Agreement: ${c.contractId}</h3>
+            <button onclick="document.getElementById('ctr-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1.25rem;">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem;">
+              <div class="form-group">
+                <label>Title</label>
+                <input type="text" id="ce-title" class="form-control" value="${c.title}">
+              </div>
+              <div class="form-group">
+                <label>Status</label>
+                <select id="ce-status" class="form-control">
+                  <option value="active" ${c.status==='active'?'selected':''}>ACTIVE</option>
+                  <option value="terminated" ${c.status==='terminated'?'selected':''}>TERMINATED</option>
+                  <option value="review" ${c.status==='review'?'selected':''}>IN REVIEW</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Agreement Content</label>
+              <textarea id="ce-content" class="form-control" style="min-height:250px; font-family:monospace;">${c.content}</textarea>
+            </div>
+            <div class="form-group">
+              <label>Agreement Value (₹)</label>
+              <input type="number" id="ce-val" class="form-control" value="${c.value}">
+            </div>
+          </div>
+          <div style="margin-top:2rem;">
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateContract('${c._id}')">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
+  },
+
+  async updateContract(id) {
+    const body = {
+      title: document.getElementById('ce-title').value,
+      status: document.getElementById('ce-status').value,
+      content: document.getElementById('ce-content').value,
+      value: Number(document.getElementById('ce-val').value) || 0
+    };
+    try {
+      const res = await fetch(`/api/contracts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('ctr-edit-modal').remove();
+        toast('Contract updated');
+        this.switchDocumentationTab('contracts');
+      }
+    } catch(err) { toast('Failed to update', 'error'); }
+  },
+
+  async deleteContract(id) {
+    window.confirmModal('Delete Agreement', 'Remove this contract?', async () => {
+      try {
+        const res = await fetch(`/api/contracts/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Contract removed');
+          this.switchDocumentationTab('contracts');
+        }
+      } catch(err) { toast('Failed to delete', 'error'); }
+    });
+  },
+
+  // --- INVOICES HUB MODULE ---
+  async renderInvoicesModule(target) {
+    target.innerHTML = `<div class="loading">Loading invoices...</div>`;
+    try {
+       const res = await fetch('/api/invoices');
+       const invoices = await res.json();
+       let html = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <h3 style="font-weight:700;">Invoices & Payments</h3>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddInvoice()"><i class="ph ph-plus"></i> New Invoice</button>
+        </div>
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table style="width:100%; border-collapse:collapse; text-align:left;">
+            <thead>
+              <tr style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">INV #</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Client</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Total</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Status</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${invoices.map(inv => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:1rem; font-weight:700;">${inv.invoiceNumber}</td>
+                  <td style="padding:1rem; font-size:0.875rem;">${inv.client?.company || 'Unknown'}</td>
+                  <td style="padding:1rem; font-weight:700;">₹${inv.total?.toLocaleString()}</td>
+                  <td style="padding:1rem;">
+                    <span class="status-pill status-${inv.status}">${inv.status.toUpperCase()}</span>
+                  </td>
+                  <td style="padding:1rem;">
+                    <div style="display:flex; gap:0.5rem;">
+                       <button class="btn-action" onclick="AdminPanel.downloadInvoice('${inv._id}')"><i class="ph ph-download-simple"></i></button>
+                       <button class="btn-action" onclick="AdminPanel.showEditInvoice('${inv._id}')"><i class="ph ph-pencil-simple"></i></button>
+                       <button class="btn-action btn-delete" onclick="AdminPanel.deleteInvoice('${inv._id}')"><i class="ph ph-trash"></i></button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+       `;
+       target.innerHTML = html;
+    } catch(err) { target.innerHTML = `<div class="error">Failed to load invoices</div>`; }
+  },
+
+  async showEditInvoice(id) {
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const invRes = await fetch(`/api/invoices/${id}`);
+    if(!invRes.ok) return toast('Failed to load invoice', 'error');
+    const inv = await invRes.json();
+
+    const modalHtml = `
+      <div class="modal-overlay" id="inv-edit-modal">
+        <div class="modal-content" style="max-width:650px;">
+          <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Edit Invoice: ${inv.invoiceNumber}</h3>
+            <button onclick="document.getElementById('inv-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1.25rem;">
+             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                 <label>Client</label>
+                 <select id="ie-client" class="form-control">
+                   ${clients.map(c => `<option value="${c._id}" ${c._id===inv.client?._id?'selected':''}>${c.company}</option>`).join('')}
+                 </select>
+               </div>
+               <div class="form-group">
+                 <label>Status</label>
+                 <select id="ie-status" class="form-control">
+                   <option value="draft" ${inv.status==='draft'?'selected':''}>DRAFT</option>
+                   <option value="sent" ${inv.status==='sent'?'selected':''}>SENT</option>
+                   <option value="paid" ${inv.status==='paid'?'selected':''}>PAID</option>
+                   <option value="overdue" ${inv.status==='overdue'?'selected':''}>OVERDUE</option>
+                 </select>
+               </div>
+             </div>
+             
+             <div style="background:#f8fafc; padding:1.25rem; border-radius:12px; border:1px solid var(--border-color);">
+                <label style="font-size:0.75rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Invoice Line Items</label>
+                <div id="ie-items-container" style="margin-top:1rem; display:grid; gap:0.75rem;">
+                   ${inv.items.map(item => `
+                     <div class="ie-item-row" style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:0.5rem; align-items:center;">
+                        <input type="text" placeholder="Description" class="form-control ie-desc" value="${item.description}">
+                        <input type="number" placeholder="Qty" class="form-control ie-qty" value="${item.quantity}" oninput="AdminPanel.calcEditInvoiceTotal()">
+                        <input type="number" placeholder="Rate" class="form-control ie-rate" value="${item.rate}" oninput="AdminPanel.calcEditInvoiceTotal()">
+                     </div>
+                   `).join('')}
+                </div>
+                <button class="btn btn-secondary" style="margin-top:1rem; font-size:0.75rem;" onclick="AdminPanel.addEditInvoiceLine()">+ Add Item</button>
+                <div style="margin-top:1.5rem; padding-top:1rem; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center;">
+                   <span style="font-weight:700; color:var(--text-secondary);">Total Amount:</span>
+                   <span style="font-weight:800; font-size:1.25rem; color:var(--accent-color);" id="ie-total-display">₹${inv.total.toLocaleString()}</span>
+                </div>
+             </div>
+          </div>
+          <div style="margin-top:2rem;">
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateInvoice('${inv._id}')">Update Invoice</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
+  },
+
+  addEditInvoiceLine() {
+    const container = document.getElementById('ie-items-container');
+    container.insertAdjacentHTML('beforeend', `
+       <div class="ie-item-row" style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:0.5rem; align-items:center;">
+          <input type="text" placeholder="Description" class="form-control ie-desc">
+          <input type="number" placeholder="Qty" class="form-control ie-qty" oninput="AdminPanel.calcEditInvoiceTotal()">
+          <input type="number" placeholder="Rate" class="form-control ie-rate" oninput="AdminPanel.calcEditInvoiceTotal()">
+       </div>
+    `);
+  },
+
+  calcEditInvoiceTotal() {
+    const rows = document.querySelectorAll('.ie-item-row');
+    let total = 0;
+    rows.forEach(r => {
+      const q = Number(r.querySelector('.ie-qty').value) || 0;
+      const rt = Number(r.querySelector('.ie-rate').value) || 0;
+      total += (q * rt);
+    });
+    document.getElementById('ie-total-display').innerText = `₹${total.toLocaleString()}`;
+  },
+
+  async updateInvoice(id) {
+    const items = [];
+    const rows = document.querySelectorAll('.ie-item-row');
+    let subtotal = 0;
+    rows.forEach(r => {
+       const desc = r.querySelector('.ie-desc').value;
+       const q = Number(r.querySelector('.ie-qty').value);
+       const rt = Number(r.querySelector('.ie-rate').value);
+       if(desc && q && rt) {
+          items.push({ description: desc, quantity: q, rate: rt, amount: q * rt });
+          subtotal += (q * rt);
+       }
+    });
+
+    const body = {
+       client: document.getElementById('ie-client').value,
+       status: document.getElementById('ie-status').value,
+       items,
+       subtotal,
+       total: subtotal
+    };
+
+    try {
+       const res = await fetch(`/api/invoices/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+       });
+       if(res.ok) {
+          document.getElementById('inv-edit-modal').remove();
+          toast('Invoice updated');
+          this.switchDocumentationTab('invoices');
+       }
+    } catch(err) { toast('Failed to update', 'error'); }
+  },
+
+  // (Restore standard actions to point to hub)
   async loadInvoices() {
     const container = document.getElementById('dashboard-content');
     container.innerHTML = `<div class="loading">Loading invoices...</div>`;
@@ -1252,7 +1776,7 @@ const AdminPanel = {
       if (res.ok) {
         document.getElementById('inv-modal').remove();
         toast('Invoice created successfully');
-        this.loadInvoices();
+        this.switchDocumentationTab('invoices');
       }
     } catch(err) { toast('Failed to create invoice', 'error'); }
   },
@@ -1263,7 +1787,7 @@ const AdminPanel = {
         const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' });
         if(res.ok) {
           toast('Invoice deleted successfully');
-          this.loadInvoices();
+          this.switchDocumentationTab('invoices');
         }
       } catch(err) { toast('Failed to delete invoice', 'error'); }
     });
@@ -1541,7 +2065,7 @@ const AdminPanel = {
       if(res.ok) {
         document.getElementById('prop-modal').remove();
         toast('Proposal generated successfully');
-        this.loadProposals();
+        this.switchDocumentationTab('proposals');
       }
     } catch(err) { toast('Failed to save proposal', 'error'); }
   },
@@ -1552,7 +2076,7 @@ const AdminPanel = {
         const res = await fetch(`/api/proposals/${id}`, { method: 'DELETE' });
         if(res.ok) {
           toast('Proposal deleted');
-          this.loadProposals();
+          this.switchDocumentationTab('proposals');
         }
       } catch(err) { toast('Failed to delete', 'error'); }
     });
@@ -1742,7 +2266,7 @@ const AdminPanel = {
       if(res.ok) {
         document.getElementById('ctr-modal').remove();
         toast('Agreement executed successfully');
-        this.loadContracts();
+        this.switchDocumentationTab('contracts');
       }
     } catch(err) { toast('Failed to execute contract', 'error'); }
   },
@@ -1753,7 +2277,7 @@ const AdminPanel = {
         const res = await fetch(`/api/contracts/${id}`, { method: 'DELETE' });
         if(res.ok) {
           toast('Contract removed');
-          this.loadContracts();
+          this.switchDocumentationTab('contracts');
         }
       } catch(err) { toast('Failed to delete', 'error'); }
     });
@@ -2036,7 +2560,7 @@ const AdminPanel = {
       colors: ['#2563eb'],
       dataLabels: { enabled: false },
       stroke: { curve: 'smooth' },
-      xaxis: { categories: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"] },
+      xaxis: { categories: data.revenueCategories || ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"] },
       tooltip: { x: { format: 'dd/MM/yy HH:mm' } }
     }).render();
 
@@ -2167,6 +2691,18 @@ const AdminPanel = {
       });
       if(res.ok) this.loadAdminIssues();
     } catch(err) { toast('Failed to update issue', 'error'); }
+  },
+
+  async deleteIssue(id) {
+    window.confirmModal('Delete Issue', 'Are you sure you want to permanently remove this issue from the log?', async () => {
+      try {
+        const res = await fetch(`/api/issues/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Issue deleted successfully');
+          this.loadAdminIssues();
+        }
+      } catch(err) { toast('Failed to delete issue', 'error'); }
+    });
   },
 
   async loadEmployeeReportingView() {

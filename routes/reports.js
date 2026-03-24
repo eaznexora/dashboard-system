@@ -4,6 +4,7 @@ const Task = require('../models/Task');
 const Project = require('../models/Project');
 const User = require('../models/User');
 const TimeLog = require('../models/TimeLog');
+const Invoice = require('../models/Invoice');
 
 // GET agency intelligence data
 router.get('/', async (req, res) => {
@@ -11,6 +12,7 @@ router.get('/', async (req, res) => {
     const tasks = await Task.find();
     const projects = await Project.find();
     const employees = await User.find({ role: 'EMPLOYEE' });
+    const invoices = await Invoice.find({ status: 'paid' });
 
     // 1. Task Distribution
     const taskStats = {
@@ -23,30 +25,54 @@ router.get('/', async (req, res) => {
     // 2. Active Projects
     const activeProjectsCount = projects.filter(p => p.status !== 'completed').length;
 
-    // 3. Financials (Dummy for now, can be expanded)
-    const totalRevenue = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
+    // 3. Real Financials (Sum of paid invoices)
+    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
 
-    // 4. Productivity (Average total hours today vs estimated)
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const todayLogs = await TimeLog.find({ clockIn: { $gte: today } });
-    const totalHoursToday = todayLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
-    const avgProductivity = employees.length > 0 ? Math.min(100, Math.round((totalHoursToday / (employees.length * 8)) * 100)) : 0;
+    // 4. Productivity (7-day rolling average)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentLogs = await TimeLog.find({ clockIn: { $gte: sevenDaysAgo } });
+    
+    const totalHoursRecent = recentLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
+    // Target: 8 hours per employee per working day (approx 5 days)
+    const targetHours = employees.length * 8 * 5; 
+    const avgProductivity = targetHours > 0 ? Math.min(100, Math.round((totalHoursRecent / targetHours) * 100)) : 0;
 
-    // 5. Charts Data (Mocking 7 months to match frontend categories)
-    const revenueChart = [totalRevenue * 0.4, totalRevenue * 0.5, totalRevenue * 0.7, totalRevenue * 0.6, totalRevenue * 0.8, totalRevenue * 0.9, totalRevenue];
-    const taskChart = [taskStats.todo, taskStats.working, taskStats.review, taskStats.done];
+    // 5. Revenue History (Last 6 months + Current)
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    const revenueHistory = [];
+    const categories = [];
+
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mName = months[d.getMonth()];
+      categories.push(mName);
+      
+      const monthlyTotal = invoices
+        .filter(inv => {
+          const invDate = new Date(inv.issueDate);
+          return invDate.getMonth() === d.getMonth() && invDate.getFullYear() === d.getFullYear();
+        })
+        .reduce((sum, inv) => sum + (inv.total || 0), 0);
+      
+      revenueHistory.push(monthlyTotal);
+    }
+
+    // 6. Employee Utilization (Resource Capacity % of 40hr week)
     const utilChart = employees.map(e => {
-        const empLogs = todayLogs.filter(l => l.userId.toString() === e._id.toString());
-        return Math.round((empLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0) / 8) * 100);
+        const empLogs = recentLogs.filter(l => l.userId.toString() === e._id.toString());
+        const hoursThisWeek = empLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
+        return Math.round((hoursThisWeek / 40) * 100);
     });
 
     res.json({
       totalRevenue,
       avgProductivity,
       activeProjectsCount,
-      revenueHistory: revenueChart,
-      taskStats: taskChart,
+      revenueHistory,
+      revenueCategories: categories,
+      taskStats: [taskStats.todo, taskStats.working, taskStats.review, taskStats.done],
       employeeHours: utilChart,
       employeeNames: employees.map(e => e.name)
     });
