@@ -34,6 +34,20 @@ function checkAdminStatus() {
 
 // --- LOGOUT ---
 async function handleUserLogout() {
+  const user = getCurrentUser();
+  if (user && user.role === 'EMPLOYEE') {
+    try {
+      await fetch('/api/employees/clock-out', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+      console.log('[LOGOUT_AUTO_CLOCKOUT]: Employee clocked out.');
+    } catch(e) {
+      console.warn('[LOGOUT_AUTO_CLOCKOUT_FAILED]:', e);
+    }
+  }
+
   try { await fetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
   document.cookie = 'eaz_token=; Max-Age=0; path=/';
   window.location.replace('login.html');

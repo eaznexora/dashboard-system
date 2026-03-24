@@ -50,6 +50,7 @@ const AdminPanel = {
                     <td style="padding:0.75rem 1rem;"><span style="color:var(--danger-color); font-weight:700; font-size:0.7rem;">FIRED</span></td>
                     <td style="padding:0.75rem 1rem;">
                       <button class="btn-text" style="color:var(--accent-color);" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">Details</button>
+                      <button class="btn-text" style="color:var(--danger-color); margin-left:1rem;" onclick="AdminPanel.deleteEmployee('${emp._id}')"><i class="ph ph-trash"></i> Delete</button>
                     </td>
                   </tr>
                 `).join('')}
@@ -129,25 +130,99 @@ const AdminPanel = {
     const statusText = emp.isCurrentlyWorking ? 'Working Now' : 'Offline';
     
     return `
-      <div class="card emp-card" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
-          <div class="avatar" style="width:48px; height:48px; font-size:1.25rem;">
+      <div class="card emp-card" style="position:relative; transition: all 0.3s ease; border: 1px solid var(--border-color); overflow:hidden;">
+        <div style="position:absolute; top:1rem; right:1rem; display:flex; gap:0.5rem;">
+           <button class="btn-icon" onclick="event.stopPropagation(); AdminPanel.showEditEmployee('${emp._id}')" style="background:var(--accent-light); color:var(--accent-color); border-radius:6px; width:28px; height:28px;"><i class="ph ph-pencil-simple"></i></button>
+        </div>
+        
+        <div style="display:flex; gap:1.25rem; align-items:center; margin-bottom:1.25rem;" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
+          <div class="avatar" style="width:56px; height:56px; font-size:1.5rem; flex-shrink:0; border:2px solid ${emp.isCurrentlyWorking ? 'var(--success-color)' : 'transparent'};">
             ${emp.image ? `<img src="${emp.image}" alt="">` : (emp.name ? emp.name[0].toUpperCase() : '?')}
           </div>
-          <div class="status-badge" style="background:${emp.isActive ? 'var(--accent-light)' : '#fee2e2'}; color:${emp.isActive ? 'var(--accent-color)' : 'var(--danger-color)'}; font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:2rem; font-weight:700;">
-            ${emp.isActive ? 'ACTIVE' : 'INACTIVE'}
+          <div>
+            <h4 style="font-weight:800; margin-bottom:0.15rem; font-size:1.1rem;">${emp.name}</h4>
+            <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.02em;">
+              ${emp.designation || 'Specialist'}
+            </div>
           </div>
         </div>
-        <div style="margin-bottom:1rem;">
-          <h4 style="font-weight:700; margin-bottom:0.15rem;">${emp.name}</h4>
-          <p style="font-size:0.8rem; color:var(--text-secondary);">${emp.designation || 'Software Engineer'} · ${emp.department || 'Dev'}</p>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem; margin-bottom:1.25rem; background:#f8fafc; padding:0.75rem; border-radius:8px;">
+           <div>
+             <div style="font-size:0.6rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Department</div>
+             <div style="font-size:0.8rem; font-weight:600;">${emp.department || 'Creative'}</div>
+           </div>
+           <div>
+             <div style="font-size:0.6rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Current Task</div>
+             <div style="font-size:0.8rem; font-weight:700; color:${emp.isCurrentlyWorking ? 'var(--accent-color)' : 'var(--text-secondary)'}; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+               ${emp.isCurrentlyWorking ? (emp.lastProjectName || 'Active now') : 'None'}
+             </div>
+           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.75rem; color:var(--text-secondary);">
-          <span class="active-dot" style="background:${statusColor}; width:8px; height:8px; border-radius:50%;"></span>
-          ${statusText}
+
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:0.75rem; font-size:0.75rem; font-weight:700;">
+            ${emp.isCurrentlyWorking ? `<div class="active-pulse"></div>` : `<span style="background:var(--text-secondary); width:10px; height:10px; border-radius:50%; opacity:0.5;"></span>`}
+            <span style="color:${statusColor}">${statusText.toUpperCase()}</span>
+          </div>
+          <button class="btn-text" style="font-size:0.75rem; font-weight:700; color:var(--accent-color);" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">PERFORMANCE LOGS →</button>
         </div>
       </div>
     `;
+  },
+
+  async showEditEmployee(id) {
+    const res = await fetch('/api/employees');
+    const emps = await res.json();
+    const emp = emps.find(e => e._id === id);
+
+    const modalHtml = `
+      <div class="modal-overlay" id="emp-edit-modal">
+        <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Edit Team Member</h3>
+            <button onclick="document.getElementById('emp-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1rem;">
+            <input type="hidden" id="ee-id" value="${emp._id}">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Full Name</label>
+              <input type="text" id="ee-name" value="${emp.name}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Designation</label>
+              <input type="text" id="ee-designation" value="${emp.designation || ''}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Department</label>
+              <input type="text" id="ee-department" value="${emp.department || ''}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateEmployee()">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  async updateEmployee() {
+    const id = document.getElementById('ee-id').value;
+    const body = {
+      name: document.getElementById('ee-name').value,
+      designation: document.getElementById('ee-designation').value,
+      department: document.getElementById('ee-department').value
+    };
+    try {
+      const res = await fetch(`/api/employees/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('emp-edit-modal').remove();
+        this.loadEmployees();
+      }
+    } catch(err) { alert('Failed to update'); }
   },
 
   async viewEmployeeDetails(id) {
@@ -194,15 +269,29 @@ const AdminPanel = {
             </div>
 
             <div style="border-top:1px solid var(--border-color); padding-top:1.5rem;">
-              <h4 style="font-weight:700; margin-bottom:1rem; font-size:0.875rem;">Recent Work Log</h4>
+              <h4 style="font-weight:700; margin-bottom:1rem; font-size:0.875rem;">Agency Performance Log</h4>
               ${history.logs.length === 0 ? '<p style="font-size:0.875rem; color:var(--text-secondary);">No logs found.</p>' : `
-                <div style="max-height:200px; overflow-y:auto;">
-                  ${history.logs.map(log => `
-                    <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid #f8fafc; font-size:0.8rem;">
-                      <span>${new Date(log.clockIn).toLocaleDateString()}</span>
-                      <span style="font-weight:600;">${log.totalHours || 0} hrs</span>
-                    </div>
-                  `).join('')}
+                <div style="max-height:200px; overflow-y:auto; border:1px solid #f1f5f9; border-radius:8px;">
+                  <table style="width:100%; border-collapse:collapse; font-size:0.75rem;">
+                    <thead style="background:#f8fafc; border-bottom:1px solid #f1f5f9;">
+                      <tr>
+                        <th style="padding:0.75rem; text-align:left;">Date</th>
+                        <th style="padding:0.75rem; text-align:left;">Clock In</th>
+                        <th style="padding:0.75rem; text-align:left;">Clock Out</th>
+                        <th style="padding:0.75rem; text-align:right;">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${history.logs.map(log => `
+                        <tr style="border-bottom:1px solid #f8fafc;">
+                          <td style="padding:0.75rem; font-weight:600;">${new Date(log.clockIn).toLocaleDateString()}</td>
+                          <td style="padding:0.75rem; color:var(--text-secondary);">${new Date(log.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                          <td style="padding:0.75rem; color:var(--text-secondary);">${log.clockOut ? new Date(log.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}</td>
+                          <td style="padding:0.75rem; text-align:right; font-weight:700; color:var(--accent-color);">${log.totalHours || 0}h</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
                 </div>
               `}
             </div>
@@ -229,6 +318,115 @@ const AdminPanel = {
       }
     } catch (err) {
       alert('Action failed');
+    }
+  },
+
+  async deleteEmployee(id) {
+    if (!confirm('PERMANENT DELETION: Are you sure you want to completely remove this employee from the database? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        this.loadEmployees();
+      }
+    } catch (err) { alert('Deletion failed'); }
+  },
+
+  // --- GLOBAL TASKS MODULE ---
+  async loadGlobalTasks() {
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `<div class="loading">Fetching all agency tasks...</div>`;
+    
+    try {
+      const res = await fetch('/api/tasks');
+      const tasks = await res.json();
+      
+      const stats = {
+        todo: tasks.filter(t => t.status === 'pending').length,
+        working: tasks.filter(t => t.status === 'in-progress').length,
+        review: tasks.filter(t => t.status === 'review').length,
+        done: tasks.filter(t => t.status === 'completed').length
+      };
+
+      let html = `
+        <div class="view-header">
+          <div>
+            <h2 class="view-title">Agency Task Master</h2>
+            <p class="view-subtitle">${tasks.length} total tasks across all projects</p>
+          </div>
+          <button class="btn btn-primary" onclick="AdminPanel.showAddTask()"><i class="ph ph-plus"></i> Quick Task</button>
+        </div>
+        
+        <div class="grid-cols-4" style="margin-bottom:2rem;">
+           <div class="card" style="border-left:4px solid #f59e0b;">
+              <div style="font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">To Do</div>
+              <div style="font-size:1.5rem; font-weight:800;">${stats.todo}</div>
+           </div>
+           <div class="card" style="border-left:4px solid #2563eb;">
+              <div style="font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">Working</div>
+              <div style="font-size:1.5rem; font-weight:800;">${stats.working}</div>
+           </div>
+           <div class="card" style="border-left:4px solid #8b5cf6;">
+              <div style="font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">In Review</div>
+              <div style="font-size:1.5rem; font-weight:800;">${stats.review}</div>
+           </div>
+           <div class="card" style="border-left:4px solid #10b981;">
+              <div style="font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">Completed</div>
+              <div style="font-size:1.5rem; font-weight:800;">${stats.done}</div>
+           </div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.875rem;">
+            <thead style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
+              <tr>
+                <th style="padding:1rem;">Task Name</th>
+                <th style="padding:1rem;">Project</th>
+                <th style="padding:1rem;">Assigned To</th>
+                <th style="padding:1rem;">Status</th>
+                <th style="padding:1rem;">Deadline</th>
+                <th style="padding:1rem;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tasks.length === 0 ? '<tr><td colspan="6" style="padding:2rem; text-align:center; color:var(--text-secondary);">No tasks found.</td></tr>' : 
+                tasks.map(t => `
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                  <td style="padding:1rem; font-weight:700;">${t.title}</td>
+                  <td style="padding:1rem; color:var(--text-secondary);">${t.projectName || '—'}</td>
+                  <td style="padding:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem;">
+                       <div class="avatar" style="width:24px; height:24px; font-size:0.7rem;">${t.assignedToName ? t.assignedToName[0] : '?'}</div>
+                       <span>${t.assignedToName || 'Unassigned'}</span>
+                    </div>
+                  </td>
+                  <td style="padding:1rem;">
+                    <span class="status-badge" style="background:${this.getStatusColor(t.status)}15; color:${this.getStatusColor(t.status)};">
+                      ${t.status.toUpperCase()}
+                    </span>
+                  </td>
+                  <td style="padding:1rem; color:var(--text-secondary);">${t.dueDate ? new Date(t.dueDate).toLocaleDateString() : 'No date'}</td>
+                  <td style="padding:1rem;">
+                    <button class="btn-text" style="color:var(--accent-color);" onclick="AdminPanel.viewTaskDetails('${t._id}')">View</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.innerHTML = html;
+    } catch (err) {
+      container.innerHTML = `<div class="error">Failed to load global tasks.</div>`;
+    }
+  },
+
+  getStatusColor(status) {
+    switch(status) {
+      case 'pending': return '#f59e0b';
+      case 'in-progress': return '#2563eb';
+      case 'review': return '#8b5cf6';
+      case 'completed': return '#10b981';
+      default: return '#64748b';
     }
   },
 
@@ -295,7 +493,8 @@ const AdminPanel = {
                <div class="form-group">
                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
                   <select id="np-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                    ${emps.map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
+                    <option value="">-- No Lead --</option>
+                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
                   </select>
                </div>
             </div>
@@ -446,7 +645,7 @@ const AdminPanel = {
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Assign To</label>
               <select id="t-assign" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                 <option value="">-- Unassigned --</option>
-                ${emps.map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
+                ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
               </select>
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
@@ -1029,8 +1228,14 @@ const AdminPanel = {
 
   // --- REPORTS MODULE ---
   async loadReports() {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
     const container = document.getElementById('dashboard-content');
-    container.innerHTML = `<div class="loading">Generating reports...</div>`;
+    
+    if (user && user.role === 'EMPLOYEE') {
+      return this.loadEmployeeReportingView();
+    }
+
+    container.innerHTML = `<div class="loading">Generating agency intelligence...</div>`;
     
     try {
       const res = await fetch('/api/reports');
@@ -1075,9 +1280,20 @@ const AdminPanel = {
            <h4 style="font-weight:700; margin-bottom:1.5rem; font-size:0.875rem;">Employee Utilization (Resource Capacity)</h4>
            <div id="util-chart" style="min-height:250px;"></div>
         </div>
+
+        <!-- Issue Tracker Section -->
+        <div class="card" style="margin-top:2rem; padding:0; overflow:hidden;">
+          <div style="padding:1.5rem; border-bottom:1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+            <h4 style="font-weight:700; font-size:0.875rem;">Agency Issue Tracker</h4>
+            <span class="status-badge" style="background:var(--danger-light); color:var(--danger-color);">URGENT ATTENTION</span>
+          </div>
+          <div id="issue-list-admin">
+             <div class="loading" style="padding:2rem;">Loading reported issues...</div>
+          </div>
+        </div>
       `;
       container.innerHTML = html;
-      
+      this.loadAdminIssues();
       this.initCharts(data);
     } catch (err) {
       container.innerHTML = `<div class="error">Failed to generate reports.</div>`;
@@ -1115,5 +1331,155 @@ const AdminPanel = {
       colors: ['#6366f1'],
       xaxis: { categories: data.employeeNames || ["Alex", "Sara", "Mike", "John", "Lara", "Dev"] }
     }).render();
+  },
+
+  async loadAdminIssues() {
+    try {
+      const res = await fetch('/api/issues');
+      const issues = await res.json();
+      const container = document.getElementById('issue-list-admin');
+      
+      if(issues.length === 0) {
+        container.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-secondary);">No issues reported by team members.</div>';
+        return;
+      }
+
+      container.innerHTML = `
+        <table style="width:100%; border-collapse:collapse; font-size:0.8rem; text-align:left;">
+          <thead style="background:#f8fafc; border-bottom:1px solid #f1f5f9;">
+            <tr>
+              <th style="padding:1rem;">Issue</th>
+              <th style="padding:1rem;">Reported By</th>
+              <th style="padding:1rem;">Status</th>
+              <th style="padding:1rem;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${issues.map(iss => `
+              <tr style="border-bottom:1px solid #f8fafc;">
+                <td style="padding:1rem;">
+                  <div style="font-weight:700; margin-bottom:0.2rem;">${iss.title}</div>
+                  <div style="font-size:0.7rem; color:var(--text-secondary); line-height:1.4;">${iss.description}</div>
+                </td>
+                <td style="padding:1rem; font-weight:600;">${iss.submittedBy?.name || 'Unknown'}</td>
+                <td style="padding:1rem;">
+                  <span style="padding:0.2rem 0.5rem; border-radius:4px; font-weight:700; font-size:0.65rem; border:1px solid;
+                    ${iss.status === 'open' ? 'background:#fee2e2; color:var(--danger-color); border-color:#fecaca;' : 
+                      iss.status === 'resolved' ? 'background:#d1fae5; color:var(--success-color); border-color:#a7f3d0;' : 
+                      'background:#e0f2fe; color:#0369a1; border-color:#bae6fd;'}">
+                    ${iss.status.toUpperCase()}
+                  </span>
+                </td>
+                <td style="padding:1rem;">
+                  ${iss.status !== 'resolved' ? `<button class="btn btn-secondary" style="font-size:0.65rem; padding:0.4rem 0.6rem;" onclick="AdminPanel.resolveIssue('${iss._id}')">Mark Resolved</button>` : '—'}
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    } catch(err) { console.error('Error loading issues'); }
+  },
+
+  async resolveIssue(id) {
+    try {
+      const res = await fetch(`/api/issues/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' })
+      });
+      if(res.ok) this.loadAdminIssues();
+    } catch(err) { alert('Failed to update issue'); }
+  },
+
+  async loadEmployeeReportingView() {
+    const container = document.getElementById('dashboard-content');
+    const user = getCurrentUser();
+    
+    container.innerHTML = `
+      <div class="view-header">
+        <div>
+          <h2 class="view-title">Submit Feedback & Reports</h2>
+          <p class="view-subtitle">Direct line to agency administration</p>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem;">
+        <div class="card">
+          <h4 style="font-weight:700; margin-bottom:1.5rem; font-size:0.875rem;">New Issue / Report</h4>
+          <div style="display:grid; gap:1.25rem;">
+            <div class="form-group">
+              <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.4rem;">Topic/Title</label>
+              <input type="text" id="rep-title" placeholder="Brief summary of the issue" class="form-control" style="width:100%; border-radius:8px; padding:0.75rem;">
+            </div>
+            <div class="form-group">
+              <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.4rem;">Description</label>
+              <textarea id="rep-desc" placeholder="Explain the problem or suggestion in detail..." class="form-control" style="width:100%; border-radius:8px; padding:0.75rem; min-height:120px; resize:vertical;"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="AdminPanel.submitIssueFromReports()" style="justify-content:center; padding:1rem;">Send to Admin</button>
+          </div>
+        </div>
+
+        <div class="card" style="padding:0; overflow:hidden;">
+          <div style="padding:1.5rem; border-bottom:1px solid #f1f5f9;">
+            <h4 style="font-weight:700; font-size:0.875rem;">My Recent Reports</h4>
+          </div>
+          <div id="my-issue-history" style="max-height:400px; overflow-y:auto;">
+             <div class="loading" style="padding:2rem;">Loading your reports...</div>
+          </div>
+        </div>
+      </div>
+    `;
+    this.loadMyIssues(user.id);
+  },
+
+  async submitIssueFromReports() {
+    const title = document.getElementById('rep-title').value;
+    const description = document.getElementById('rep-desc').value;
+    const user = getCurrentUser();
+
+    if(!title || !description) return alert('Please fill in both fields');
+
+    try {
+      const res = await fetch('/api/issues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, description, submittedBy: user.id })
+      });
+      if(res.ok) {
+        alert('Report submitted successfully.');
+        document.getElementById('rep-title').value = '';
+        document.getElementById('rep-desc').value = '';
+        this.loadMyIssues(user.id);
+      }
+    } catch(err) { alert('Failed to submit'); }
+  },
+
+  async loadMyIssues(userId) {
+    try {
+      const res = await fetch('/api/issues');
+      const allIssues = await res.json();
+      const myIssues = allIssues.filter(i => (i.submittedBy?._id || i.submittedBy) === userId);
+      const container = document.getElementById('my-issue-history');
+
+      if(myIssues.length === 0) {
+        container.innerHTML = '<div style="padding:2rem; text-align:center; color:var(--text-secondary);">No reports yet.</div>';
+        return;
+      }
+
+      container.innerHTML = myIssues.map(iss => `
+        <div style="padding:1rem; border-bottom:1px solid #f8fafc;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
+            <div style="font-weight:700; font-size:0.85rem;">${iss.title}</div>
+            <span style="font-size:0.6rem; font-weight:800; padding:0.15rem 0.4rem; border-radius:4px; border:1px solid;
+              ${iss.status === 'resolved' ? 'background:#d1fae5; color:var(--success-color); border-color:#a7f3d0;' : 'background:#fee2e2; color:var(--danger-color); border-color:#fecaca;'}">
+              ${iss.status.toUpperCase()}
+            </span>
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">${iss.description}</div>
+          <div style="font-size:0.65rem; color:var(--text-secondary);">Submitted on ${new Date(iss.createdAt).toLocaleDateString()}</div>
+        </div>
+      `).join('');
+    } catch(err) { console.error('History failed'); }
   }
 };

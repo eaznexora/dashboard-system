@@ -3,12 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agency Reports | EazDash</title>
+  <title>Global Tasks | EazDash</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <link rel="stylesheet" href="css/globals.css?version=1.0.3">
   <link rel="stylesheet" href="css/sidebar.css?version=1.0.3">
   <link rel="stylesheet" href="css/admin.css?version=1.0.1">
@@ -19,15 +18,18 @@
   <script src="js/store.js?version=1.0.2"></script>
   <script src="js/auth.js?version=1.0.3"></script>
   <script src="js/components.js?version=1.0.4"></script>
-  <script src="js/admin.js?version=1.0.1"></script>
+  <script src="js/admin.js?version=1.0.2"></script>
   
   <script>
+    // Auth Guard
     const user = requireAuth();
-    if (!user) window.location.replace('login.html');
-    initApp('reports', 'Agency Intelligence');
-    
-    // Load Visualizations
-    AdminPanel.loadReports();
+    if (!user || user.role !== 'ADMIN') window.location.replace('admin-login.html');
+
+    // Initialize UI Shell
+    initApp('tasks', 'Global Tasks');
+
+    // Load Initial View
+    AdminPanel.loadGlobalTasks();
   </script>
 </body>
 </html>

@@ -132,7 +132,7 @@ const EmployeePortal = {
     if (!taskId) return;
     
     try {
-      const res = await fetch(`/api/tasks/${taskId}/status`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
@@ -200,5 +200,30 @@ const EmployeePortal = {
         <span style="font-weight:700;">${l.totalHours || 0} hrs</span>
       </div>
     `).join('');
+  },
+
+  async submitIssue() {
+    const title = document.getElementById('issue-title').value;
+    const description = document.getElementById('issue-desc').value;
+    
+    if(!title || !description) return alert('Please fill in both title and description');
+
+    try {
+      const res = await fetch('/api/issues', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title,
+          description,
+          submittedBy: this.user.id
+        })
+      });
+
+      if(res.ok) {
+        alert('Thank you. Your report has been submitted to Admin.');
+        document.getElementById('issue-title').value = '';
+        document.getElementById('issue-desc').value = '';
+      }
+    } catch(err) { alert('Submission failed'); }
   }
 };

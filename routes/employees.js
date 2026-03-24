@@ -118,4 +118,15 @@ router.get('/history/:userId', async (req, res) => {
   }
 });
 
+// DELETE an employee permanently
+router.delete('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        await User.findByIdAndDelete(id);
+        res.json({ message: 'Employee permanently removed' });
+    } catch (err) {
+        res.status(500).json({ message: 'Deletion failed' });
+    }
+});
+
 module.exports = router;
