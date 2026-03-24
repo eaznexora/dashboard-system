@@ -400,7 +400,7 @@ const AdminPanel = {
         </div>
 
         <div class="card" style="padding:0; overflow:hidden;">
-          <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.875rem;">
+          <table id="global-task-table" style="width:100%; border-collapse:collapse; text-align:left; font-size:0.875rem;">
             <thead style="background:#f8fafc; border-bottom:1px solid var(--border-color);">
               <tr>
                 <th style="padding:1rem;">Task Name</th>
@@ -699,6 +699,10 @@ const AdminPanel = {
           </div>
           <div style="display:grid; gap:1rem;">
             <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Task Title</label>
+              <input type="text" id="t-title" class="form-control" placeholder="What needs to be done?" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project</label>
               <select id="t-project" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                 ${projs.map(p => `<option value="${p._id}" ${p._id === projectId ? 'selected' : ''}>${p.name}</option>`).join('')}
@@ -738,7 +742,7 @@ const AdminPanel = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
-  async saveTask() {
+  async saveTask(taskId = null) {
     const body = {
       title: document.getElementById('t-title').value,
       description: document.getElementById('t-desc').value,
@@ -752,15 +756,23 @@ const AdminPanel = {
     if (!body.title) return toast('Title is required', 'warning');
 
     try {
-      const res = await fetch('/api/tasks', {
-        method: 'POST',
+      const url = taskId ? `/api/tasks/${taskId}` : '/api/tasks';
+      const method = taskId ? 'PATCH' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
       if (res.ok) {
         const projId = body.project;
         document.getElementById('task-modal').remove();
-        this.viewProjectDetails(projId);
+        if (typeof this.loadGlobalTasks === 'function' && document.getElementById('global-task-table')) {
+            this.loadGlobalTasks();
+        } else {
+            this.viewProjectDetails(projId);
+        }
+        toast(taskId ? 'Task updated successfully' : 'Task created successfully');
       }
     } catch (err) {
       toast('Failed to save task', 'error');
