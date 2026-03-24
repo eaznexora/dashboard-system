@@ -9,7 +9,7 @@ const ClientSchema = new mongoose.Schema({
   address: { type: String },
   status: { 
     type: String, 
-    enum: ['lead', 'active', 'inactive', 'churned'], 
+    enum: ['lead', 'not started', 'in progress', 'active', 'completed', 'inactive', 'churned'], 
     default: 'lead' 
   },
   source: { type: String },

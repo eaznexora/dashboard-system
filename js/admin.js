@@ -620,7 +620,9 @@ const AdminPanel = {
           <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary);">₹${p.budget?.toLocaleString() || 0}</div>
         </div>
         <div style="margin-top:0.75rem; text-align:right;">
-           <button class="btn-text" style="font-size:0.7rem; color:var(--accent-color);" onclick="event.stopPropagation(); AdminPanel.showAddTask('${p._id}')"><i class="ph ph-plus-circle"></i> ADD TASK</button>
+           <button class="btn btn-secondary" style="font-size:0.75rem; padding:0.4rem 0.8rem; border-radius:8px;" onclick="event.stopPropagation(); AdminPanel.showAddTask('${p._id}')">
+             <i class="ph ph-plus-circle"></i> Add Task
+           </button>
         </div>
       </div>
     `;
@@ -865,13 +867,26 @@ const AdminPanel = {
             </thead>
             <tbody>
               ${clients.map(c => `
-                <tr style="border-bottom:1px solid #f1f5f9;">
-                  <td style="padding:1rem; font-weight:600;">${c.company}</td>
-                  <td style="padding:1rem; font-size:0.875rem;">${c.contactName}<br><span style="color:var(--text-secondary); font-size:0.75rem;">${c.email}</span></td>
+                <tr style="border-bottom:1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                   <td style="padding:1rem;">
-                    <span style="padding:0.25rem 0.6rem; border-radius:2rem; font-size:0.7rem; font-weight:700; background:var(--accent-light); color:var(--accent-color);">
-                      ${c.status.toUpperCase()}
-                    </span>
+                    <div style="font-weight:700; color:var(--text-primary); font-size:1rem;">${c.company}</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.02em;">${c.industry || 'General Service'}</div>
+                  </td>
+                  <td style="padding:1rem;">
+                    <div style="font-weight:600; font-size:0.875rem;">${c.contactName}</div>
+                    <div style="color:var(--text-secondary); font-size:0.75rem;">${c.email}</div>
+                  </td>
+                  <td style="padding:1rem;">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                       <div style="flex:1; height:6px; background:#e2e8f0; border-radius:10px; min-width:80px; position:relative; overflow:hidden;">
+                          <div style="position:absolute; top:0; left:0; height:100%; width:${c.status==='completed'||c.status==='active'?'100%':c.status==='in progress'?'60%':c.status==='not started'?'20%':'10%'}; background:var(--accent-color); border-radius:10px;"></div>
+                       </div>
+                       <span style="padding:0.25rem 0.6rem; border-radius:2rem; font-size:0.65rem; font-weight:800; text-transform:uppercase;
+                         background:${c.status==='completed'?'#d1fae5':c.status==='in progress'?'#dcfce7':c.status==='not started'?'#fef3c7':'#f1f5f9'};
+                         color:${c.status==='completed'?'#065f46':c.status==='in progress'?'#15803d':c.status==='not started'?'#854d0e':'#475569'};">
+                         ${c.status.replace(' ','_').toUpperCase()}
+                       </span>
+                    </div>
                   </td>
                   <td style="padding:1rem;">
                     <div style="display:flex; gap:0.5rem;">
@@ -917,8 +932,12 @@ const AdminPanel = {
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
               <select id="ec-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                 <option value="lead" ${c.status==='lead'?'selected':''}>Lead</option>
+                <option value="not started" ${c.status==='not started'?'selected':''}>Not Started</option>
+                <option value="in progress" ${c.status==='in progress'?'selected':''}>In Progress</option>
                 <option value="active" ${c.status==='active'?'selected':''}>Active</option>
+                <option value="completed" ${c.status==='completed'?'selected':''}>Completed</option>
                 <option value="inactive" ${c.status==='inactive'?'selected':''}>Inactive</option>
+                <option value="churned" ${c.status==='churned'?'selected':''}>Churned</option>
               </select>
             </div>
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateClient()">Save Changes</button>
@@ -974,7 +993,10 @@ const AdminPanel = {
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
               <select id="c-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                 <option value="lead">Lead</option>
+                <option value="not started">Not Started</option>
+                <option value="in progress">In Progress</option>
                 <option value="active">Active</option>
+                <option value="completed">Completed</option>
                 <option value="inactive">Inactive</option>
               </select>
             </div>
@@ -1065,7 +1087,10 @@ const AdminPanel = {
                   </td>
                   <td style="padding:1rem; color:var(--text-secondary); font-size:0.875rem;">${new Date(inv.dueDate).toLocaleDateString()}</td>
                   <td style="padding:1rem;">
-                    <button class="btn-action btn-delete" title="Delete Invoice" onclick="AdminPanel.deleteInvoice('${inv._id}')"><i class="ph ph-trash"></i></button>
+                    <div style="display:flex; gap:0.5rem;">
+                       <button class="btn-action" title="Print/Download" onclick="AdminPanel.downloadInvoice('${inv._id}')"><i class="ph ph-printer"></i></button>
+                       <button class="btn-action btn-delete" title="Delete Invoice" onclick="AdminPanel.deleteInvoice('${inv._id}')"><i class="ph ph-trash"></i></button>
+                    </div>
                   </td>
                 </tr>
               `).join('')}
@@ -1109,21 +1134,33 @@ const AdminPanel = {
           </div>
           
           <div style="margin-bottom:1.5rem;">
-            <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:0.5rem;">Invoice Items</label>
-            <div id="i-items-container" style="display:grid; gap:0.5rem;">
-               <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:0.5rem;">
-                  <input type="text" class="form-control item-desc" placeholder="Service description" style="padding:0.5rem;">
-                  <input type="number" class="form-control item-rate" placeholder="Rate" style="padding:0.5rem;">
-                  <input type="number" class="form-control item-qty" placeholder="Qty" value="1" style="padding:0.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Invoice Items (Service Description, Rate, Qty)</label>
+               <button class="btn-text" style="font-size:0.7rem; color:var(--accent-color);" onclick="AdminPanel.addInvoiceItem()"><i class="ph ph-plus"></i> Add Item</button>
+            </div>
+            <div id="i-items-container" style="display:grid; gap:0.75rem;">
+               <div class="invoice-item-row" style="display:grid; grid-template-columns: 1fr 100px 80px 40px; gap:0.5rem; align-items:center;">
+                  <input type="text" class="form-control item-desc" placeholder="Service description" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;">
+                  <input type="number" class="form-control item-rate" placeholder="Rate" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;" oninput="AdminPanel.updateInvoiceTotal()">
+                  <input type="number" class="form-control item-qty" placeholder="Qty" value="1" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;" oninput="AdminPanel.updateInvoiceTotal()">
+                  <button class="btn-text" style="color:var(--danger-color)" onclick="this.parentElement.remove(); AdminPanel.updateInvoiceTotal()"><i class="ph ph-trash"></i></button>
                </div>
             </div>
-            <button class="btn" style="padding:0.5rem; margin-top:0.5rem; font-size:0.75rem;" onclick="AdminPanel.addInvoiceItem()"><i class="ph ph-plus"></i> Add Another Item</button>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
+          <div class="form-group" style="margin-bottom:1.5rem;">
+             <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Terms & Conditions (Contracts, etc.)</label>
+             <textarea id="i-terms" class="form-control" rows="3" placeholder="Payment is due within 15 days..." style="width:100%; border-radius:8px; padding:0.75rem; border:1px solid var(--border-color);"></textarea>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:2rem; align-items:end;">
             <div class="form-group">
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Due Date</label>
               <input type="date" id="i-due" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div style="text-align:right;">
+               <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Grand Total</div>
+               <div id="i-total-display" style="font-size:1.75rem; font-weight:800; color:var(--accent-color);">₹0</div>
             </div>
           </div>
 
@@ -1132,18 +1169,33 @@ const AdminPanel = {
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    this.updateInvoiceTotal();
   },
 
   addInvoiceItem() {
     const container = document.getElementById('i-items-container');
     const itemHtml = `
-      <div style="display:grid; grid-template-columns: 2fr 1fr 1fr; gap:0.5rem;">
-        <input type="text" class="form-control item-desc" placeholder="Service description" style="padding:0.5rem;">
-        <input type="number" class="form-control item-rate" placeholder="Rate" style="padding:0.5rem;">
-        <input type="number" class="form-control item-qty" placeholder="Qty" value="1" style="padding:0.5rem;">
+      <div class="invoice-item-row" style="display:grid; grid-template-columns: 1fr 100px 80px 40px; gap:0.5rem; align-items:center;">
+        <input type="text" class="form-control item-desc" placeholder="Service description" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;">
+        <input type="number" class="form-control item-rate" placeholder="Rate" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;" oninput="AdminPanel.updateInvoiceTotal()">
+        <input type="number" class="form-control item-qty" placeholder="Qty" value="1" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;" oninput="AdminPanel.updateInvoiceTotal()">
+        <button class="btn-text" style="color:var(--danger-color)" onclick="this.parentElement.remove(); AdminPanel.updateInvoiceTotal()"><i class="ph ph-trash"></i></button>
       </div>
     `;
     container.insertAdjacentHTML('beforeend', itemHtml);
+  },
+
+  updateInvoiceTotal() {
+    const rates = document.querySelectorAll('.item-rate');
+    const qtys = document.querySelectorAll('.item-qty');
+    let total = 0;
+    rates.forEach((r, i) => {
+      const rate = Number(r.value) || 0;
+      const qty = Number(qtys[i].value) || 0;
+      total += (rate * qty);
+    });
+    const totalDisplay = document.getElementById('i-total-display');
+    if(totalDisplay) totalDisplay.innerText = `₹${total.toLocaleString()}`;
   },
 
   async saveInvoice() {
@@ -1172,6 +1224,7 @@ const AdminPanel = {
       tax: 0, 
       total: subtotal,
       dueDate: document.getElementById('i-due').value,
+      notes: document.getElementById('i-terms').value,
       status: 'sent'
     };
 
@@ -1198,6 +1251,117 @@ const AdminPanel = {
         this.loadInvoices();
       }
     } catch(err) { toast('Failed to delete invoice', 'error'); }
+  },
+
+  async downloadInvoice(id) {
+    const res = await fetch('/api/invoices');
+    const invoices = await res.json();
+    const inv = invoices.find(i => i._id === id);
+    if(!inv) return;
+
+    const printWindow = window.open('', '_blank');
+    const html = `
+      <html>
+        <head>
+          <title>Invoice - ${inv.invoiceNumber}</title>
+          <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css">
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&display=swap');
+            body { font-family: 'Inter', sans-serif; padding: 40px; color: #1a202c; line-height: 1.5; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #edf2f7; padding-bottom: 20px; margin-bottom: 40px; }
+            .logo { font-size: 1.5rem; font-weight: 800; color: #2563eb; }
+            .inv-info { text-align: right; }
+            .details { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px; }
+            .details h4 { text-transform: uppercase; font-size: 0.75rem; color: #718096; margin-bottom: 8px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
+            th { text-align: left; background: #f8fafc; padding: 12px; font-size: 0.8rem; text-transform: uppercase; color: #718096; border-bottom: 1px solid #edf2f7; }
+            td { padding: 12px; border-bottom: 1px solid #edf2f7; font-size: 0.9rem; }
+            .total-section { margin-left: auto; width: 300px; }
+            .total-row { display: flex; justify-content: space-between; padding: 8px 0; }
+            .grand-total { font-size: 1.25rem; font-weight: 800; color: #2563eb; border-top: 2px solid #edf2f7; padding-top: 12px; margin-top: 12px; }
+            .notes { margin-top: 60px; padding: 20px; background: #f8fafc; border-radius: 8px; font-size: 0.85rem; }
+            @media print { .no-print { display: none; } }
+          </style>
+        </head>
+        <body>
+          <div class="no-print" style="margin-bottom: 20px;">
+             <button onclick="window.print()" style="padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 700;">Print Invoice</button>
+          </div>
+          <div class="header">
+             <div class="logo">Eaz Social Dashboard</div>
+             <div class="inv-info">
+                <h1 style="margin:0; font-size:1.5rem;">INVOICE</h1>
+                <div style="font-weight:700;"># ${inv.invoiceNumber}</div>
+                <div style="color:#718096; font-size:0.8rem;">Date: ${new Date(inv.issueDate).toLocaleDateString()}</div>
+             </div>
+          </div>
+          
+          <div class="details">
+             <div>
+                <h4>Bill To:</h4>
+                <div style="font-weight:700; font-size:1.1rem;">${inv.client?.company || 'Client Name'}</div>
+                <div style="color:#718096;">${inv.client?.contactName || ''}</div>
+                <div style="color:#718096;">${inv.client?.email || ''}</div>
+             </div>
+             <div style="text-align:right;">
+                <h4>Agency Details:</h4>
+                <div style="font-weight:700;">Eaz Social Media Agency</div>
+                <div style="color:#718096;">Mumbai, Maharashtra, India</div>
+                <div style="color:#718096;">contact@eazsocial.in</div>
+             </div>
+          </div>
+
+          <table>
+             <thead>
+                <tr>
+                   <th>Description</th>
+                   <th style="text-align:center;">Qty</th>
+                   <th style="text-align:right;">Rate</th>
+                   <th style="text-align:right;">Amount</th>
+                </tr>
+             </thead>
+             <tbody>
+                ${inv.items.map(item => `
+                   <tr>
+                      <td style="font-weight:600;">${item.description}</td>
+                      <td style="text-align:center;">${item.quantity}</td>
+                      <td style="text-align:right;">₹${item.rate.toLocaleString()}</td>
+                      <td style="text-align:right;">₹${item.amount.toLocaleString()}</td>
+                   </tr>
+                `).join('')}
+             </tbody>
+          </table>
+
+          <div class="total-section">
+             <div class="total-row">
+                <span>Subtotal</span>
+                <span>₹${inv.subtotal.toLocaleString()}</span>
+             </div>
+             <div class="total-row">
+                <span>Tax (0%)</span>
+                <span>₹0</span>
+             </div>
+             <div class="total-row grand-total">
+                <span>Total Due</span>
+                <span>₹${inv.total.toLocaleString()}</span>
+             </div>
+          </div>
+
+          ${inv.notes ? `
+            <div class="notes">
+               <h4 style="margin-top:0;">Terms & Conditions:</h4>
+               <div style="white-space:pre-wrap;">${inv.notes}</div>
+            </div>
+          ` : ''}
+          
+          <div style="margin-top:80px; text-align:center; color:#a0aec0; font-size:0.75rem;">
+             Thank you for your business! This is a computer generated invoice.
+          </div>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(html);
+    printWindow.document.close();
   },
 
   // --- DASHBOARD MATRIX MODULE ---
