@@ -49,8 +49,10 @@ const AdminPanel = {
                     <td style="padding:0.75rem 1rem; color:var(--text-secondary);">${emp.designation}</td>
                     <td style="padding:0.75rem 1rem;"><span style="color:var(--danger-color); font-weight:700; font-size:0.7rem;">FIRED</span></td>
                     <td style="padding:0.75rem 1rem;">
-                      <button class="btn-text" style="color:var(--accent-color);" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">Details</button>
-                      <button class="btn-text" style="color:var(--danger-color); margin-left:1rem;" onclick="AdminPanel.deleteEmployee('${emp._id}')"><i class="ph ph-trash"></i> Delete</button>
+                      <div style="display:flex; gap:0.5rem;">
+                         <button class="btn-action" title="View Details" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')"><i class="ph ph-eye"></i></button>
+                         <button class="btn-action btn-delete" title="Delete Permanent" onclick="AdminPanel.deleteEmployee('${emp._id}')"><i class="ph ph-trash"></i></button>
+                      </div>
                     </td>
                   </tr>
                 `).join('')}
@@ -142,9 +144,8 @@ const AdminPanel = {
       <div class="card emp-card" style="position:relative; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid var(--border-color); overflow:hidden; padding:1.25rem;">
         <!-- Quick Actions -->
         <div style="position:absolute; top:0.75rem; right:0.75rem; z-index:10;">
-           <button class="btn-icon" onclick="event.stopPropagation(); AdminPanel.showEditEmployee('${emp._id}')" 
-                   style="background:rgba(255,255,255,0.9); backdrop-filter:blur(4px); color:var(--text-secondary); border:1px solid var(--border-color); border-radius:50%; width:32px; height:32px; box-shadow:var(--shadow-sm); display:flex; align-items:center; justify-content:center; cursor:pointer;">
-             <i class="ph ph-pencil-simple" style="font-size:1.1rem;"></i>
+           <button class="btn-action" title="Edit Profile" onclick="event.stopPropagation(); AdminPanel.showEditEmployee('${emp._id}')">
+             <i class="ph ph-pencil-simple"></i>
            </button>
         </div>
         
@@ -246,7 +247,18 @@ const AdminPanel = {
         document.getElementById('emp-edit-modal').remove();
         this.loadEmployees();
       }
-    } catch(err) { toast('Failed to update', 'error'); }
+    } catch(err) { toast('Failed to save employee', 'error'); }
+  },
+
+  async deleteEmployee(id) {
+    if(!confirm('Are you sure you want to permanently delete this employee? This will remove all their data.')) return;
+    try {
+      const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+      if(res.ok) {
+        toast('Employee deleted permanently');
+        this.loadEmployees();
+      }
+    } catch(err) { toast('Failed to delete employee', 'error'); }
   },
 
   async viewEmployeeDetails(id) {
@@ -431,9 +443,9 @@ const AdminPanel = {
                   <td style="padding:1rem; color:var(--text-secondary);">${t.deadline ? new Date(t.deadline).toLocaleDateString() : 'No date'}</td>
                   <td style="padding:1rem;">
                     <div style="display:flex; gap:0.5rem;">
-                      <button class="btn-text" style="color:var(--accent-color);" onclick="AdminPanel.viewTaskDetails('${t._id}')">View</button>
-                      <button class="btn-text" style="color:var(--text-secondary);" onclick="AdminPanel.showEditTask('${t._id}')">Edit</button>
-                      <button class="btn-text" style="color:var(--danger-color);" onclick="AdminPanel.deleteGlobalTask('${t._id}')">Delete</button>
+                      <button class="btn-action" title="View Details" onclick="AdminPanel.viewTaskDetails('${t._id}')"><i class="ph ph-eye"></i></button>
+                      <button class="btn-action" title="Edit Task" onclick="AdminPanel.showEditTask('${t._id}')"><i class="ph ph-pencil-simple"></i></button>
+                      <button class="btn-action btn-delete" title="Delete Task" onclick="AdminPanel.deleteGlobalTask('${t._id}')"><i class="ph ph-trash"></i></button>
                     </div>
                   </td>
                 </tr>
@@ -862,7 +874,10 @@ const AdminPanel = {
                     </span>
                   </td>
                   <td style="padding:1rem;">
-                    <button onclick="AdminPanel.editClient('${c._id}')" style="background:none; border:none; cursor:pointer; color:var(--accent-color); font-weight:600; font-size:0.8rem;">Edit</button>
+                    <div style="display:flex; gap:0.5rem;">
+                       <button class="btn-action" title="Edit Client" onclick="AdminPanel.editClient('${c._id}')"><i class="ph ph-note-pencil"></i></button>
+                       <button class="btn-action btn-delete" title="Remove Client" onclick="AdminPanel.deleteClient('${c._id}')"><i class="ph ph-trash"></i></button>
+                    </div>
                   </td>
                 </tr>
               `).join('')}
@@ -991,9 +1006,18 @@ const AdminPanel = {
         document.getElementById('client-modal').remove();
         this.loadClients();
       }
-    } catch (err) {
-      toast('Failed to save', 'error');
-    }
+    } catch(err) { toast('Failed to save client', 'error'); }
+  },
+
+  async deleteClient(id) {
+    if(!confirm('Are you sure you want to remove this client? This cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' });
+      if(res.ok) {
+        toast('Client removed successfully');
+        this.loadClients();
+      }
+    } catch(err) { toast('Failed to delete client', 'error'); }
   },
 
   // --- BILLING MODULE ---
@@ -1023,6 +1047,7 @@ const AdminPanel = {
                 <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Amount</th>
                 <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Status</th>
                 <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Due Date</th>
+                <th style="padding:1rem; font-size:0.75rem; text-transform:uppercase; color:var(--text-secondary);">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1039,6 +1064,9 @@ const AdminPanel = {
                     </span>
                   </td>
                   <td style="padding:1rem; color:var(--text-secondary); font-size:0.875rem;">${new Date(inv.dueDate).toLocaleDateString()}</td>
+                  <td style="padding:1rem;">
+                    <button class="btn-action btn-delete" title="Delete Invoice" onclick="AdminPanel.deleteInvoice('${inv._id}')"><i class="ph ph-trash"></i></button>
+                  </td>
                 </tr>
               `).join('')}
             </tbody>
@@ -1155,11 +1183,21 @@ const AdminPanel = {
       });
       if (res.ok) {
         document.getElementById('inv-modal').remove();
+        toast('Invoice created successfully');
         this.loadInvoices();
       }
-    } catch (err) {
-      toast('Failed to generate invoice', 'error');
-    }
+    } catch(err) { toast('Failed to create invoice', 'error'); }
+  },
+
+  async deleteInvoice(id) {
+    if(!confirm('Are you sure you want to delete this invoice?')) return;
+    try {
+      const res = await fetch(`/api/invoices/${id}`, { method: 'DELETE' });
+      if(res.ok) {
+        toast('Invoice deleted successfully');
+        this.loadInvoices();
+      }
+    } catch(err) { toast('Failed to delete invoice', 'error'); }
   },
 
   // --- DASHBOARD MATRIX MODULE ---
@@ -1447,8 +1485,8 @@ const AdminPanel = {
                 </td>
                 <td style="padding:1rem;">
                   <div style="display:flex; gap:0.5rem; align-items:center;">
-                    <button class="btn-text" style="font-size:0.75rem; font-weight:700; color:var(--accent-color);">View</button>
-                    ${iss.status !== 'resolved' ? `<button class="btn btn-secondary" style="font-size:0.65rem; padding:0.4rem 0.6rem;" onclick="event.stopPropagation(); AdminPanel.resolveIssue('${iss._id}')">Resolve</button>` : ''}
+                    <button class="btn-action" title="View Details"><i class="ph ph-eye"></i></button>
+                    ${iss.status !== 'resolved' ? `<button class="btn-action" style="color:var(--success-color); border-color:#a7f3d0; background:#d1fae5;" title="Mark Resolved" onclick="event.stopPropagation(); AdminPanel.resolveIssue('${iss._id}')"><i class="ph ph-check-circle"></i></button>` : ''}
                   </div>
                 </td>
               </tr>

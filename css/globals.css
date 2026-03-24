@@ -191,3 +191,33 @@ body {
 @keyframes toast-out {
   to { transform: translateX(130%); opacity: 0; }
 }
+
+/* --- ACTION BUTTONS --- */
+.btn-action {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1.1rem;
+}
+
+.btn-action:hover {
+  background: var(--accent-light);
+  color: var(--accent-color);
+  border-color: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.btn-action.btn-delete:hover {
+  background: #fee2e2;
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+}
