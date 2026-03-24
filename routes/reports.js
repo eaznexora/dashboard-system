@@ -31,28 +31,30 @@ router.get('/', async (req, res) => {
     // 4. Productivity (7-day rolling average)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0); // Start of day 7 days ago
+    
     const recentLogs = await TimeLog.find({ clockIn: { $gte: sevenDaysAgo } });
     
     const totalHoursRecent = recentLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
-    // Target: 8 hours per employee per working day (approx 5 days)
+    // Target: 8 hours per employee per day across 5 working days in a week
     const targetHours = employees.length * 8 * 5; 
     const avgProductivity = targetHours > 0 ? Math.min(100, Math.round((totalHoursRecent / targetHours) * 100)) : 0;
 
-    // 5. Revenue History (Last 6 months + Current)
+    // 5. Revenue History (Last 7 months including current)
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
     const revenueHistory = [];
     const categories = [];
 
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const mName = months[d.getMonth()];
+      const targetDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mName = months[targetDate.getMonth()];
       categories.push(mName);
       
       const monthlyTotal = invoices
         .filter(inv => {
           const invDate = new Date(inv.issueDate);
-          return invDate.getMonth() === d.getMonth() && invDate.getFullYear() === d.getFullYear();
+          return invDate.getMonth() === targetDate.getMonth() && invDate.getFullYear() === targetDate.getFullYear();
         })
         .reduce((sum, inv) => sum + (inv.total || 0), 0);
       
@@ -63,7 +65,8 @@ router.get('/', async (req, res) => {
     const utilChart = employees.map(e => {
         const empLogs = recentLogs.filter(l => l.userId.toString() === e._id.toString());
         const hoursThisWeek = empLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
-        return Math.round((hoursThisWeek / 40) * 100);
+        // Capacity is 40 hours for a 7-day period
+        return Math.min(100, Math.round((hoursThisWeek / 40) * 100));
     });
 
     res.json({

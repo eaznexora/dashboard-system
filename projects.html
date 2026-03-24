@@ -23,7 +23,7 @@
   <script>
     const user = requireAuth();
     if (!user || user.role !== 'ADMIN') window.location.replace('admin-login.html');
-    initApp('projects', 'Project Command Center');
+    initApp('projects', 'Projects');
     AdminPanel.loadProjects();
   </script>
 </body>

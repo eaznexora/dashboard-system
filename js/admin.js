@@ -18,7 +18,6 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
-            <h2 class="view-title">Team Management</h2>
             <p class="view-subtitle">${activeEmps.length} Active Members · ${inactiveEmps.length} Terminated</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
@@ -380,7 +379,6 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
-            <h2 class="view-title">Agency Task Master</h2>
             <p class="view-subtitle">${tasks.length} total tasks across all projects</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddTask()"><i class="ph ph-plus"></i> Quick Task</button>
@@ -577,7 +575,6 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
-            <h2 class="view-title">Project Command Center</h2>
             <p class="view-subtitle">${projects.length} Active Projects</p>
           </div>
           <div style="display:flex; gap:0.5rem;">
@@ -860,7 +857,6 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
-            <h2 class="view-title">Client CRM</h2>
             <p class="view-subtitle">${clients.length} Total Leads & Clients</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddClient()"><i class="ph ph-user-plus"></i> Add Client</button>
@@ -1592,7 +1588,6 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
-            <h2 class="view-title">Billing & Invoices</h2>
             <p class="view-subtitle">${invoices.length} Invoices Found</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddInvoice()"><i class="ph ph-receipt"></i> Create Invoice</button>
@@ -2464,7 +2459,6 @@ const AdminPanel = {
     container.innerHTML = `
       <div class="view-header">
         <div>
-          <h2 class="view-title">Asset Hub</h2>
           <p class="view-subtitle">Central file management for all projects</p>
         </div>
         <button class="btn btn-primary" onclick="toast('Asset upload coming soon', 'info')"><i class="ph ph-upload"></i> Upload Asset</button>
@@ -2494,7 +2488,6 @@ const AdminPanel = {
       let html = `
         <div class="view-header">
           <div>
-            <h2 class="view-title">Agency Intelligence</h2>
             <p class="view-subtitle">Real-time performance metrics and financial tracking</p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.loadReports()"><i class="ph ph-arrows-clockwise"></i> Refresh Data</button>
@@ -2624,6 +2617,7 @@ const AdminPanel = {
                   <div style="display:flex; gap:0.5rem; align-items:center;">
                     <button class="btn-action" title="View Details"><i class="ph ph-eye"></i></button>
                     ${iss.status !== 'resolved' ? `<button class="btn-action" style="color:var(--success-color); border-color:#a7f3d0; background:#d1fae5;" title="Mark Resolved" onclick="event.stopPropagation(); AdminPanel.resolveIssue('${iss._id}')"><i class="ph ph-check-circle"></i></button>` : ''}
+                    <button class="btn-action btn-delete" title="Delete Issue" onclick="event.stopPropagation(); AdminPanel.deleteIssue('${iss._id}')"><i class="ph ph-trash"></i></button>
                   </div>
                 </td>
               </tr>
@@ -2671,11 +2665,12 @@ const AdminPanel = {
              </div>
           </div>
           
-          ${iss.status !== 'resolved' ? `
-            <div style="margin-top:2rem;">
-              <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="document.getElementById('issue-detail-modal').remove(); AdminPanel.resolveIssue('${iss._id}')">Mark as Resolved</button>
-            </div>
-          ` : ''}
+          <div style="display:flex; gap:1rem; margin-top:2rem;">
+             ${iss.status !== 'resolved' ? `
+               <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="document.getElementById('issue-detail-modal').remove(); AdminPanel.resolveIssue('${iss._id}')">Mark as Resolved</button>
+             ` : ''}
+             <button class="btn btn-secondary" style="flex:1; justify-content:center; color:var(--danger-color); border-color:var(--danger-color);" onclick="document.getElementById('issue-detail-modal').remove(); AdminPanel.deleteIssue('${iss._id}')">Delete Issue</button>
+          </div>
         </div>
       </div>
     `;

@@ -29,7 +29,7 @@
   <script>
     const user = requireAuth();
     if (!user || user.role !== 'ADMIN') window.location.replace('admin-login.html');
-    initApp('documentations', 'Documentations Hub');
+    initApp('documentations', 'Documentations');
     // Initialize the unified hub
     AdminPanel.loadDocumentations();
   </script>
