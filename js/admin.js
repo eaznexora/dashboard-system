@@ -1418,11 +1418,11 @@ const AdminPanel = {
             </tr>
           </thead>
           <tbody>
-            ${issues.map(iss => `
-              <tr style="border-bottom:1px solid #f8fafc;">
+             ${issues.map(iss => `
+              <tr style="border-bottom:1px solid #f8fafc; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'" onclick="AdminPanel.viewIssueDetails('${iss._id}')">
                 <td style="padding:1rem;">
                   <div style="font-weight:700; margin-bottom:0.2rem;">${iss.title}</div>
-                  <div style="font-size:0.7rem; color:var(--text-secondary); line-height:1.4;">${iss.description}</div>
+                  <div style="font-size:0.7rem; color:var(--text-secondary); line-height:1.4; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:400px;">${iss.description}</div>
                 </td>
                 <td style="padding:1rem; font-weight:600;">${iss.submittedBy?.name || 'Unknown'}</td>
                 <td style="padding:1rem;">
@@ -1434,14 +1434,65 @@ const AdminPanel = {
                   </span>
                 </td>
                 <td style="padding:1rem;">
-                  ${iss.status !== 'resolved' ? `<button class="btn btn-secondary" style="font-size:0.65rem; padding:0.4rem 0.6rem;" onclick="AdminPanel.resolveIssue('${iss._id}')">Mark Resolved</button>` : '—'}
+                  <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <button class="btn-text" style="font-size:0.75rem; font-weight:700; color:var(--accent-color);">View</button>
+                    ${iss.status !== 'resolved' ? `<button class="btn btn-secondary" style="font-size:0.65rem; padding:0.4rem 0.6rem;" onclick="event.stopPropagation(); AdminPanel.resolveIssue('${iss._id}')">Resolve</button>` : ''}
+                  </div>
                 </td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       `;
+      container.innerHTML = html;
     } catch(err) { console.error('Error loading issues'); }
+  },
+
+  async viewIssueDetails(id) {
+    const res = await fetch('/api/issues');
+    const issues = await res.json();
+    const iss = issues.find(i => i._id === id);
+    if(!iss) return;
+
+    const modalHtml = `
+      <div class="modal-overlay" id="issue-detail-modal">
+        <div class="modal-content" style="max-width:600px;">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem;">
+            <div>
+              <div style="font-size:0.7rem; font-weight:800; color:var(--danger-color); margin-bottom:0.4rem; text-transform:uppercase;">Issue Report</div>
+              <h3 style="font-weight:800; font-size:1.4rem;">${iss.title}</h3>
+            </div>
+            <button onclick="document.getElementById('issue-detail-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          
+          <div style="background:#f8fafc; border-radius:12px; padding:1.5rem; margin-bottom:1.5rem; border:1px solid var(--border-color);">
+             <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem;">Description / Complaint</label>
+             <div style="font-size:0.95rem; line-height:1.6; color:var(--text-primary); white-space:pre-wrap;">${iss.description || 'No additional details provided.'}</div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; border-top:1px solid #f1f5f9; padding-top:1.5rem;">
+             <div>
+                <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem;">Submitted By</label>
+                <div style="font-weight:700; display:flex; align-items:center; gap:0.5rem;">
+                   <div class="avatar" style="width:24px; height:24px; font-size:0.6rem;">${iss.submittedBy?.name ? iss.submittedBy.name[0] : '?'}</div>
+                   ${iss.submittedBy?.name || 'Unknown'}
+                </div>
+             </div>
+             <div>
+                <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem;">Status</label>
+                <div style="font-weight:700; font-size:0.9rem; color:${iss.status === 'resolved' ? 'var(--success-color)' : 'var(--danger-color)'}">${iss.status.toUpperCase()}</div>
+             </div>
+          </div>
+          
+          ${iss.status !== 'resolved' ? `
+            <div style="margin-top:2rem;">
+              <button class="btn btn-primary" style="width:100%; justify-content:center;" onclick="document.getElementById('issue-detail-modal').remove(); AdminPanel.resolveIssue('${iss._id}')">Mark as Resolved</button>
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
   async resolveIssue(id) {
