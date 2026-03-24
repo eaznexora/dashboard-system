@@ -619,7 +619,10 @@ const AdminPanel = {
           </div>
           <div style="font-size:1.1rem; font-weight:800; color:var(--text-primary);">₹${p.budget?.toLocaleString() || 0}</div>
         </div>
-        <div style="margin-top:0.75rem; text-align:right;">
+        <div style="margin-top:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+           <button class="btn-action btn-delete" title="Delete Project" onclick="event.stopPropagation(); AdminPanel.deleteProject('${p._id}')">
+             <i class="ph ph-trash"></i>
+           </button>
            <button class="btn btn-secondary" style="font-size:0.75rem; padding:0.4rem 0.8rem; border-radius:8px;" onclick="event.stopPropagation(); AdminPanel.showAddTask('${p._id}')">
              <i class="ph ph-plus-circle"></i> Add Task
            </button>
@@ -748,7 +751,7 @@ const AdminPanel = {
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Description</label>
               <textarea id="t-desc" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" rows="3" placeholder="Explain the task clearly..."></textarea>
             </div>
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask()">Create Task</button>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask(${taskId ? `'${taskId}'` : ''})">${taskId ? 'Update Task' : 'Create Task'}</button>
           </div>
         </div>
       </div>

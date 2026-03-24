@@ -5,10 +5,13 @@ const Task = require('../models/Task');
 // GET all tasks (admin) or assigned tasks (employee)
 router.get('/', async (req, res) => {
   try {
-    const { userId, role } = req.query;
+    const { userId, role, project } = req.query;
     let filter = {};
     if (role !== 'ADMIN' && userId) {
       filter.assignedTo = userId;
+    }
+    if (project) {
+      filter.project = project;
     }
     const tasks = await Task.find(filter)
       .populate('assignedTo', 'name email image')
