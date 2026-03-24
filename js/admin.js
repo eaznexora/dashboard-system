@@ -2578,15 +2578,15 @@ const AdminPanel = {
       yaxis: {
         labels: { 
           style: { colors: '#64748b' },
-          formatter: (val) => '$' + val.toLocaleString()
+          formatter: (val) => '₹' + val.toLocaleString()
         }
       },
-      tooltip: { theme: 'light', y: { formatter: (val) => '$' + val.toLocaleString() } }
+      tooltip: { theme: 'light', y: { formatter: (val) => '₹' + val.toLocaleString() } }
     }).render();
 
     // 2. Task Pie Chart
     new ApexCharts(document.querySelector("#task-chart"), {
-      series: data.taskStats || [25, 35, 15, 25],
+      series: data.taskStats || [0, 0, 0, 0],
       chart: { type: 'donut', height: 350 },
       labels: ['Pending', 'Working', 'Review', 'Done'],
       colors: ['#f59e0b', '#2563eb', '#8b5cf6', '#10b981'],
@@ -2595,39 +2595,38 @@ const AdminPanel = {
 
     // 3. Employee Utilization (Professional Linear Style)
     new ApexCharts(document.querySelector("#util-chart"), {
-      series: [{ name: 'Hours Worked Today', data: data.employeeHours }],
-      chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      series: [{ name: 'Hours Today', data: data.employeeHours }],
+      chart: { type: 'bar', height: 350, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       plotOptions: { 
         bar: { 
-          borderRadius: 6, 
-          horizontal: true,
+          borderRadius: 8, 
+          columnWidth: '50%',
           distributed: true,
-          barHeight: '60%',
           dataLabels: { position: 'top' }
         } 
       },
-      colors: data.employeeHours.map(h => {
-        if (h >= 7) return '#10b981'; // Green (Highly Productive)
-        if (h >= 4) return '#3b82f6'; // Blue (Standard)
-        if (h >= 2) return '#f59e0b'; // Amber (Low)
-        return '#ef4444'; // Red (Critical)
-      }),
+      colors: ['#6366f1', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
       dataLabels: {
         enabled: true,
-        formatter: (val) => val + " hrs",
-        offsetX: 35,
-        style: { fontSize: '11px', fontWeight: 700, colors: ['#475569'] }
+        formatter: (val) => val + "h",
+        offsetY: -20,
+        style: { fontSize: '12px', fontWeight: 800, colors: ['#475569'] }
       },
       xaxis: { 
         categories: data.employeeNames,
-        labels: { style: { fontWeight: 600 } }
+        labels: { style: { fontWeight: 600, colors: '#64748b' } }
+      },
+      yaxis: {
+        title: { text: 'Hours Worked', style: { color: '#64748b', fontWeight: 600 } },
+        labels: { style: { colors: '#64748b' } }
       },
       grid: {
         borderColor: '#f1f5f9',
-        xaxis: { lines: { show: true } }
+        strokeDashArray: 4,
+        yaxis: { lines: { show: true } }
       },
       tooltip: {
-        theme: 'dark',
+        theme: 'light',
         y: { formatter: (val) => val + " hours today" }
       },
       legend: { show: false }

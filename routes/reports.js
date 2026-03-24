@@ -47,16 +47,17 @@ router.get('/', async (req, res) => {
         const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
 
         projects.forEach(p => {
-            if (!p.budget || !p.startDate || !p.endDate) return;
+            if (!p.budget) return;
             
-            const pStart = new Date(p.startDate);
-            const pEnd = new Date(p.endDate);
+            // Fallback for missing dates
+            const pStart = p.startDate ? new Date(p.startDate) : new Date(p.createdAt);
+            const pEnd = p.endDate ? new Date(p.endDate) : new Date(pStart.getFullYear(), pStart.getMonth() + 3, pStart.getDate());
             
             // If project is active during this month
             if (pStart <= monthEnd && pEnd >= monthStart) {
                 // Calculate duration in months (min 1)
                 const monthDiff = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1;
-                const monthlyWeight = p.budget / monthDiff;
+                const monthlyWeight = p.budget / (monthDiff || 1);
                 revenueHistory[i] += monthlyWeight;
             }
         });
