@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard | EazDash</title>
+  <title>Agency Dashboard | EazDash</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -14,30 +14,44 @@
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="theme-blue">
-  <div id="app" class="app-container"></div>
+  <!-- Master Shell Container -->
+  <div id="app" class="app-container">
+    <!-- Sidebar and Header will be injected here by initApp -->
+    <!-- view-container will be created inside as well -->
+  </div>
   
   <script src="js/store.js?version=1.0.2"></script>
   <script src="js/auth.js?version=1.0.3"></script>
-  <script src="js/components.js?version=1.0.5"></script>
-  <script src="js/views/assets.js?version=1.0.0"></script>
+  <script src="js/components.js?version=1.0.6"></script>
+  <script src="js/admin.js?version=1.0.2"></script>
+  <script src="js/views/assets.js?version=1.0.1"></script>
   
   <script>
-    // Unified SPA Shell logic
-    const user = requireAuth();
-    if (!user) window.location.replace('login.html');
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Unified Auth Guard & Routing
+      const user = requireAuth();
+      if (!user) return window.location.replace('login.html');
 
-    // Handle initial route or logic
-    const urlParams = new URLSearchParams(window.location.search);
-    const view = urlParams.get('view') || 'marketing';
-    
-    // Initialize standard shell
-    initApp(view, view.charAt(0).toUpperCase() + view.slice(1));
+      const urlParams = new URLSearchParams(window.location.search);
+      const view = urlParams.get('view') || 'marketing';
+      
+      // 2. Initialize Core Shell (Injects Sidebar + Header + view-container)
+      initApp(view, view.charAt(0).toUpperCase() + view.slice(1).replace('-', ' '));
 
-    // View Routing
-    if (view === 'assets') {
-      AssetHub.init();
-    }
-    // More views can be added here...
+      // 3. Fire Module-Specific Injections
+      if (view === 'assets') {
+          AssetHub.init();
+      } else if (view === 'admin-panel') {
+          AdminPanel.loadEmployees();
+      } else if (view === 'projects') {
+          AdminPanel.loadProjects();
+      } else if (view === 'clients') {
+          AdminPanel.loadClients();
+      } else if (view === 'tasks') {
+          AdminPanel.loadTasks();
+      }
+      // Add more routes as the SPA expands...
+    });
   </script>
 </body>
 </html>
