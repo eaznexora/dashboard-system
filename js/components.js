@@ -113,7 +113,7 @@ function initApp(pageId, pageTitle) {
     ${renderSidebar(pageId)}
     <div class="main-content">
       ${renderHeader(pageTitle)}
-      <div class="dashboard-content" id="dashboard-content">
+      <div class="dashboard-content" id="view-container">
         <!-- Page specific content will be loaded here -->
       </div>
     </div>

@@ -1,17 +1,15 @@
 const mongoose = require('mongoose');
 
-const AssetSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  type: { 
-    type: String, 
-    enum: ['document', 'image', 'video', 'design', 'other'], 
-    default: 'other' 
-  },
-  url: { type: String, required: true }, // File storage path or external URL
-  size: { type: Number }, // Bytes
-  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
-  tags: [{ type: String }]
+const assetSchema = new mongoose.Schema({
+  originalName: { type: String, required: true },
+  savedFilename: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true },
+  folderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
+  filePath: { type: String, required: true },
+  createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  isTrashed: { type: Boolean, default: false },
+  deletedAt: { type: Date, default: null }
 }, { timestamps: true });
 
-module.exports = mongoose.model('Asset', AssetSchema);
+module.exports = mongoose.model('Asset', assetSchema);
