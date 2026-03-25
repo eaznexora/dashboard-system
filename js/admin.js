@@ -712,6 +712,7 @@ const AdminPanel = {
         </div>
         <div style="display:flex; gap:0.75rem;">
           <button class="btn btn-danger" onclick="AdminPanel.deleteProject('${id}')"><i class="ph ph-trash"></i> Delete Project</button>
+          <button class="btn btn-secondary" onclick="AdminPanel.showEditProject('${id}')"><i class="ph ph-pencil-simple"></i> Modify Project</button>
           <button class="btn btn-primary" onclick="AdminPanel.showAddTask('${id}')"><i class="ph ph-plus"></i> Add Task</button>
         </div>
       </div>
@@ -764,6 +765,113 @@ const AdminPanel = {
       </div>
     `;
     window.initCustomSelects();
+  },
+
+  async showEditProject(id) {
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const empsRes = await fetch('/api/employees');
+    const emps = await empsRes.json();
+    const projRes = await fetch('/api/projects');
+    const projs = await projRes.json();
+    const p = projs.find(x => x._id === id);
+
+    const modalHtml = `
+      <div class="modal-overlay" id="proj-edit-modal">
+        <div class="modal-content" style="max-width:650px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Modify Project: ${p.name}</h3>
+            <button onclick="document.getElementById('proj-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1.25rem;">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Name</label>
+              <input type="text" id="ep-name" class="form-control" value="${p.name}">
+            </div>
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
+                  <input type="number" id="ep-budget" class="form-control" value="${p.budget || 0}">
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
+                  <select id="ep-status" class="form-control">
+                    <option value="active" ${p.status==='active'?'selected':''}>ACTIVE</option>
+                    <option value="on-hold" ${p.status==='on-hold'?'selected':''}>ON HOLD</option>
+                    <option value="completed" ${p.status==='completed'?'selected':''}>COMPLETED</option>
+                    <option value="archived" ${p.status==='archived'?'selected':''}>ARCHIVED</option>
+                  </select>
+               </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
+                  <input type="date" id="ep-start" class="form-control" value="${p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date (Deadline)</label>
+                  <input type="date" id="ep-end" class="form-control" value="${p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
+               </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
+                  <select id="ep-client" class="form-control">
+                    ${clients.map(c => `<option value="${c._id}" ${p.client?._id===c._id?'selected':''}>${c.company}</option>`).join('')}
+                  </select>
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
+                  <select id="ep-lead" class="form-control">
+                    <option value="">-- No Lead --</option>
+                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}" ${p.lead?._id===e._id?'selected':''}>${e.name}</option>`).join('')}
+                  </select>
+               </div>
+            </div>
+
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Description</label>
+              <textarea id="ep-desc" class="form-control" style="min-height:100px;">${p.description || ''}</textarea>
+            </div>
+
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateProject('${p._id}')">Update Project Details</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
+  },
+
+  async updateProject(id) {
+    const body = {
+      name: document.getElementById('ep-name').value,
+      budget: Number(document.getElementById('ep-budget').value),
+      status: document.getElementById('ep-status').value,
+      startDate: document.getElementById('ep-start').value || undefined,
+      endDate: document.getElementById('ep-end').value || undefined,
+      client: document.getElementById('ep-client').value,
+      lead: document.getElementById('ep-lead').value || undefined,
+      description: document.getElementById('ep-desc').value
+    };
+
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        document.getElementById('proj-edit-modal').remove();
+        toast('Project updated successfully');
+        this.viewProjectDetails(id);
+      }
+    } catch (err) {
+      toast('Failed to update project', 'error');
+    }
   },
 
   async saveTask(taskId = null) {
