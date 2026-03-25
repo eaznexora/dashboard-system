@@ -2556,7 +2556,7 @@ const AdminPanel = {
     if (!window.ApexCharts) return console.error('ApexCharts not loaded');
     
     // 1. Revenue Intelligence Chart (History + Forecast)
-    // Include CURRENT month (index 3) in "Projected" if user wants to see the total budget (e.g. ₹70,000)
+    // Slice(3) includes Current Month index 3 (Mar) + Future 4, 5, 6, 7
     const totalProjected = data.revenueHistory.slice(3).reduce((a, b) => a + b, 0);
     
     new ApexCharts(document.querySelector("#revenue-chart"), {
@@ -2580,12 +2580,12 @@ const AdminPanel = {
           borderColor: '#94a3b8',
           label: {
             style: { color: '#fff', background: '#94a3b8' },
-            text: 'Current Month'
+            text: 'Current'
           }
         }]
       },
       title: {
-        text: `₹${totalProjected.toLocaleString()} Total Revenue Forecast`,
+        text: `₹${totalProjected.toLocaleString()} Total Revenue Lifecycle (Next 4 mo)`,
         align: 'left',
         style: { fontSize: '14px', fontWeight: 700, color: 'var(--accent-color)' }
       },
@@ -2608,15 +2608,15 @@ const AdminPanel = {
             <div style="margin-bottom:0.5rem; font-size:1.1rem; font-weight:800; color:var(--accent-color);">₹${total.toLocaleString()}</div>
             <div style="display:grid; gap:0.4rem;">`;
           
-          if(!projects || projects.length === 0) {
-            html += `<div style="font-size:0.8rem; color:var(--text-secondary);">No project contributions</div>`;
-          } else {
+          if (projects && projects.length > 0) {
             projects.forEach(p => {
                html += `<div style="display:flex; justify-content:space-between; gap:1.5rem; font-size:0.8rem;">
                   <span style="color:var(--text-primary); font-weight:600;">${p.name}</span>
                   <span style="color:var(--text-secondary);">₹${p.budget.toLocaleString()}</span>
                </div>`;
             });
+          } else {
+            html += `<div style="color:var(--text-secondary); font-size:0.8rem;">No project data found</div>`;
           }
           
           html += `</div></div>`;
@@ -2625,48 +2625,47 @@ const AdminPanel = {
       }
     }).render();
 
-    // 2. Task Pie Chart
+    // 2. Task Distribution Chart 
     new ApexCharts(document.querySelector("#task-chart"), {
       series: data.taskStats || [0, 0, 0, 0],
-      chart: { type: 'donut', height: 350 },
-      labels: ['Pending', 'Working', 'Review', 'Done'],
+      chart: { type: 'donut', height: 350, fontFamily: 'Inter, sans-serif' },
+      labels: ['To Do', 'Working', 'Review', 'Done'],
       colors: ['#f59e0b', '#2563eb', '#8b5cf6', '#10b981'],
       legend: { position: 'bottom' }
     }).render();
 
-    // 3. Employee Utilization (Professional Vertical Style)
-    // To ensure bars are visible even at 0h, we map the values
-    const utilData = data.employeeHours.map(h => h === 0 ? 0.05 : h); 
-
+    // 3. Employee Utilization (Vertical Professional Style)
     new ApexCharts(document.querySelector("#util-chart"), {
-      series: [{ name: 'Hours Today', data: utilData }],
-      chart: { type: 'bar', height: 380, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      series: [{ name: 'Hours Today', data: data.employeeHours }],
+      chart: { type: 'bar', height: 350, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       plotOptions: { 
         bar: { 
-          borderRadius: 8, 
-          columnWidth: data.employeeNames.length > 5 ? '70%' : '50%',
+          borderRadius: 8,
+          columnWidth: '50%',
           distributed: true,
-          dataLabels: { position: 'top' }
+          dataLabels: { position: 'top' },
+          colors: { backgroundBarColors: ['#f8fafc'], backgroundBarOpacity: 1, backgroundBarRadius: 8 }
         } 
       },
-      colors: ['#6366f1', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'],
+      colors: ['#6366f1', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4'],
       dataLabels: {
         enabled: true,
-        formatter: (val) => (val === 0.05 ? 0 : val) + "h",
-        offsetY: -25,
-        style: { fontSize: '11px', fontWeight: 800, colors: ['#475569'] }
+        formatter: (val) => (val || 0) + "h",
+        offsetY: -20,
+        style: { fontSize: '12px', fontWeight: 800, colors: ['#475569'] }
       },
       xaxis: { 
         categories: data.employeeNames,
         labels: { 
+          style: { fontWeight: 600, colors: '#64748b' },
           rotate: -45,
-          style: { fontWeight: 600, colors: '#64748b', fontSize: '10px' } 
+          maxHeight: 60
         }
       },
       yaxis: {
         min: 0,
-        max: Math.max(8, ...data.employeeHours) + 2,
-        title: { text: 'Hours Worked', style: { color: '#64748b', fontWeight: 600 } },
+        max: Math.max(8, ...(data.employeeHours || [0])) + 2,
+        title: { text: 'Hours Worked Today', style: { color: '#64748b', fontWeight: 600 } },
         labels: { style: { colors: '#64748b' } }
       },
       grid: {
@@ -2676,7 +2675,7 @@ const AdminPanel = {
       },
       tooltip: {
         theme: 'light',
-        y: { formatter: (val) => (val === 0.05 ? 0 : val) + " hours today" }
+        y: { formatter: (val) => (val || 0) + " hours today" }
       },
       legend: { show: false }
     }).render();
