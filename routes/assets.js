@@ -4,27 +4,49 @@ const multer = require('multer');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
 const Folder = require('../models/Folder');
 const Asset = require('../models/Asset');
 
-// Ensure upload directories exist
+const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_eaz_123';
+
+// --- DIRECTORY GUARANTEE ---
 const UPLOAD_DIR = path.join(__dirname, '../uploads');
 const TEMP_DIR = path.join(UPLOAD_DIR, 'temp');
+
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
 
-// Multer Setup
+// --- AUTH PROTECT MIDDLEWARE ---
+const protect = (req, res, next) => {
+    const token = req.cookies?.eaz_token;
+    if (!token) return res.status(401).json({ error: 'Session expired. Please login again.' });
+    
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        console.error('[ASSETS_AUTH_ERROR]:', err.message);
+        res.status(401).json({ error: 'Invalid authentication' });
+    }
+};
+
+router.use(protect);
+
+// --- MULTER SETUP ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, TEMP_DIR),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
+  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '_'))
 });
 const upload = multer({ storage });
 
 /**
- * GET - List Folders and Assets in a specific directory
+ * GET - List Folders and Assets
  */
 router.get('/', async (req, res) => {
   try {
-    const parentFolder = req.query.folderId === 'null' ? null : (req.query.folderId || null);
+    const parentFolder = req.query.folderId === 'null' || !req.query.folderId ? null : req.query.folderId;
     
     const [folders, assets] = await Promise.all([
       Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 }),
@@ -47,49 +69,54 @@ router.get('/', async (req, res) => {
     
     res.json({ folders, assets, breadcrumbs });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('[ASSETS_GET_ERROR]:', err);
+    res.status(500).json({ error: 'Failed to fetch contents: ' + err.message });
   }
 });
 
 /**
- * POST - Create a new Folder
+ * POST - Create Folder
  */
 router.post('/folders', async (req, res) => {
   try {
     const { name, parentFolder } = req.body;
+    if (!name) return res.status(400).json({ error: 'Folder name is required' });
+
     const folder = new Folder({ 
       name, 
-      parentFolder: parentFolder === 'null' ? null : (parentFolder || null),
+      parentFolder: parentFolder === 'null' || !parentFolder ? null : parentFolder,
       createdBy: req.user.id 
     });
+    
     await folder.save();
-    global.io.emit('asset_update');
+    if (global.io) global.io.emit('asset_update');
     res.status(201).json(folder);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    console.error('[ASSETS_CREATE_FOLDER_ERROR]:', err);
+    res.status(500).json({ error: 'Creation failed: ' + err.message });
   }
 });
 
 /**
- * POST - Upload an Asset (File/Image)
+ * POST - Upload File
  */
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const { parentFolder } = req.body;
     const file = req.file;
-    if (!file) return res.status(400).json({ error: 'No file uploaded' });
+    if (!file) return res.status(400).json({ error: 'No file received' });
 
     const fileName = Date.now() + '-' + file.originalname.replace(/\s+/g, '_');
     const finalPath = path.join(UPLOAD_DIR, fileName);
     let thumbnailUrl = null;
 
     if (file.mimetype.startsWith('image/')) {
-      // Compress and Save Main Image
+      // Optimize Main Image
       await sharp(file.path)
         .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
         .toFile(finalPath);
       
-      // Generate Sharp Thumbnail
+      // Create Square Thumbnail
       const thumbName = 'thumb-' + fileName;
       const thumbPath = path.join(UPLOAD_DIR, thumbName);
       await sharp(file.path)
@@ -97,11 +124,11 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         .toFile(thumbPath);
       thumbnailUrl = `/uploads/${thumbName}`;
     } else {
-      // Move other files directly
+      // Direct Move for non-images
       fs.renameSync(file.path, finalPath);
     }
 
-    // Clean up temp file
+    // Always clean up temp
     if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
 
     const asset = new Asset({
@@ -111,16 +138,16 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       size: file.size,
       url: `/uploads/${fileName}`,
       thumbnailUrl,
-      parentFolder: parentFolder === 'null' ? null : (parentFolder || null),
+      parentFolder: parentFolder === 'null' || !parentFolder ? null : parentFolder,
       uploadedBy: req.user.id
     });
 
     await asset.save();
-    global.io.emit('asset_update');
+    if (global.io) global.io.emit('asset_update');
     res.status(201).json(asset);
   } catch (err) {
-    console.error('Upload Error:', err);
-    res.status(500).json({ error: 'File processing failed' });
+    console.error('[ASSETS_UPLOAD_ERROR]:', err);
+    res.status(500).json({ error: 'Upload failed: ' + err.message });
   }
 });
 
@@ -129,13 +156,13 @@ router.post('/upload', upload.single('file'), async (req, res) => {
  */
 router.patch('/:id/trash', async (req, res) => {
   try {
-    const { type } = req.query; // 'folder' or 'asset'
+    const { type } = req.query;
     if (type === 'folder') {
         await Folder.findByIdAndUpdate(req.params.id, { isTrashed: true });
     } else {
         await Asset.findByIdAndUpdate(req.params.id, { isTrashed: true });
     }
-    global.io.emit('asset_update');
+    if (global.io) global.io.emit('asset_update');
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -148,12 +175,14 @@ router.patch('/:id/trash', async (req, res) => {
 router.patch('/:id/rename', async (req, res) => {
   try {
     const { name, type } = req.body;
+    if (!name) return res.status(400).json({ error: 'Name cannot be empty' });
+
     if (type === 'folder') {
         await Folder.findByIdAndUpdate(req.params.id, { name });
     } else {
         await Asset.findByIdAndUpdate(req.params.id, { name });
     }
-    global.io.emit('asset_update');
+    if (global.io) global.io.emit('asset_update');
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
