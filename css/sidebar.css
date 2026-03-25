@@ -9,10 +9,11 @@
 }
 
 .sidebar-header {
-  height: var(--header-height);
+  height: 72px;
   display: flex; align-items: center; padding: 0 1.5rem;
   border-bottom: 1px solid var(--sidebar-border);
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .logo {
@@ -23,9 +24,16 @@
 .logo i { color: var(--accent-color); }
 
 .nav-links {
-  list-style: none; padding: 1.5rem 1rem; flex: 1;
+  list-style: none; padding: 1rem; flex: 1;
   display: flex; flex-direction: column; gap: 0.25rem;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
+
+.nav-links::-webkit-scrollbar { width: 5px; }
+.nav-links::-webkit-scrollbar-track { background: transparent; }
+.nav-links::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
 .nav-item {
   display: flex; align-items: center; padding: 0.75rem 1rem;

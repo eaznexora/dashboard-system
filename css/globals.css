@@ -76,7 +76,7 @@ body {
 
 /* Header */
 .top-header {
-  height: var(--header-height);
+  height: 72px;
   background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
