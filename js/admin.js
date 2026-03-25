@@ -2854,22 +2854,22 @@ const AdminPanel = {
             <button onclick="document.getElementById('issue-detail-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
           
-          <div style="background:#f8fafc; border-radius:16px; padding:1.5rem; margin-bottom:2rem; border:1px solid var(--border-color); max-height:400px; overflow-y:auto;">
-             <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem;">Staff Description / Feedback</label>
-             <div style="font-size:1rem; line-height:1.7; color:var(--text-primary); white-space:pre-wrap;">${(iss.description || '').trim() || 'No additional details provided.'}</div>
+          <div style="background:#f8fafc; border-radius:12px; padding:1.25rem; margin-bottom:1.5rem; border:1px solid var(--border-color);">
+             <label style="display:block; font-size:0.65rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.05em;">Staff Description / Feedback</label>
+             <div style="max-height:220px; overflow-y:auto; font-size:0.95rem; line-height:1.6; color:var(--text-primary); white-space:pre-wrap; padding-right:0.5rem;">${(iss.description || '').trim() || 'No additional details provided.'}</div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; ${isAdmin ? 'margin-bottom:2rem;' : ''}">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; ${isAdmin ? 'margin-bottom:1.5rem;' : ''}">
              <div>
-                <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Reported By</label>
-                <div style="font-weight:700; display:flex; align-items:center; gap:0.75rem;">
-                   <div class="avatar" style="width:32px; height:32px; font-size:0.8rem;">${iss.submittedBy?.name ? iss.submittedBy.name[0] : '?'}</div>
-                   <div style="font-size:0.95rem;">${iss.submittedBy?.name || 'Unknown Staff member'}</div>
+                <label style="display:block; font-size:0.65rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem; letter-spacing:0.05em;">Reported By</label>
+                <div style="font-weight:700; display:flex; align-items:center; gap:0.6rem;">
+                   <div class="avatar" style="width:28px; height:28px; font-size:0.7rem;">${iss.submittedBy?.name ? iss.submittedBy.name[0] : '?'}</div>
+                   <div style="font-size:0.9rem;">${iss.submittedBy?.name || 'Unknown Staff member'}</div>
                 </div>
              </div>
              <div>
-                <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Current Status</label>
-                <span class="status-badge" style="background:${iss.status==='approved'?'#d1fae5':iss.status==='rejected'?'#fee2e2':'#e0f2fe'}; 
+                <label style="display:block; font-size:0.65rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem; letter-spacing:0.05em;">Current Status</label>
+                <span class="status-badge" style="padding: 0.25rem 0.75rem; background:${iss.status==='approved'?'#d1fae5':iss.status==='rejected'?'#fee2e2':'#e0f2fe'}; 
                       color:${iss.status==='approved'?'#065f46':iss.status==='rejected'?'#991b1b':'#0369a1'};">
                   ${iss.status.toUpperCase()}
                 </span>
@@ -2877,29 +2877,29 @@ const AdminPanel = {
           </div>
 
           ${isAdmin ? `
-            <div style="border-top:1px solid #f1f5f9; padding-top:2rem;">
-               <h4 style="font-weight:800; font-size:0.875rem; margin-bottom:1rem; color:var(--text-primary);">ADMINISTRATION RESPONSE</h4>
-               <textarea id="admin-reply-text" class="form-control" style="min-height:120px; font-size:0.9rem;" placeholder="Type your formal response or directives here...">${iss.adminReply || ''}</textarea>
+            <div style="border-top:1px solid #f1f5f9; padding-top:1.5rem; margin-top:0.5rem;">
+               <h4 style="font-weight:800; font-size:0.75rem; margin-bottom:1rem; color:var(--text-primary); letter-spacing:0.02em;">ADMINISTRATION RESPONSE</h4>
+               <textarea id="admin-reply-text" class="form-control" style="min-height:90px; font-size:0.9rem; padding:0.75rem;" placeholder="Type your formal response or directives here...">${iss.adminReply || ''}</textarea>
                
-               <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem; margin-top:1.5rem;">
-                  <button class="btn btn-primary" style="justify-content:center; padding:0.75rem; background:var(--success-color);" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'approved')">
+               <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:0.75rem; margin-top:1.25rem;">
+                  <button class="btn btn-primary" style="justify-content:center; padding:0.6rem; background:var(--success-color); font-size:0.85rem;" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'approved')">
                     <i class="ph ph-check-circle"></i> Approve
                   </button>
-                  <button class="btn btn-secondary" style="justify-content:center; padding:0.75rem; color:var(--danger-color); border-color:var(--danger-color);" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'rejected')">
+                  <button class="btn btn-secondary" style="justify-content:center; padding:0.6rem; color:var(--danger-color); border-color:var(--danger-color); font-size:0.85rem;" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'rejected')">
                     <i class="ph ph-minus-circle"></i> Reject
                   </button>
-                  <button class="btn btn-secondary" style="justify-content:center; padding:0.75rem;" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'resolved')">
+                  <button class="btn btn-secondary" style="justify-content:center; padding:0.6rem; font-size:0.85rem;" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'resolved')">
                     <i class="ph ph-flag-checkered"></i> Resolve
                   </button>
                </div>
-               <button class="btn btn-secondary" style="width:100%; justify-content:center; margin-top:1rem; color:var(--text-secondary); border:none;" onclick="AdminPanel.deleteIssue('${iss._id}')">
+               <button class="btn btn-secondary" style="width:100%; justify-content:center; margin-top:1.25rem; color:var(--text-secondary); border:none; font-size:0.8rem; opacity:0.7;" onclick="AdminPanel.deleteIssue('${iss._id}')">
                  <i class="ph ph-trash"></i> Permanently Delete Report
                </button>
             </div>
           ` : (iss.adminReply ? `
-            <div style="border-top:1px solid #f1f5f9; padding-top:1.5rem; margin-top:2rem;">
-               <h4 style="font-weight:800; font-size:0.7rem; color:var(--accent-color); text-transform:uppercase; margin-bottom:1rem;">Official Admin Response</h4>
-               <div style="background:#f0f9ff; border-radius:12px; padding:1.25rem; font-size:0.95rem; line-height:1.6; color:#0369a1; border-left:4px solid var(--accent-color);">
+            <div style="border-top:1px solid #f1f5f9; padding-top:1.25rem; margin-top:1.5rem;">
+               <h4 style="font-weight:800; font-size:0.65rem; color:var(--accent-color); text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.05em;">Official Admin Response</h4>
+               <div style="background:#f0f9ff; border-radius:12px; padding:1rem; font-size:0.9rem; line-height:1.6; color:#0369a1; border-left:4px solid var(--accent-color);">
                   ${iss.adminReply}
                </div>
             </div>
