@@ -11,6 +11,7 @@ const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 
 // Load environment variables directly from .env.local
 dotenv.config({ path: '.env.local' });
@@ -57,7 +58,6 @@ app.use(authGuard);
 // Serve static files (protected by authGuard)
 app.use(express.static(__dirname));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-const path = require('path'); // Ensure path is available if not already
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI;
