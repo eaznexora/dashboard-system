@@ -2555,25 +2555,46 @@ const AdminPanel = {
   initCharts(data) {
     if (!window.ApexCharts) return console.error('ApexCharts not loaded');
     
-    // 1. Revenue Area Chart (Forecast)
+    // 1. Revenue Stacked Column Chart (History + Forecast)
+    // Transform projectBreakdown for ApexCharts: series per project
+    const allProjectNames = [...new Set(data.projectBreakdown.flatMap(m => m.projects.map(p => p.name)))];
+    const revenueSeries = allProjectNames.map(projName => {
+        return {
+            name: projName,
+            data: data.projectBreakdown.map(m => {
+                const p = m.projects.find(px => px.name === projName);
+                return p ? p.amount : 0;
+            })
+        };
+    });
+
     new ApexCharts(document.querySelector("#revenue-chart"), {
-      series: [{ name: 'Projected Revenue', data: data.revenueHistory }],
-      chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-      colors: ['#6366f1'],
-      dataLabels: { enabled: false },
-      stroke: { curve: 'smooth', width: 3 },
-      fill: {
-        type: 'gradient',
-        gradient: {
-          shadeIntensity: 1,
-          opacityFrom: 0.45,
-          opacityTo: 0.05,
-          stops: [20, 100]
-        }
+      series: revenueSeries,
+      chart: { 
+        type: 'bar', 
+        height: 400, 
+        stacked: true, 
+        toolbar: { show: false }, 
+        fontFamily: 'Inter, sans-serif',
+        zoom: { enabled: false }
+      },
+      responsive: [{ breakpoint: 480, options: { legend: { position: 'bottom', offsetX: -10, offsetY: 0 } } }],
+      plotOptions: { 
+        bar: { 
+          horizontal: false, 
+          borderRadius: 0,
+          dataLabels: {
+            total: {
+              enabled: true,
+              style: { fontSize: '12px', fontWeight: 900, color: 'var(--accent-color)' },
+              formatter: (val) => '₹' + val.toLocaleString()
+            }
+          }
+        } 
       },
       xaxis: { 
         categories: data.revenueCategories,
-        labels: { style: { colors: '#64748b' } }
+        labels: { style: { colors: '#64748b', fontWeight: 600 } }
       },
       yaxis: {
         labels: { 
@@ -2581,53 +2602,59 @@ const AdminPanel = {
           formatter: (val) => '₹' + val.toLocaleString()
         }
       },
-      tooltip: { theme: 'light', y: { formatter: (val) => '₹' + val.toLocaleString() } }
+      legend: { position: 'right', offsetY: 40 },
+      fill: { opacity: 1 },
+      colors: ['#6366f1', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'],
+      tooltip: {
+        theme: 'light',
+        y: { formatter: (val) => '₹' + val.toLocaleString() }
+      }
     }).render();
 
     // 2. Task Pie Chart
-    new ApexCharts(document.querySelector("#task-chart"), {
+    new ApexCharts(document.querySelector("#task-pie"), {
       series: data.taskStats || [0, 0, 0, 0],
-      chart: { type: 'donut', height: 350 },
-      labels: ['Pending', 'Working', 'Review', 'Done'],
+      chart: { type: 'donut', height: 280, fontFamily: 'Inter, sans-serif' },
+      labels: ['To Do', 'Working', 'Review', 'Done'],
       colors: ['#f59e0b', '#2563eb', '#8b5cf6', '#10b981'],
       legend: { position: 'bottom' }
     }).render();
 
-    // 3. Employee Utilization (Professional Linear Style)
+    // 3. Employee Utilization (Comprehensive Staff View)
     new ApexCharts(document.querySelector("#util-chart"), {
-      series: [{ name: 'Hours Today', data: data.employeeHours }],
+      series: [{ name: 'Hours Today', data: data.employeeStats.map(s => s.hours) }],
       chart: { type: 'bar', height: 350, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       plotOptions: { 
         bar: { 
-          borderRadius: 8, 
-          columnWidth: '50%',
+          borderRadius: 4,
+          columnWidth: '45%',
           distributed: true,
           dataLabels: { position: 'top' }
         } 
       },
-      colors: ['#6366f1', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+      colors: data.employeeStats.map(s => s.isActive ? '#6366f1' : '#cbd5e1'),
       dataLabels: {
         enabled: true,
         formatter: (val) => val + "h",
         offsetY: -20,
-        style: { fontSize: '12px', fontWeight: 800, colors: ['#475569'] }
+        style: { fontSize: '11px', fontWeight: 800, colors: ['#475569'] }
       },
       xaxis: { 
-        categories: data.employeeNames,
-        labels: { style: { fontWeight: 600, colors: '#64748b' } }
+        categories: data.employeeStats.map(s => s.name),
+        labels: { rotate: -45, style: { fontSize: '10px', colors: '#64748b' } }
       },
       yaxis: {
-        title: { text: 'Hours Worked', style: { color: '#64748b', fontWeight: 600 } },
         labels: { style: { colors: '#64748b' } }
       },
-      grid: {
-        borderColor: '#f1f5f9',
-        strokeDashArray: 4,
-        yaxis: { lines: { show: true } }
-      },
+      grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
       tooltip: {
         theme: 'light',
-        y: { formatter: (val) => val + " hours today" }
+        y: { 
+          formatter: (val, opt) => {
+            const emp = data.employeeStats[opt.dataPointIndex];
+            return `${val}h today (${emp.isActive ? 'Active' : 'Inactive'})`;
+          }
+        }
       },
       legend: { show: false }
     }).render();
