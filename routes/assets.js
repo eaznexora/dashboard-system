@@ -14,21 +14,24 @@ const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_eaz_123';
 const UPLOAD_DIR = path.join(__dirname, '../uploads');
 const TEMP_DIR = path.join(UPLOAD_DIR, 'temp');
 
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+try {
+    if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+    if (!fs.existsSync(TEMP_DIR)) fs.mkdirSync(TEMP_DIR, { recursive: true });
+} catch (e) {
+    console.error('[ASSETS_DIR_ERROR]: Failed to ensure upload directories:', e);
+}
 
 // --- AUTH PROTECT MIDDLEWARE ---
 const protect = (req, res, next) => {
     const token = req.cookies?.eaz_token;
-    if (!token) return res.status(401).json({ error: 'Session expired. Please login again.' });
+    if (!token) return res.status(401).json({ error: 'Authentication required' });
     
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded;
         next();
     } catch (err) {
-        console.error('[ASSETS_AUTH_ERROR]:', err.message);
-        res.status(401).json({ error: 'Invalid authentication' });
+        res.status(401).json({ error: 'Invalid or expired session' });
     }
 };
 
@@ -48,6 +51,7 @@ router.get('/', async (req, res) => {
   try {
     const parentFolder = req.query.folderId === 'null' || !req.query.folderId ? null : req.query.folderId;
     
+    // Support string comparisons for 'admin' user
     const [folders, assets] = await Promise.all([
       Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 }),
       Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 })
@@ -70,7 +74,7 @@ router.get('/', async (req, res) => {
     res.json({ folders, assets, breadcrumbs });
   } catch (err) {
     console.error('[ASSETS_GET_ERROR]:', err);
-    res.status(500).json({ error: 'Failed to fetch contents: ' + err.message });
+    res.status(500).json({ error: 'Query failed: ' + err.message });
   }
 });
 
@@ -80,20 +84,20 @@ router.get('/', async (req, res) => {
 router.post('/folders', async (req, res) => {
   try {
     const { name, parentFolder } = req.body;
-    if (!name) return res.status(400).json({ error: 'Folder name is required' });
+    if (!name) return res.status(400).json({ error: 'Name is required' });
 
     const folder = new Folder({ 
       name, 
       parentFolder: parentFolder === 'null' || !parentFolder ? null : parentFolder,
-      createdBy: req.user.id 
+      createdBy: String(req.user.id) // Ensure string format
     });
     
     await folder.save();
     if (global.io) global.io.emit('asset_update');
     res.status(201).json(folder);
   } catch (err) {
-    console.error('[ASSETS_CREATE_FOLDER_ERROR]:', err);
-    res.status(500).json({ error: 'Creation failed: ' + err.message });
+    console.error('[ASSETS_FOLDER_CREATE_ERROR]:', err);
+    res.status(500).json({ error: 'Failed to create folder: ' + err.message });
   }
 });
 
@@ -104,19 +108,18 @@ router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const { parentFolder } = req.body;
     const file = req.file;
-    if (!file) return res.status(400).json({ error: 'No file received' });
+    if (!file) return res.status(400).json({ error: 'No file provided' });
 
     const fileName = Date.now() + '-' + file.originalname.replace(/\s+/g, '_');
     const finalPath = path.join(UPLOAD_DIR, fileName);
     let thumbnailUrl = null;
 
     if (file.mimetype.startsWith('image/')) {
-      // Optimize Main Image
+      // Process Image
       await sharp(file.path)
         .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
         .toFile(finalPath);
       
-      // Create Square Thumbnail
       const thumbName = 'thumb-' + fileName;
       const thumbPath = path.join(UPLOAD_DIR, thumbName);
       await sharp(file.path)
@@ -124,11 +127,10 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         .toFile(thumbPath);
       thumbnailUrl = `/uploads/${thumbName}`;
     } else {
-      // Direct Move for non-images
       fs.renameSync(file.path, finalPath);
     }
 
-    // Always clean up temp
+    // Clean temp
     if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
 
     const asset = new Asset({
@@ -139,7 +141,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       url: `/uploads/${fileName}`,
       thumbnailUrl,
       parentFolder: parentFolder === 'null' || !parentFolder ? null : parentFolder,
-      uploadedBy: req.user.id
+      uploadedBy: String(req.user.id) // Safe for 'admin'
     });
 
     await asset.save();
@@ -175,8 +177,6 @@ router.patch('/:id/trash', async (req, res) => {
 router.patch('/:id/rename', async (req, res) => {
   try {
     const { name, type } = req.body;
-    if (!name) return res.status(400).json({ error: 'Name cannot be empty' });
-
     if (type === 'folder') {
         await Folder.findByIdAndUpdate(req.params.id, { name });
     } else {
