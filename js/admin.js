@@ -633,16 +633,6 @@ const AdminPanel = {
                   </select>
                </div>
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
-                  <input type="date" id="np-start" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-               </div>
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date</label>
-                  <input type="date" id="np-end" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-               </div>
-            </div>
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveProject()">Start Project</button>
           </div>
         </div>
@@ -658,8 +648,6 @@ const AdminPanel = {
       client: document.getElementById('np-client').value,
       budget: Number(document.getElementById('np-budget').value),
       lead: document.getElementById('np-lead').value,
-      startDate: document.getElementById('np-start').value || undefined,
-      endDate: document.getElementById('np-end').value || undefined,
       status: 'active'
     };
     if(!body.name) return toast('Name is required', 'warning');
@@ -674,92 +662,6 @@ const AdminPanel = {
         this.loadProjects();
       }
     } catch(err) { toast('Failed to save project', 'error'); }
-  },
-
-  async showEditProject(id) {
-    const projRes = await fetch('/api/projects');
-    const projs = await projRes.json();
-    const p = projs.find(x => x._id === id);
-    
-    const clientsRes = await fetch('/api/clients');
-    const clients = await clientsRes.json();
-    const empsRes = await fetch('/api/employees');
-    const emps = await empsRes.json();
-
-    const startVal = p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : '';
-    const endVal = p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : '';
-
-    const modalHtml = `
-      <div class="modal-overlay" id="proj-edit-modal">
-        <div class="modal-content">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <h3 style="font-weight:800;">Modify Project: ${p.name}</h3>
-            <button onclick="document.getElementById('proj-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
-          </div>
-          <div style="display:grid; gap:1rem;">
-            <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Name</label>
-              <input type="text" id="up-name" value="${p.name}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-            </div>
-            <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
-              <select id="up-client" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                ${clients.map(c => `<option value="${c._id}" ${p.client?._id===c._id?'selected':''}>${c.company}</option>`).join('')}
-              </select>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
-                  <input type="number" id="up-budget" value="${p.budget || 0}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-               </div>
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
-                  <select id="up-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                    <option value="">-- No Lead --</option>
-                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}" ${p.lead?._id===e._id?'selected':''}>${e.name}</option>`).join('')}
-                  </select>
-               </div>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
-                  <input type="date" id="up-start" value="${startVal}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-               </div>
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date</label>
-                  <input type="date" id="up-end" value="${endVal}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-               </div>
-            </div>
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateProject('${p._id}')">Save Changes</button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    window.initCustomSelects();
-  },
-
-  async updateProject(id) {
-    const body = {
-      name: document.getElementById('up-name').value,
-      client: document.getElementById('up-client').value,
-      budget: Number(document.getElementById('up-budget').value),
-      lead: document.getElementById('up-lead').value,
-      startDate: document.getElementById('up-start').value || null,
-      endDate: document.getElementById('up-end').value || null
-    };
-    try {
-      const res = await fetch(`/api/projects/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if(res.ok) {
-        document.getElementById('proj-edit-modal').remove();
-        toast('Project updated successfully');
-        this.viewProjectDetails(id);
-      }
-    } catch(err) { toast('Failed to update project', 'error'); }
   },
 
   renderProjectCard(p) {
@@ -809,7 +711,6 @@ const AdminPanel = {
           </div>
         </div>
         <div style="display:flex; gap:0.75rem;">
-          <button class="btn btn-secondary" onclick="AdminPanel.showEditProject('${id}')"><i class="ph ph-note-pencil"></i> Modify Project</button>
           <button class="btn btn-danger" onclick="AdminPanel.deleteProject('${id}')"><i class="ph ph-trash"></i> Delete Project</button>
           <button class="btn btn-primary" onclick="AdminPanel.showAddTask('${id}')"><i class="ph ph-plus"></i> Add Task</button>
         </div>
@@ -2677,10 +2578,10 @@ const AdminPanel = {
       yaxis: {
         labels: { 
           style: { colors: '#64748b' },
-          formatter: (val) => '₹' + val.toLocaleString()
+          formatter: (val) => '$' + val.toLocaleString()
         }
       },
-      tooltip: { theme: 'light', y: { formatter: (val) => '₹' + val.toLocaleString() } }
+      tooltip: { theme: 'light', y: { formatter: (val) => '$' + val.toLocaleString() } }
     }).render();
 
     // 2. Task Pie Chart
@@ -2692,16 +2593,16 @@ const AdminPanel = {
       legend: { position: 'bottom' }
     }).render();
 
-    // 3. Employee Utilization (Professional Vertical Style)
+    // 3. Employee Utilization (Professional Linear Style)
     new ApexCharts(document.querySelector("#util-chart"), {
       series: [{ name: 'Hours Worked Today', data: data.employeeHours }],
-      chart: { type: 'bar', height: 400, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       plotOptions: { 
         bar: { 
-          borderRadius: 8, 
-          horizontal: false,
+          borderRadius: 6, 
+          horizontal: true,
           distributed: true,
-          columnWidth: '45%',
+          barHeight: '60%',
           dataLabels: { position: 'top' }
         } 
       },
@@ -2713,25 +2614,20 @@ const AdminPanel = {
       }),
       dataLabels: {
         enabled: true,
-        formatter: (val) => val + "h",
-        offsetY: -20,
-        style: { fontSize: '11px', fontWeight: 700, colors: ['#64748b'] }
+        formatter: (val) => val + " hrs",
+        offsetX: 35,
+        style: { fontSize: '11px', fontWeight: 700, colors: ['#475569'] }
       },
       xaxis: { 
         categories: data.employeeNames,
-        labels: { style: { fontWeight: 600, colors: '#64748b' } }
-      },
-      yaxis: {
-        title: { text: 'Hours Worked', style: { color: '#64748b', fontWeight: 600 } },
-        labels: { style: { colors: '#64748b' } }
+        labels: { style: { fontWeight: 600 } }
       },
       grid: {
         borderColor: '#f1f5f9',
-        strokeDashArray: 4,
-        yaxis: { lines: { show: true } }
+        xaxis: { lines: { show: true } }
       },
       tooltip: {
-        theme: 'light',
+        theme: 'dark',
         y: { formatter: (val) => val + " hours today" }
       },
       legend: { show: false }

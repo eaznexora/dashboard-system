@@ -47,17 +47,15 @@ router.get('/', async (req, res) => {
         const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
 
         projects.forEach(p => {
-            if (!p.budget) return;
+            if (!p.budget || !p.startDate || !p.endDate) return;
             
-            // Fallback to createdAt if startDate is missing
-            const pStart = p.startDate ? new Date(p.startDate) : new Date(p.createdAt);
-            // Fallback to 6 months from start if endDate is missing
-            const pEnd = p.endDate ? new Date(p.endDate) : new Date(pStart.getTime() + 180 * 24 * 60 * 60 * 1000); 
+            const pStart = new Date(p.startDate);
+            const pEnd = new Date(p.endDate);
             
             // If project is active during this month
             if (pStart <= monthEnd && pEnd >= monthStart) {
                 // Calculate duration in months (min 1)
-                const monthDiff = Math.max(1, (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1);
+                const monthDiff = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1;
                 const monthlyWeight = p.budget / monthDiff;
                 revenueHistory[i] += monthlyWeight;
             }
@@ -69,7 +67,7 @@ router.get('/', async (req, res) => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     
-    const activeEmployees = await User.find({ isActive: true });
+    const activeEmployees = await User.find({ role: 'EMPLOYEE', isActive: true });
     const todayLogs = await TimeLog.find({ clockIn: { $gte: todayStart } });
 
     const employeeHours = activeEmployees.map(e => {
