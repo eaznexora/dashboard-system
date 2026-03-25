@@ -302,19 +302,19 @@ const AdminPanel = {
                   <table style="width:100%; border-collapse:collapse; font-size:0.75rem;">
                     <thead style="background:#f8fafc; border-bottom:1px solid #f1f5f9;">
                       <tr>
-                        <th style="padding:0.75rem 0.5rem; text-align:left; width:28%;">Date</th>
-                        <th style="padding:0.75rem 0.5rem; text-align:left; width:22%;">Clock In</th>
-                        <th style="padding:0.75rem 0.5rem; text-align:left; width:28%;">Clock Out</th>
-                        <th style="padding:0.6rem 1.5rem 0.6rem 0.4rem; text-align:right;">Total</th>
+                        <th style="padding:0.75rem; text-align:left;">Date</th>
+                        <th style="padding:0.75rem; text-align:left;">Clock In</th>
+                        <th style="padding:0.75rem; text-align:left;">Clock Out</th>
+                        <th style="padding:0.75rem; text-align:right;">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       ${history.logs.map(log => `
                         <tr style="border-bottom:1px solid #f8fafc;">
-                          <td style="padding:0.75rem 0.5rem; font-weight:600; white-space:nowrap;">${new Date(log.clockIn).toLocaleDateString()}</td>
-                          <td style="padding:0.75rem 0.5rem; color:var(--text-secondary); white-space:nowrap;">${new Date(log.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                          <td style="padding:0.75rem 0.5rem; color:var(--text-secondary); white-space:nowrap;">${log.clockOut ? new Date(log.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}</td>
-                          <td style="padding:0.6rem 1.5rem 0.6rem 0.4rem; text-align:right; font-weight:700; color:var(--accent-color);">${log.totalHours || 0}h</td>
+                          <td style="padding:0.75rem; font-weight:600;">${new Date(log.clockIn).toLocaleDateString()}</td>
+                          <td style="padding:0.75rem; color:var(--text-secondary);">${new Date(log.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                          <td style="padding:0.75rem; color:var(--text-secondary);">${log.clockOut ? new Date(log.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}</td>
+                          <td style="padding:0.75rem; text-align:right; font-weight:700; color:var(--accent-color);">${log.totalHours || 0}h</td>
                         </tr>
                       `).join('')}
                     </tbody>
