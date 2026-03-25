@@ -8,22 +8,50 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link rel="stylesheet" href="css/globals.css?version=1.0.3">
-  <link rel="stylesheet" href="css/sidebar.css?version=1.0.3">
-  <link rel="stylesheet" href="css/admin.css?version=1.0.1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/globals.css?version=1.1.0">
+  <link rel="stylesheet" href="css/sidebar.css?version=1.1.0">
+  <link rel="stylesheet" href="css/admin.css?version=1.1.0">
+  <style>
+    /* Custom Override for Asset Hub specific alignment */
+    .asset-card:hover .asset-menu-btn { opacity: 1; }
+    .asset-menu-btn { opacity: 0; transition: opacity 0.2s; }
+    .breadcrumb-item:not(:last-child):after { content: '/'; margin: 0 0.5rem; opacity: 0.3; }
+    #asset-hub-container { scroll-behavior: smooth; }
+    .btn-new { background: #fff; color: var(--text-primary); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); }
+    .btn-new:hover { background: #f8fafc; transform: translateY(-1px); }
+  </style>
 </head>
 <body class="theme-blue">
   <div id="app" class="app-container"></div>
   
+  <!-- Core Scripts -->
   <script src="js/store.js?version=1.0.2"></script>
   <script src="js/auth.js?version=1.0.3"></script>
-  <script src="js/components.js?version=1.0.4"></script>
-  <script src="js/admin.js?version=1.0.1"></script>
+  <script src="js/components.js?version=1.0.5"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/views/assets.js?version=1.0.0"></script>
   
   <script>
     const user = requireAuth();
+    if (!user) window.location.replace('login.html');
+    
+    // Initialize Dashboard Layout
     initApp('assets', 'Asset Hub');
-    AdminPanel.loadAssets();
+
+    // Override content to be the Google Drive Hub
+    const dashboardContent = document.getElementById('dashboard-content');
+    dashboardContent.style.padding = '0'; // We use internal padding for the Hub
+    dashboardContent.innerHTML = `
+      <div id="asset-hub-container" class="flex flex-col h-[calc(100vh-72px)] bg-white overflow-hidden">
+        <!-- Dashboard Matrix UI Cloned into Assets via JS -->
+      </div>
+    `;
+
+    // Boot Asset Hub Logic
+    if (typeof AssetHub !== 'undefined') {
+        AssetHub.init(user);
+    }
   </script>
 </body>
 </html>

@@ -9,6 +9,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const dotenv = require('dotenv');
+const http = require('http');
+const socketIo = require('socket.io');
 
 // Load environment variables directly from .env.local
 dotenv.config({ path: '.env.local' });
@@ -21,6 +23,18 @@ app.set('trust proxy', 1); // Trust Nginx reverse proxy for HTTPS detection
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ origin: true, credentials: true }));
+
+// Initialize Socket.io
+const server = http.createServer(app);
+const io = socketIo(server, {
+    cors: { origin: "*", methods: ["GET", "POST"] }
+});
+global.io = io;
+
+io.on('connection', (socket) => {
+    console.log('Client connected to Socket.io');
+    socket.on('disconnect', () => console.log('Client disconnected'));
+});
 
 // Auth Guard Middleware — protects all HTML pages behind JWT
 const authGuard = require('./middleware/authGuard');
@@ -40,8 +54,10 @@ app.use((req, res, next) => {
 
 app.use(authGuard);
 
-// Serve static HTML/CSS/JS files (after auth guard so pages are protected)
+// Serve static files (protected by authGuard)
 app.use(express.static(__dirname));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const path = require('path'); // Ensure path is available if not already
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -77,6 +93,7 @@ const reportRoutes = require('./routes/reports');
 const invoiceRoutes = require('./routes/invoices');
 const contractRoutes = require('./routes/contracts');
 const proposalRoutes = require('./routes/proposals');
+const assetRoutes = require('./routes/assets');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/employees', employeeRoutes);
@@ -90,6 +107,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/contracts', contractRoutes);
 app.use('/api/proposals', proposalRoutes);
+app.use('/api/assets', assetRoutes);
 
 // Health Check
 app.get('/api/health', (req, res) => {
@@ -104,7 +122,7 @@ app.get('/api/config', (req, res) => {
 });
 
 // Boot Server
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`\n======================================================`);
     console.log(`🚀 EazDash Node Server Live: http://localhost:${PORT}`);
     console.log(`======================================================\n`);
