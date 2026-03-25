@@ -622,16 +622,17 @@ const AdminPanel = {
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
-                  <input type="number" id="np-budget" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
+                  <input type="date" id="np-start" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                </div>
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
-                  <select id="np-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                    <option value="">-- No Lead --</option>
-                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
-                  </select>
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date (Deadline)</label>
+                  <input type="date" id="np-end" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                </div>
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Description</label>
+              <textarea id="np-desc" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; min-height:80px;"></textarea>
             </div>
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveProject()">Start Project</button>
           </div>
@@ -647,8 +648,11 @@ const AdminPanel = {
       name: document.getElementById('np-name').value,
       client: document.getElementById('np-client').value,
       budget: Number(document.getElementById('np-budget').value),
-      lead: document.getElementById('np-lead').value,
-      status: 'active'
+      lead: document.getElementById('np-lead').value || undefined,
+      status: 'active',
+      startDate: document.getElementById('np-start').value || undefined,
+      endDate: document.getElementById('np-end').value || undefined,
+      description: document.getElementById('np-desc').value
     };
     if(!body.name) return toast('Name is required', 'warning');
     try {
@@ -711,8 +715,8 @@ const AdminPanel = {
           </div>
         </div>
         <div style="display:flex; gap:0.75rem;">
-          <button class="btn btn-danger" onclick="AdminPanel.deleteProject('${id}')"><i class="ph ph-trash"></i> Delete Project</button>
           <button class="btn btn-secondary" onclick="AdminPanel.showEditProject('${id}')"><i class="ph ph-pencil-simple"></i> Modify Project</button>
+          <button class="btn btn-danger" onclick="AdminPanel.deleteProject('${id}')"><i class="ph ph-trash"></i> Delete Project</button>
           <button class="btn btn-primary" onclick="AdminPanel.showAddTask('${id}')"><i class="ph ph-plus"></i> Add Task</button>
         </div>
       </div>
@@ -786,17 +790,17 @@ const AdminPanel = {
           <div style="display:grid; gap:1.25rem;">
             <div class="form-group">
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Name</label>
-              <input type="text" id="ep-name" class="form-control" value="${p.name}">
+              <input type="text" id="ep-name" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" value="${p.name}">
             </div>
             
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
-                  <input type="number" id="ep-budget" class="form-control" value="${p.budget || 0}">
+                  <input type="number" id="ep-budget" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" value="${p.budget || 0}">
                </div>
                <div class="form-group">
                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
-                  <select id="ep-status" class="form-control">
+                  <select id="ep-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                     <option value="active" ${p.status==='active'?'selected':''}>ACTIVE</option>
                     <option value="on-hold" ${p.status==='on-hold'?'selected':''}>ON HOLD</option>
                     <option value="completed" ${p.status==='completed'?'selected':''}>COMPLETED</option>
@@ -805,27 +809,27 @@ const AdminPanel = {
                </div>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
-                  <input type="date" id="ep-start" class="form-control" value="${p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
+                  <input type="date" id="ep-start" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" value="${p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
                </div>
                <div class="form-group">
                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date (Deadline)</label>
-                  <input type="date" id="ep-end" class="form-control" value="${p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
+                  <input type="date" id="ep-end" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" value="${p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
                </div>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
-                  <select id="ep-client" class="form-control">
+                  <select id="ep-client" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                     ${clients.map(c => `<option value="${c._id}" ${p.client?._id===c._id?'selected':''}>${c.company}</option>`).join('')}
                   </select>
                </div>
                <div class="form-group">
                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
-                  <select id="ep-lead" class="form-control">
+                  <select id="ep-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                     <option value="">-- No Lead --</option>
                     ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}" ${p.lead?._id===e._id?'selected':''}>${e.name}</option>`).join('')}
                   </select>
@@ -834,7 +838,7 @@ const AdminPanel = {
 
             <div class="form-group">
               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Description</label>
-              <textarea id="ep-desc" class="form-control" style="min-height:100px;">${p.description || ''}</textarea>
+              <textarea id="ep-desc" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; min-height:80px;">${p.description || ''}</textarea>
             </div>
 
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateProject('${p._id}')">Update Project Details</button>
