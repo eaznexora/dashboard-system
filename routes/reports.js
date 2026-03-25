@@ -33,51 +33,43 @@ router.get('/', async (req, res) => {
     // 4. Avg Productivity (Based on Task Distribution - Completed %)
     const avgProductivity = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-    // 5. Revenue Intelligence (3 Months Past + Current + 4 Months Future)
+    // 5. Revenue Forecast (Forward-looking 7 months)
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
-    const revenueHistory = [];
+    const revenueHistory = new Array(7).fill(0);
     const categories = [];
-    const projectBreakdown = []; // To show which projects contribute to each month
 
-    for (let i = -3; i <= 4; i++) {
+    for (let i = 0; i < 7; i++) {
         const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
         categories.push(months[d.getMonth()]);
         
         const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
         const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
 
-        let monthlyTotal = 0;
-        const monthlyProjects = [];
-
         projects.forEach(p => {
             if (!p.budget) return;
             
-            // Fallback for missing dates
+            // Fallback to createdAt if startDate is missing
             const pStart = p.startDate ? new Date(p.startDate) : new Date(p.createdAt);
-            const pEnd = p.endDate ? new Date(p.endDate) : new Date(pStart.getFullYear(), pStart.getMonth() + 3, pStart.getDate());
+            // Fallback to 6 months from start if endDate is missing
+            const pEnd = p.endDate ? new Date(p.endDate) : new Date(pStart.getTime() + 180 * 24 * 60 * 60 * 1000); 
             
-            // If project was/will be active during this month
+            // If project is active during this month
             if (pStart <= monthEnd && pEnd >= monthStart) {
-                const monthDiff = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1;
-                const monthlyWeight = Math.round(p.budget / (monthDiff || 1));
-                monthlyTotal += monthlyWeight;
-                monthlyProjects.push({ name: p.name, budget: monthlyWeight });
+                // Calculate duration in months (min 1)
+                const monthDiff = Math.max(1, (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1);
+                const monthlyWeight = p.budget / monthDiff;
+                revenueHistory[i] += monthlyWeight;
             }
         });
-        revenueHistory.push(monthlyTotal);
-        projectBreakdown.push(monthlyProjects);
+        revenueHistory[i] = Math.round(revenueHistory[i]);
     }
 
     // 6. Employee Utilization (Today's Working Hours - Only Active Employees)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     
-    // Case-insensitive role check and active filter
-    const activeEmployees = await User.find({ 
-      role: { $regex: /^employee$/i }, 
-      isActive: true 
-    });
+    const activeEmployees = await User.find({ role: 'EMPLOYEE', isActive: true });
     const todayLogs = await TimeLog.find({ clockIn: { $gte: todayStart } });
 
     const employeeHours = activeEmployees.map(e => {
@@ -92,7 +84,6 @@ router.get('/', async (req, res) => {
       activeProjectsCount,
       revenueHistory,
       revenueCategories: categories,
-      projectBreakdown,
       taskStats: [taskStats.todo, taskStats.working, taskStats.review, taskStats.done],
       employeeHours,
       employeeNames: activeEmployees.map(e => e.name)

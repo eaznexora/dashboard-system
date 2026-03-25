@@ -633,6 +633,16 @@ const AdminPanel = {
                   </select>
                </div>
             </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
+                  <input type="date" id="np-start" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date</label>
+                  <input type="date" id="np-end" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+            </div>
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveProject()">Start Project</button>
           </div>
         </div>
@@ -648,6 +658,8 @@ const AdminPanel = {
       client: document.getElementById('np-client').value,
       budget: Number(document.getElementById('np-budget').value),
       lead: document.getElementById('np-lead').value,
+      startDate: document.getElementById('np-start').value || undefined,
+      endDate: document.getElementById('np-end').value || undefined,
       status: 'active'
     };
     if(!body.name) return toast('Name is required', 'warning');
@@ -662,6 +674,92 @@ const AdminPanel = {
         this.loadProjects();
       }
     } catch(err) { toast('Failed to save project', 'error'); }
+  },
+
+  async showEditProject(id) {
+    const projRes = await fetch('/api/projects');
+    const projs = await projRes.json();
+    const p = projs.find(x => x._id === id);
+    
+    const clientsRes = await fetch('/api/clients');
+    const clients = await clientsRes.json();
+    const empsRes = await fetch('/api/employees');
+    const emps = await empsRes.json();
+
+    const startVal = p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : '';
+    const endVal = p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : '';
+
+    const modalHtml = `
+      <div class="modal-overlay" id="proj-edit-modal">
+        <div class="modal-content">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h3 style="font-weight:800;">Modify Project: ${p.name}</h3>
+            <button onclick="document.getElementById('proj-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+          <div style="display:grid; gap:1rem;">
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Name</label>
+              <input type="text" id="up-name" value="${p.name}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            </div>
+            <div class="form-group">
+              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
+              <select id="up-client" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                ${clients.map(c => `<option value="${c._id}" ${p.client?._id===c._id?'selected':''}>${c.company}</option>`).join('')}
+              </select>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
+                  <input type="number" id="up-budget" value="${p.budget || 0}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
+                  <select id="up-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                    <option value="">-- No Lead --</option>
+                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}" ${p.lead?._id===e._id?'selected':''}>${e.name}</option>`).join('')}
+                  </select>
+               </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
+                  <input type="date" id="up-start" value="${startVal}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date</label>
+                  <input type="date" id="up-end" value="${endVal}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateProject('${p._id}')">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.initCustomSelects();
+  },
+
+  async updateProject(id) {
+    const body = {
+      name: document.getElementById('up-name').value,
+      client: document.getElementById('up-client').value,
+      budget: Number(document.getElementById('up-budget').value),
+      lead: document.getElementById('up-lead').value,
+      startDate: document.getElementById('up-start').value || null,
+      endDate: document.getElementById('up-end').value || null
+    };
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(res.ok) {
+        document.getElementById('proj-edit-modal').remove();
+        toast('Project updated successfully');
+        this.viewProjectDetails(id);
+      }
+    } catch(err) { toast('Failed to update project', 'error'); }
   },
 
   renderProjectCard(p) {
@@ -711,6 +809,7 @@ const AdminPanel = {
           </div>
         </div>
         <div style="display:flex; gap:0.75rem;">
+          <button class="btn btn-secondary" onclick="AdminPanel.showEditProject('${id}')"><i class="ph ph-note-pencil"></i> Modify Project</button>
           <button class="btn btn-danger" onclick="AdminPanel.deleteProject('${id}')"><i class="ph ph-trash"></i> Delete Project</button>
           <button class="btn btn-primary" onclick="AdminPanel.showAddTask('${id}')"><i class="ph ph-plus"></i> Add Task</button>
         </div>
@@ -2555,117 +2654,75 @@ const AdminPanel = {
   initCharts(data) {
     if (!window.ApexCharts) return console.error('ApexCharts not loaded');
     
-    // 1. Revenue Intelligence Chart (History + Forecast)
-    // Slice(3) includes Current Month index 3 (Mar) + Future 4, 5, 6, 7
-    const totalProjected = data.revenueHistory.slice(3).reduce((a, b) => a + b, 0);
-    
+    // 1. Revenue Area Chart (Forecast)
     new ApexCharts(document.querySelector("#revenue-chart"), {
-      series: [{ name: 'Total Revenue', data: data.revenueHistory }],
-      chart: { height: 380, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      series: [{ name: 'Projected Revenue', data: data.revenueHistory }],
+      chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       colors: ['#6366f1'],
       dataLabels: { enabled: false },
-      stroke: { curve: 'smooth', width: 4 },
+      stroke: { curve: 'smooth', width: 3 },
       fill: {
         type: 'gradient',
         gradient: {
           shadeIntensity: 1,
-          opacityFrom: 0.5,
-          opacityTo: 0.1,
-          stops: [0, 90, 100]
+          opacityFrom: 0.45,
+          opacityTo: 0.05,
+          stops: [20, 100]
         }
-      },
-      annotations: {
-        xaxis: [{
-          x: data.revenueCategories[3],
-          borderColor: '#94a3b8',
-          label: {
-            style: { color: '#fff', background: '#94a3b8' },
-            text: 'Current'
-          }
-        }]
-      },
-      title: {
-        text: `₹${totalProjected.toLocaleString()} Total Revenue Lifecycle (Next 4 mo)`,
-        align: 'left',
-        style: { fontSize: '14px', fontWeight: 700, color: 'var(--accent-color)' }
       },
       xaxis: { 
         categories: data.revenueCategories,
-        labels: { style: { colors: '#64748b', fontWeight: 600 } }
+        labels: { style: { colors: '#64748b' } }
       },
       yaxis: {
         labels: { 
           style: { colors: '#64748b' },
-          formatter: (val) => '₹' + Math.round(val).toLocaleString()
+          formatter: (val) => '₹' + val.toLocaleString()
         }
       },
-      tooltip: {
-        custom: function({ series, seriesIndex, dataPointIndex, w }) {
-          const total = series[seriesIndex][dataPointIndex];
-          const projects = data.projectBreakdown[dataPointIndex];
-          let html = `<div class="chart-tooltip" style="padding:1rem; background:#fff; border-radius:8px; box-shadow:var(--shadow-lg);">
-            <div style="font-weight:800; color:var(--text-secondary); margin-bottom:0.5rem; text-transform:uppercase; font-size:0.7rem;">${data.revenueCategories[dataPointIndex]} Revenue Breakdown</div>
-            <div style="margin-bottom:0.5rem; font-size:1.1rem; font-weight:800; color:var(--accent-color);">₹${total.toLocaleString()}</div>
-            <div style="display:grid; gap:0.4rem;">`;
-          
-          if (projects && projects.length > 0) {
-            projects.forEach(p => {
-               html += `<div style="display:flex; justify-content:space-between; gap:1.5rem; font-size:0.8rem;">
-                  <span style="color:var(--text-primary); font-weight:600;">${p.name}</span>
-                  <span style="color:var(--text-secondary);">₹${p.budget.toLocaleString()}</span>
-               </div>`;
-            });
-          } else {
-            html += `<div style="color:var(--text-secondary); font-size:0.8rem;">No project data found</div>`;
-          }
-          
-          html += `</div></div>`;
-          return html;
-        }
-      }
+      tooltip: { theme: 'light', y: { formatter: (val) => '₹' + val.toLocaleString() } }
     }).render();
 
-    // 2. Task Distribution Chart 
+    // 2. Task Pie Chart
     new ApexCharts(document.querySelector("#task-chart"), {
-      series: data.taskStats || [0, 0, 0, 0],
-      chart: { type: 'donut', height: 350, fontFamily: 'Inter, sans-serif' },
-      labels: ['To Do', 'Working', 'Review', 'Done'],
+      series: data.taskStats || [25, 35, 15, 25],
+      chart: { type: 'donut', height: 350 },
+      labels: ['Pending', 'Working', 'Review', 'Done'],
       colors: ['#f59e0b', '#2563eb', '#8b5cf6', '#10b981'],
       legend: { position: 'bottom' }
     }).render();
 
-    // 3. Employee Utilization (Vertical Professional Style)
+    // 3. Employee Utilization (Professional Vertical Style)
     new ApexCharts(document.querySelector("#util-chart"), {
-      series: [{ name: 'Hours Today', data: data.employeeHours }],
+      series: [{ name: 'Hours Worked Today', data: data.employeeHours }],
       chart: { type: 'bar', height: 350, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       plotOptions: { 
         bar: { 
-          borderRadius: 8,
-          columnWidth: '50%',
+          borderRadius: 8, 
+          horizontal: false,
           distributed: true,
-          dataLabels: { position: 'top' },
-          colors: { backgroundBarColors: ['#f8fafc'], backgroundBarOpacity: 1, backgroundBarRadius: 8 }
+          columnWidth: '45%',
+          dataLabels: { position: 'top' }
         } 
       },
-      colors: ['#6366f1', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4'],
+      colors: data.employeeHours.map(h => {
+        if (h >= 7) return '#10b981'; // Green (Highly Productive)
+        if (h >= 4) return '#3b82f6'; // Blue (Standard)
+        if (h >= 2) return '#f59e0b'; // Amber (Low)
+        return '#ef4444'; // Red (Critical)
+      }),
       dataLabels: {
         enabled: true,
-        formatter: (val) => (val || 0) + "h",
+        formatter: (val) => val + "h",
         offsetY: -20,
-        style: { fontSize: '12px', fontWeight: 800, colors: ['#475569'] }
+        style: { fontSize: '11px', fontWeight: 700, colors: ['#64748b'] }
       },
       xaxis: { 
         categories: data.employeeNames,
-        labels: { 
-          style: { fontWeight: 600, colors: '#64748b' },
-          rotate: -45,
-          maxHeight: 60
-        }
+        labels: { style: { fontWeight: 600, colors: '#64748b' } }
       },
       yaxis: {
-        min: 0,
-        max: Math.max(8, ...(data.employeeHours || [0])) + 2,
-        title: { text: 'Hours Worked Today', style: { color: '#64748b', fontWeight: 600 } },
+        title: { text: 'Hours Worked', style: { color: '#64748b', fontWeight: 600 } },
         labels: { style: { colors: '#64748b' } }
       },
       grid: {
@@ -2675,7 +2732,7 @@ const AdminPanel = {
       },
       tooltip: {
         theme: 'light',
-        y: { formatter: (val) => (val || 0) + " hours today" }
+        y: { formatter: (val) => val + " hours today" }
       },
       legend: { show: false }
     }).render();
