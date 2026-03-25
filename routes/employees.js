@@ -6,7 +6,7 @@ const TimeLog = require('../models/TimeLog');
 // GET all employees (admin only)
 router.get('/', async (req, res) => {
   try {
-    const employees = await User.find({ role: 'EMPLOYEE' }).select('-password').sort({ name: 1 });
+    const employees = await User.find({ isActive: true }).select('-password').sort({ name: 1 });
     
     // Check who is currently clocked in
     const activeTimeLogs = await TimeLog.find({ clockOut: null });

@@ -2695,7 +2695,7 @@ const AdminPanel = {
     // 3. Employee Utilization (Professional Vertical Style)
     new ApexCharts(document.querySelector("#util-chart"), {
       series: [{ name: 'Hours Worked Today', data: data.employeeHours }],
-      chart: { type: 'bar', height: 350, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      chart: { type: 'bar', height: 400, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       plotOptions: { 
         bar: { 
           borderRadius: 8, 

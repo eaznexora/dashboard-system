@@ -69,7 +69,7 @@ router.get('/', async (req, res) => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     
-    const activeEmployees = await User.find({ role: 'EMPLOYEE', isActive: true });
+    const activeEmployees = await User.find({ isActive: true });
     const todayLogs = await TimeLog.find({ clockIn: { $gte: todayStart } });
 
     const employeeHours = activeEmployees.map(e => {
