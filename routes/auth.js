@@ -154,45 +154,7 @@ router.get('/me', (req, res) => {
   }
 });
 
-// 6. UPDATE PROFILE (Protected)
-router.put('/profile', async (req, res) => {
-  const token = req.cookies?.eaz_token;
-  if (!token) return res.status(401).json({ message: 'Not authenticated' });
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const userId = decoded.id;
-
-    if (userId === 'admin') {
-      return res.status(403).json({ message: 'Admin profile cannot be modified via this endpoint.' });
-    }
-
-    const { name, phone, bio, location, socialLinks, image, skills } = req.body;
-    
-    const updatedUser = await User.findByIdAndUpdate(userId, {
-      name, phone, bio, location, socialLinks, image, skills
-    }, { new: true });
-
-    if (!updatedUser) return res.status(404).json({ message: 'User not found' });
-
-    // Refresh JWT with new name if changed
-    const newToken = jwt.sign({ 
-      id: updatedUser._id, 
-      role: updatedUser.role, 
-      name: updatedUser.name, 
-      email: updatedUser.email 
-    }, JWT_SECRET, { expiresIn: '7d' });
-    
-    setAuthCookie(res, newToken);
-
-    res.json({ message: 'Profile updated successfully', user: updatedUser });
-  } catch (err) {
-    console.error("[PROFILE_UPDATE_ERROR]:", err);
-    res.status(500).json({ message: 'Failed to update profile' });
-  }
-});
-
-// 7. LOGOUT
+// 6. LOGOUT
 router.post('/logout', (req, res) => {
   res.clearCookie('eaz_token', { path: '/' });
   res.status(200).json({ message: 'Logged out successfully' });

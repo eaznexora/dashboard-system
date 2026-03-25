@@ -10,13 +10,6 @@ const UserSchema = new mongoose.Schema({
   department: { type: String, default: 'General' },
   designation: { type: String, default: 'Employee' },
   phone: { type: String, default: '' },
-  bio: { type: String, default: '' },
-  location: { type: String, default: '' },
-  socialLinks: {
-    linkedin: { type: String, default: '' },
-    github: { type: String, default: '' },
-    twitter: { type: String, default: '' }
-  },
   skills: [{ type: String }],
   hourlyRate: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true }

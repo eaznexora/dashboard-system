@@ -32,7 +32,6 @@ const NAV_ITEMS = [
   { id: 'reports', name: 'Reports', href: 'reports.html', icon: '<i class="ph ph-chart-pie"></i>' },
   { id: 'dashboard-matrix', name: 'Dashboard Matrix', href: 'matrix.html', icon: '<i class="ph ph-grid-four"></i>', adminOnly: true },
   { id: 'assets', name: 'Asset Hub', href: 'assets.html', icon: '<i class="ph ph-folders"></i>' },
-  { id: 'profile', name: 'Settings & Profile', href: 'profile.html', icon: '<i class="ph ph-user-circle-gears"></i>' },
 ];
 
 function renderSidebar(activeId) {
@@ -79,7 +78,6 @@ function renderHeader(title) {
   const userName = user ? user.name : 'Guest';
   const userRole = user ? user.role : 'Viewer';
   const isAdmin = userRole === 'ADMIN';
-  const userPic = user && user.image ? user.image : null;
 
   return `
     <header class="top-header">
@@ -89,14 +87,12 @@ function renderHeader(title) {
         </button>
         <h1 class="page-title">${title}</h1>
       </div>
-      <div class="header-right" style="display:flex; align-items:center; gap:0.75rem; cursor:pointer;" onclick="window.location.href='profile.html'">
+      <div class="header-right" style="display:flex; align-items:center; gap:0.75rem;">
         <span id="user-status-badge" style="font-size:0.8rem; color: ${isAdmin ? '#fff' : 'var(--text-secondary)'}; background: ${isAdmin ? 'var(--success-color)' : 'var(--bg-color)'}; padding: 0.25rem 0.75rem; border-radius: 2rem; font-weight:600; white-space: nowrap; display: flex; align-items: center; gap: 0.25rem;">
           <i class="ph ${isAdmin ? 'ph-shield-check' : 'ph-user'}"></i> ${userRole}
         </span>
         <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">${userName}</div>
-        <div class="avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
-          ${userPic ? `<img src="${userPic}" style="width:100%; height:100%; object-fit:cover;">` : '<i class="ph ph-user"></i>'}
-        </div>
+        <div class="avatar"><i class="ph ph-user"></i></div>
       </div>
     </header>
   `;
