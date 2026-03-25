@@ -75,27 +75,36 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Add New Team Member</h3>
             <button onclick="document.getElementById('emp-add-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; gap:1rem;">
+          <div style="display:grid; gap:1.25rem;">
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Full Name</label>
-              <input type="text" id="ne-name" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Full Name</label>
+              <input type="text" id="ne-name" class="form-control" placeholder="e.g. John Doe">
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Email</label>
-              <input type="email" id="ne-email" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Email Address</label>
+              <input type="email" id="ne-email" class="form-control" placeholder="e.g. john@agency.com">
             </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Designation</label>
-                  <input type="text" id="ne-designation" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                  <label>Designation</label>
+                  <input type="text" id="ne-designation" class="form-control" placeholder="e.g. Senior Developer">
                </div>
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Department</label>
-                  <input type="text" id="ne-department" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                  <label>Department</label>
+                  <select id="ne-department" class="form-control">
+                    <option value="MARKETING">Marketing</option>
+                    <option value="SALES">Sales</option>
+                    <option value="OPERATIONS">Operations</option>
+                    <option value="EXECUTIVE">Executive</option>
+                    <option value="UI/UX">UI/UX</option>
+                    <option value="SUPPORT">Support</option>
+                    <option value="FINANCIAL">Financial</option>
+                  </select>
                </div>
             </div>
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveEmployee()">Create Member</button>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveEmployee()">Add Team Member</button>
           </div>
+
         </div>
       </div>
     `;
@@ -209,19 +218,19 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Edit Team Member</h3>
             <button onclick="document.getElementById('emp-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; gap:1rem;">
+          <div style="display:grid; gap:1.25rem;">
             <input type="hidden" id="ee-id" value="${emp._id}">
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Full Name</label>
-              <input type="text" id="ee-name" value="${emp.name}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Full Name</label>
+              <input type="text" id="ee-name" value="${emp.name}" class="form-control">
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Designation</label>
-              <input type="text" id="ee-designation" value="${emp.designation || ''}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Designation</label>
+              <input type="text" id="ee-designation" value="${emp.designation || ''}" class="form-control">
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Department</label>
-              <input type="text" id="ee-department" value="${emp.department || ''}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Department</label>
+              <input type="text" id="ee-department" value="${emp.department || ''}" class="form-control">
             </div>
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateEmployee()">Save Changes</button>
           </div>
@@ -302,10 +311,10 @@ const AdminPanel = {
                   <table style="width:100%; border-collapse:collapse; font-size:0.75rem;">
                     <thead style="background:#f8fafc; border-bottom:1px solid #f1f5f9;">
                       <tr>
-                        <th style="padding:0.75rem; text-align:left; width:25%;">Date</th>
-                        <th style="padding:0.75rem; text-align:left; width:25%;">Clock In</th>
-                        <th style="padding:0.75rem; text-align:left; width:25%;">Clock Out</th>
-                        <th style="padding:0.75rem; text-align:left; width:25%;">Total</th>
+                        <th style="padding:0.75rem; text-align:left;">Date</th>
+                        <th style="padding:0.75rem; text-align:left;">Clock In</th>
+                        <th style="padding:0.75rem; text-align:left;">Clock Out</th>
+                        <th style="padding:0.75rem; text-align:right;">Total</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -314,7 +323,7 @@ const AdminPanel = {
                           <td style="padding:0.75rem; font-weight:600;">${new Date(log.clockIn).toLocaleDateString()}</td>
                           <td style="padding:0.75rem; color:var(--text-secondary);">${new Date(log.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
                           <td style="padding:0.75rem; color:var(--text-secondary);">${log.clockOut ? new Date(log.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}</td>
-                          <td style="padding:0.75rem; font-weight:700; color:var(--accent-color);">${log.totalHours || 0}h</td>
+                          <td style="padding:0.75rem; font-weight:700; color:var(--accent-color); text-align:right;">${log.totalHours || 0}h</td>
                         </tr>
                       `).join('')}
                     </tbody>
@@ -489,46 +498,38 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Create New Task</h3>
             <button onclick="document.getElementById('task-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; gap:1rem;">
+          <div style="display:grid; gap:1.25rem;">
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Task Title</label>
-              <input type="text" id="t-title" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Task Title</label>
+              <input type="text" id="t-title" class="form-control" placeholder="What needs to be done?">
             </div>
-            <div class="form-group">
-              <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Description</label>
-              <textarea id="t-desc" class="form-control" rows="3" style="width:100%; border-radius:8px; padding:0.75rem; border:1px solid var(--border-color);"></textarea>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project</label>
-                  <select id="t-project" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                    <option value="">-- No Project --</option>
-                    ${projects.map(p => `<option value="${p._id}" ${projectId === p._id ? 'selected' : ''}>${p.name}</option>`).join('')}
-                  </select>
-               </div>
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Assigned To</label>
-                  <select id="t-assign" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                    <option value="">-- Unassigned --</option>
+                  <label>Assignee</label>
+                  <select id="t-assignee" class="form-control">
                     ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
                   </select>
                </div>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Priority</label>
-                  <select id="t-priority" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
+                  <label>Priority</label>
+                  <select id="t-priority" class="form-control">
+                    <option value="low">LOW</option>
+                    <option value="medium">MEDIUM</option>
+                    <option value="high">HIGH</option>
                   </select>
                </div>
-               <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Deadline</label>
-                  <input type="date" id="t-deadline" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-               </div>
             </div>
+
+            <div class="form-group">
+              <label>Status</label>
+              <select id="t-status" class="form-control">
+                <option value="pending">PENDING</option>
+                <option value="in-progress">IN PROGRESS</option>
+                <option value="completed">COMPLETED</option>
+              </select>
+            </div>
+
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask()">Create Task</button>
           </div>
         </div>
@@ -609,20 +610,20 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Launch New Project</h3>
             <button onclick="document.getElementById('proj-add-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; gap:1rem;">
+          <div style="display:grid; gap:1.25rem;">
             <div class="form-group">
-               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Name</label>
-               <input type="text" id="np-name" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               <label>Project Name</label>
+               <input type="text" id="np-name" class="form-control" placeholder="e.g. Q4 Growth Strategy">
              </div>
              
              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                 <div class="form-group">
-                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
-                   <input type="number" id="np-budget" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                   <label>Budget (₹)</label>
+                   <input type="number" id="np-budget" class="form-control" placeholder="Project Budget">
                 </div>
                 <div class="form-group">
-                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
-                   <select id="np-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                   <label>Status</label>
+                   <select id="np-status" class="form-control">
                      <option value="active" selected>ACTIVE</option>
                      <option value="on-hold">ON HOLD</option>
                      <option value="completed">COMPLETED</option>
@@ -633,25 +634,25 @@ const AdminPanel = {
  
              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                 <div class="form-group">
-                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
-                   <input type="date" id="np-start" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                   <label>Start Date</label>
+                   <input type="date" id="np-start" class="form-control">
                 </div>
                 <div class="form-group">
-                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date (Deadline)</label>
-                   <input type="date" id="np-end" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                   <label>End Date (Deadline)</label>
+                   <input type="date" id="np-end" class="form-control">
                 </div>
              </div>
  
              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                 <div class="form-group">
-                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
-                   <select id="np-client" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                   <label>Link to Client</label>
+                   <select id="np-client" class="form-control">
                      ${clients.map(c => `<option value="${c._id}">${c.company}</option>`).join('')}
                    </select>
                 </div>
                 <div class="form-group">
-                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
-                   <select id="np-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                   <label>Lead Manager</label>
+                   <select id="np-lead" class="form-control">
                      <option value="">-- No Lead --</option>
                      ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
                    </select>
@@ -659,8 +660,8 @@ const AdminPanel = {
              </div>
  
              <div class="form-group">
-               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Description</label>
-               <textarea id="np-desc" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; min-height:80px;"></textarea>
+               <label>Project Objective / Description</label>
+               <textarea id="np-desc" class="form-control" style="min-height:100px;" placeholder="Detailed project scope..."></textarea>
              </div>
  
              <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveProject()">Start Project</button>
@@ -818,18 +819,18 @@ const AdminPanel = {
           </div>
           <div style="display:grid; gap:1.25rem;">
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Name</label>
-              <input type="text" id="ep-name" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" value="${p.name}">
+              <label>Project Name</label>
+              <input type="text" id="ep-name" class="form-control" value="${p.name}">
             </div>
             
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
-                  <input type="number" id="ep-budget" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" value="${p.budget || 0}">
+                  <label>Budget (₹)</label>
+                  <input type="number" id="ep-budget" class="form-control" value="${p.budget || 0}">
                </div>
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
-                  <select id="ep-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                  <label>Status</label>
+                  <select id="ep-status" class="form-control">
                     <option value="active" ${p.status==='active'?'selected':''}>ACTIVE</option>
                     <option value="on-hold" ${p.status==='on-hold'?'selected':''}>ON HOLD</option>
                     <option value="completed" ${p.status==='completed'?'selected':''}>COMPLETED</option>
@@ -840,25 +841,25 @@ const AdminPanel = {
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
-                  <input type="date" id="ep-start" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" value="${p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
+                  <label>Start Date</label>
+                  <input type="date" id="ep-start" class="form-control" value="${p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
                </div>
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">End Date (Deadline)</label>
-                  <input type="date" id="ep-end" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;" value="${p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
+                  <label>End Date (Deadline)</label>
+                  <input type="date" id="ep-end" class="form-control" value="${p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
                </div>
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
-                  <select id="ep-client" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                  <label>Client</label>
+                  <select id="ep-client" class="form-control">
                     ${clients.map(c => `<option value="${c._id}" ${p.client?._id===c._id?'selected':''}>${c.company}</option>`).join('')}
                   </select>
                </div>
                <div class="form-group">
-                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
-                  <select id="ep-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                  <label>Lead Manager</label>
+                  <select id="ep-lead" class="form-control">
                     <option value="">-- No Lead --</option>
                     ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}" ${p.lead?._id===e._id?'selected':''}>${e.name}</option>`).join('')}
                   </select>
@@ -866,8 +867,8 @@ const AdminPanel = {
             </div>
 
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Project Description</label>
-              <textarea id="ep-desc" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px; min-height:80px;">${p.description || ''}</textarea>
+              <label>Project Objective / Description</label>
+              <textarea id="ep-desc" class="form-control" style="min-height:100px;">${p.description || ''}</textarea>
             </div>
 
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateProject('${p._id}')">Update Project Details</button>
@@ -1070,19 +1071,19 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Edit Client</h3>
             <button onclick="document.getElementById('client-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; gap:1rem;">
+          <div style="display:grid; gap:1.25rem;">
             <input type="hidden" id="ec-id" value="${c._id}">
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Company Name</label>
-              <input type="text" id="ec-company" value="${c.company}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Company Name</label>
+              <input type="text" id="ec-company" value="${c.company}" class="form-control">
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Contact Name</label>
-              <input type="text" id="ec-name" value="${c.contactName}" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Contact Name</label>
+              <input type="text" id="ec-name" value="${c.contactName}" class="form-control">
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
-              <select id="ec-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Status</label>
+              <select id="ec-status" class="form-control">
                 <option value="lead" ${c.status==='lead'?'selected':''}>Lead</option>
                 <option value="not started" ${c.status==='not started'?'selected':''}>Not Started</option>
                 <option value="in progress" ${c.status==='in progress'?'selected':''}>In Progress</option>
@@ -1129,24 +1130,29 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Add New Client</h3>
             <button onclick="document.getElementById('client-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; gap:1rem;">
+          <div style="display:grid; gap:1.25rem;">
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Company Name</label>
-              <input type="text" id="c-company" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Company Name</label>
+              <input type="text" id="c-company" class="form-control" placeholder="e.g. Acme Corp">
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Contact Name</label>
-              <input type="text" id="c-name" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Contact Name</label>
+              <input type="text" id="c-name" class="form-control" placeholder="e.g. John Smith">
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Email</label>
-              <input type="email" id="c-email" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Email Address</label>
+              <input type="email" id="c-email" class="form-control" placeholder="client@example.com">
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Status</label>
-              <select id="c-status" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Initial Status</label>
+              <select id="c-status" class="form-control">
                 <option value="lead">Lead</option>
                 <option value="not started">Not Started</option>
+                <option value="active">Active</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveClient()">Add Client</button>
+          </div>
                 <option value="in progress">In Progress</option>
                 <option value="active">Active</option>
                 <option value="completed">Completed</option>
@@ -1798,16 +1804,16 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Generate Invoice</h3>
             <button onclick="document.getElementById('inv-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.5rem;">
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Client</label>
-              <select id="i-client" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Client</label>
+              <select id="i-client" class="form-control">
                 ${clients.map(c => `<option value="${c._id}">${c.company}</option>`).join('')}
               </select>
             </div>
             <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Link to Project</label>
-              <select id="i-project" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+              <label>Link to Project</label>
+              <select id="i-project" class="form-control">
                 <option value="">-- No Project --</option>
                 ${projs.map(p => `<option value="${p._id}">${p.name}</option>`).join('')}
               </select>
@@ -1816,32 +1822,32 @@ const AdminPanel = {
           
           <div style="margin-bottom:1.5rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Invoice Items (Service Description, Rate, Qty)</label>
-               <button class="btn-text" style="font-size:0.7rem; color:var(--accent-color);" onclick="AdminPanel.addInvoiceItem()"><i class="ph ph-plus"></i> Add Item</button>
+               <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase;">Invoice Line Items</label>
+               <button class="btn btn-secondary" style="font-size:0.7rem; padding:0.4rem 0.8rem;" onclick="AdminPanel.addInvoiceItem()"><i class="ph ph-plus"></i> Add Item</button>
             </div>
             <div id="i-items-container" style="display:grid; gap:0.75rem;">
-               <div class="invoice-item-row" style="display:grid; grid-template-columns: 1fr 100px 80px 40px; gap:0.5rem; align-items:center;">
-                  <input type="text" class="form-control item-desc" placeholder="Service description" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;">
-                  <input type="number" class="form-control item-rate" placeholder="Rate" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;" oninput="AdminPanel.updateInvoiceTotal()">
-                  <input type="number" class="form-control item-qty" placeholder="Qty" value="1" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;" oninput="AdminPanel.updateInvoiceTotal()">
-                  <button class="btn-text" style="color:var(--danger-color)" onclick="this.parentElement.remove(); AdminPanel.updateInvoiceTotal()"><i class="ph ph-trash"></i></button>
+               <div class="invoice-item-row" style="display:grid; grid-template-columns: 1fr 120px 100px 40px; gap:0.75rem; align-items:center;">
+                  <input type="text" class="form-control item-desc" placeholder="Service description">
+                  <input type="number" class="form-control item-rate" placeholder="Rate (₹)" oninput="AdminPanel.updateInvoiceTotal()">
+                  <input type="number" class="form-control item-qty" placeholder="Qty" value="1" oninput="AdminPanel.updateInvoiceTotal()">
+                  <button class="btn-action btn-delete" style="border:none;" onclick="this.parentElement.remove(); AdminPanel.updateInvoiceTotal()"><i class="ph ph-trash"></i></button>
                </div>
             </div>
           </div>
-
-          <div class="form-group" style="margin-bottom:1.5rem;">
-             <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Terms & Conditions (Contracts, etc.)</label>
-             <textarea id="i-terms" class="form-control" rows="3" placeholder="Payment is due within 15 days..." style="width:100%; border-radius:8px; padding:0.75rem; border:1px solid var(--border-color);"></textarea>
+ 
+          <div class="form-group">
+             <label>Terms & Conditions</label>
+             <textarea id="i-terms" class="form-control" placeholder="Payment is due within 15 business days."></textarea>
           </div>
-
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:2rem; align-items:end;">
-            <div class="form-group">
-              <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Due Date</label>
-              <input type="date" id="i-due" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+ 
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:2rem; align-items:center;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label>Due Date</label>
+              <input type="date" id="i-due" class="form-control">
             </div>
             <div style="text-align:right;">
-               <div style="font-size:0.75rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase;">Grand Total</div>
-               <div id="i-total-display" style="font-size:1.75rem; font-weight:800; color:var(--accent-color);">₹0</div>
+               <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:800; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">Grand Total</div>
+               <div id="i-total-display" style="font-size:2rem; font-weight:800; color:var(--accent-color);">₹0</div>
             </div>
           </div>
 
@@ -1857,11 +1863,11 @@ const AdminPanel = {
   addInvoiceItem() {
     const container = document.getElementById('i-items-container');
     const itemHtml = `
-      <div class="invoice-item-row" style="display:grid; grid-template-columns: 1fr 100px 80px 40px; gap:0.5rem; align-items:center;">
-        <input type="text" class="form-control item-desc" placeholder="Service description" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;">
-        <input type="number" class="form-control item-rate" placeholder="Rate" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;" oninput="AdminPanel.updateInvoiceTotal()">
-        <input type="number" class="form-control item-qty" placeholder="Qty" value="1" style="padding:0.6rem; border-radius:6px; font-size:0.85rem;" oninput="AdminPanel.updateInvoiceTotal()">
-        <button class="btn-text" style="color:var(--danger-color)" onclick="this.parentElement.remove(); AdminPanel.updateInvoiceTotal()"><i class="ph ph-trash"></i></button>
+      <div class="invoice-item-row" style="display:grid; grid-template-columns: 1fr 120px 100px 40px; gap:0.75rem; align-items:center;">
+        <input type="text" class="form-control item-desc" placeholder="Service description">
+        <input type="number" class="form-control item-rate" placeholder="Rate (₹)" oninput="AdminPanel.updateInvoiceTotal()">
+        <input type="number" class="form-control item-qty" placeholder="Qty" value="1" oninput="AdminPanel.updateInvoiceTotal()">
+        <button class="btn-action btn-delete" style="border:none;" onclick="this.parentElement.remove(); AdminPanel.updateInvoiceTotal()"><i class="ph ph-trash"></i></button>
       </div>
     `;
     container.insertAdjacentHTML('beforeend', itemHtml);
@@ -2528,13 +2534,13 @@ const AdminPanel = {
       const isArray = Array.isArray(val);
       
       return `
-        <div class="form-group" style="margin-bottom:1.25rem;">
-          <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem;">${key.replace(/([A-Z])/g, ' $1')}</label>
+        <div class="form-group">
+          <label>${key.replace(/([A-Z])/g, ' $1')}</label>
           ${isArray ? `
-            <input type="text" class="form-control matrix-input" data-key="${key}" data-type="array" value="${val.join(', ')}" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
-            <small style="font-size:0.65rem; color:var(--text-secondary);">Comma-separated numbers for the chart</small>
+            <input type="text" class="form-control matrix-input" data-key="${key}" data-type="array" value="${val.join(', ')}">
+            <small style="font-size:0.65rem; color:var(--text-secondary); margin-top:0.25rem; display:block;">Comma-separated numbers for the chart</small>
           ` : `
-            <input type="text" class="form-control matrix-input" data-key="${key}" data-type="string" value="${val}" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+            <input type="text" class="form-control matrix-input" data-key="${key}" data-type="string" value="${val}">
           `}
         </div>
       `;
@@ -2824,7 +2830,6 @@ const AdminPanel = {
           </tbody>
         </table>
       `;
-      container.innerHTML = html;
     } catch(err) { console.error('Error loading issues'); }
   },
 
@@ -2916,12 +2921,12 @@ const AdminPanel = {
           <h4 style="font-weight:700; margin-bottom:1.5rem; font-size:0.875rem;">New Issue / Report</h4>
           <div style="display:grid; gap:1.25rem;">
             <div class="form-group">
-              <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.4rem;">Topic/Title</label>
-              <input type="text" id="rep-title" placeholder="Brief summary of the issue" class="form-control" style="width:100%; border-radius:8px; padding:0.75rem;">
+              <label>Topic/Title</label>
+              <input type="text" id="rep-title" placeholder="Brief summary of the issue" class="form-control">
             </div>
             <div class="form-group">
-              <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.4rem;">Description</label>
-              <textarea id="rep-desc" placeholder="Explain the problem or suggestion in detail..." class="form-control" style="width:100%; border-radius:8px; padding:0.75rem; min-height:120px; resize:vertical;"></textarea>
+              <label>Description</label>
+              <textarea id="rep-desc" placeholder="Explain the problem or suggestion in detail..." class="form-control"></textarea>
             </div>
             <button class="btn btn-primary" onclick="AdminPanel.submitIssueFromReports()" style="justify-content:center; padding:1rem;">Send to Admin</button>
           </div>
@@ -2990,5 +2995,31 @@ const AdminPanel = {
         </div>
       `).join('');
     } catch(err) { console.error('History failed'); }
+  },
+
+  async resolveIssue(id) {
+    try {
+      const res = await fetch(`/api/issues/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' })
+      });
+      if(res.ok) {
+        toast('Issue marked as resolved', 'success');
+        this.loadAdminIssues();
+      }
+    } catch(err) { toast('Failed to resolve issue', 'error'); }
+  },
+
+  async deleteIssue(id) {
+    window.confirmModal('Delete Issue', 'Are you sure you want to remove this report from the system?', async () => {
+      try {
+        const res = await fetch(`/api/issues/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Issue deleted');
+          this.loadAdminIssues();
+        }
+      } catch(err) { toast('Deletion failed', 'error'); }
+    });
   }
 };

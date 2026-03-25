@@ -72,7 +72,15 @@ router.get('/', async (req, res) => {
 
     const employeeHours = activeEmployees.map(e => {
         const empLogs = todayLogs.filter(l => l.userId.toString() === e._id.toString());
-        const hoursToday = empLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
+        const hoursToday = empLogs.reduce((sum, l) => {
+            if (l.clockOut) {
+                return sum + (l.totalHours || 0);
+            } else {
+                // Currently clocked in - calculate live hours
+                const liveHours = (new Date() - new Date(l.clockIn)) / (1000 * 60 * 60);
+                return sum + liveHours;
+            }
+        }, 0);
         return parseFloat(hoursToday.toFixed(1));
     });
 
