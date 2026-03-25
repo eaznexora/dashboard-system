@@ -6,7 +6,7 @@
 const AdminPanel = {
   // --- EMPLOYEE MODULE ---
   async loadEmployees() {
-    const container = document.getElementById('view-container');
+    const container = document.getElementById('dashboard-content');
     container.innerHTML = `<div class="loading">Loading team data...</div>`;
     
     try {
