@@ -298,23 +298,23 @@ const AdminPanel = {
             <div style="border-top:1px solid var(--border-color); padding-top:1.5rem;">
               <h4 style="font-weight:700; margin-bottom:1rem; font-size:0.875rem;">Agency Performance Log</h4>
               ${history.logs.length === 0 ? '<p style="font-size:0.875rem; color:var(--text-secondary);">No logs found.</p>' : `
-                <div style="max-height:200px; overflow-y:auto; border:1px solid #f1f5f9; border-radius:8px;">
-                  <table style="width:100%; border-collapse:collapse; font-size:0.75rem;">
-                    <thead style="background:#f8fafc; border-bottom:1px solid #f1f5f9;">
+                <div style="max-height:220px; overflow-y:auto; border:1px solid #f1f5f9; border-radius:8px; margin-right:-2px;">
+                  <table style="width:100%; border-collapse:collapse; font-size:0.75rem; table-layout: fixed;">
+                    <thead style="background:#f8fafc; border-bottom:1px solid #f1f5f9; position: sticky; top: 0; z-index: 1;">
                       <tr>
-                        <th style="padding:0.75rem 0.4rem; text-align:left;">Date</th>
-                        <th style="padding:0.75rem 0.4rem; text-align:left;">Clock In</th>
-                        <th style="padding:0.75rem 0.4rem; text-align:left;">Clock Out</th>
-                        <th style="padding:0.75rem 1.25rem 0.75rem 0.4rem; text-align:right;">Total</th>
+                        <th style="padding:0.6rem 0.5rem; text-align:left; width: 30%;">Date</th>
+                        <th style="padding:0.6rem 0.5rem; text-align:left; width: 25%;">Clock In</th>
+                        <th style="padding:0.6rem 0.5rem; text-align:left; width: 25%;">Clock Out</th>
+                        <th style="padding:0.6rem 0.5rem; text-align:right; width: 20%;">Total</th>
                       </tr>
                     </thead>
                     <tbody>
                       ${history.logs.map(log => `
                         <tr style="border-bottom:1px solid #f8fafc;">
-                          <td style="padding:0.75rem 0.4rem; font-weight:600;">${new Date(log.clockIn).toLocaleDateString()}</td>
-                          <td style="padding:0.75rem 0.4rem; color:var(--text-secondary);">${new Date(log.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                          <td style="padding:0.75rem 0.4rem; color:var(--text-secondary);">${log.clockOut ? new Date(log.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}</td>
-                          <td style="padding:0.75rem 1.25rem 0.75rem 0.4rem; text-align:right; font-weight:700; color:var(--accent-color);">${log.totalHours || 0}h</td>
+                          <td style="padding:0.6rem 0.5rem; font-weight:600;">${new Date(log.clockIn).toLocaleDateString()}</td>
+                          <td style="padding:0.6rem 0.5rem; color:var(--text-secondary);">${new Date(log.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
+                          <td style="padding:0.6rem 0.5rem; color:var(--text-secondary);">${log.clockOut ? new Date(log.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}</td>
+                          <td style="padding:0.6rem 0.5rem; text-align:right; font-weight:700; color:var(--accent-color);">${log.totalHours || 0}h</td>
                         </tr>
                       `).join('')}
                     </tbody>
