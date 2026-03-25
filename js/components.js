@@ -13,25 +13,25 @@ const PHO_ICONS = {
 
 const NAV_ITEMS = [
   // User Personal Workspace
-  { id: 'employee', name: 'My Workspace', href: 'dashboard.html?view=employee', icon: '<i class="ph ph-desktop"></i>', employeeOnly: true },
+  { id: 'employee', name: 'My Workspace', href: 'employee.html', icon: '<i class="ph ph-desktop"></i>', employeeOnly: true },
 
   // Analytics Dashboards (Admin Only)
-  { id: 'marketing', name: 'Marketing', href: 'dashboard.html?view=marketing', icon: '<i class="ph ph-trend-up"></i>', adminOnly: true },
-  { id: 'financial', name: 'Financial', href: 'dashboard.html?view=financial', icon: '<i class="ph ph-currency-dollar"></i>', adminOnly: true },
-  { id: 'operations', name: 'Operations', href: 'dashboard.html?view=operations', icon: '<i class="ph ph-gear"></i>', adminOnly: true },
-  { id: 'support', name: 'Support', href: 'dashboard.html?view=support', icon: '<i class="ph ph-headset"></i>', adminOnly: true },
-  { id: 'sales', name: 'Sales', href: 'dashboard.html?view=sales', icon: '<i class="ph ph-briefcase"></i>', adminOnly: true },
-  { id: 'executive', name: 'Executive', href: 'dashboard.html?view=executive', icon: '<i class="ph ph-chart-pie-slice"></i>', adminOnly: true },
+  { id: 'marketing', name: 'Marketing', href: 'marketing.html', icon: '<i class="ph ph-trend-up"></i>', adminOnly: true },
+  { id: 'financial', name: 'Financial', href: 'financial.html', icon: '<i class="ph ph-currency-dollar"></i>', adminOnly: true },
+  { id: 'operations', name: 'Operations', href: 'operations.html', icon: '<i class="ph ph-gear"></i>', adminOnly: true },
+  { id: 'support', name: 'Support', href: 'support.html', icon: '<i class="ph ph-headset"></i>', adminOnly: true },
+  { id: 'sales', name: 'Sales', href: 'sales.html', icon: '<i class="ph ph-briefcase"></i>', adminOnly: true },
+  { id: 'executive', name: 'Executive', href: 'executive.html', icon: '<i class="ph ph-chart-pie-slice"></i>', adminOnly: true },
   
   // Agency Expansion (New)
-  { id: 'admin-panel', name: 'Employees', href: 'dashboard.html?view=admin-panel', icon: '<i class="ph ph-users-three"></i>', adminOnly: true },
-  { id: 'clients', name: 'Clients (CRM)', href: 'dashboard.html?view=clients', icon: '<i class="ph ph-address-book"></i>', adminOnly: true },
-  { id: 'projects', name: 'Projects', href: 'dashboard.html?view=projects', icon: '<i class="ph ph-kanban"></i>', adminOnly: true },
-  { id: 'tasks', name: 'Global Tasks', href: 'dashboard.html?view=tasks', icon: '<i class="ph ph-list-checks"></i>', adminOnly: true },
-  { id: 'documentations', name: 'Documentations', href: 'dashboard.html?view=documentations', icon: '<i class="ph ph-files"></i>', adminOnly: true },
-  { id: 'reports', name: 'Reports', href: 'dashboard.html?view=reports', icon: '<i class="ph ph-chart-pie"></i>' },
-  { id: 'dashboard-matrix', name: 'Dashboard Matrix', href: 'dashboard.html?view=matrix', icon: '<i class="ph ph-grid-four"></i>', adminOnly: true },
-  { id: 'assets', name: 'Asset Hub', href: 'dashboard.html?view=assets', icon: '<i class="ph ph-folders"></i>' },
+  { id: 'admin-panel', name: 'Employees', href: 'admin-panel.html', icon: '<i class="ph ph-users-three"></i>', adminOnly: true },
+  { id: 'clients', name: 'Clients (CRM)', href: 'clients.html', icon: '<i class="ph ph-address-book"></i>', adminOnly: true },
+  { id: 'projects', name: 'Projects', href: 'projects.html', icon: '<i class="ph ph-kanban"></i>', adminOnly: true },
+  { id: 'tasks', name: 'Global Tasks', href: 'tasks.html', icon: '<i class="ph ph-list-checks"></i>', adminOnly: true },
+  { id: 'documentations', name: 'Documentations', href: 'documentations.html', icon: '<i class="ph ph-files"></i>', adminOnly: true },
+  { id: 'reports', name: 'Reports', href: 'reports.html', icon: '<i class="ph ph-chart-pie"></i>' },
+  { id: 'dashboard-matrix', name: 'Dashboard Matrix', href: 'matrix.html', icon: '<i class="ph ph-grid-four"></i>', adminOnly: true },
+  { id: 'assets', name: 'Asset Hub', href: 'assets.html', icon: '<i class="ph ph-folders"></i>' },
 ];
 
 function renderSidebar(activeId) {

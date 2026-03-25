@@ -8,22 +8,31 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <link rel="stylesheet" href="css/globals.css?version=1.0.3">
-  <link rel="stylesheet" href="css/sidebar.css?version=1.0.3">
-  <link rel="stylesheet" href="css/admin.css?version=1.0.1">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/globals.css?version=1.0.4">
+  <link rel="stylesheet" href="css/sidebar.css?version=1.0.4">
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body class="theme-blue">
-  <div id="app" class="app-container"></div>
+  <div id="app" class="app-container">
+    <!-- Skeleton will be injected here -->
+  </div>
   
   <script src="js/store.js?version=1.0.2"></script>
   <script src="js/auth.js?version=1.0.3"></script>
-  <script src="js/components.js?version=1.0.4"></script>
-  <script src="js/admin.js?version=1.0.1"></script>
+  <script src="js/components.js?version=1.1.0"></script>
+  <script src="js/views/assets.js?version=1.2.0"></script>
   
   <script>
+    // 1. Auth Guard
     const user = requireAuth();
+    if (!user) window.location.replace('login.html');
+
+    // 2. Initialize UI Shell (Restores standard sidebar/header)
     initApp('assets', 'Asset Hub');
-    AdminPanel.loadAssets();
+
+    // 3. Fire High-Performance Asset Hub Logic
+    AssetHub.init();
   </script>
 </body>
 </html>
