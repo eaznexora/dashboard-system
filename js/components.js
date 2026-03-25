@@ -12,13 +12,16 @@ const PHO_ICONS = {
 };
 
 const NAV_ITEMS = [
-  // Analytics Dashboards (Existing)
-  { id: 'marketing', name: 'Marketing', href: 'marketing.html', icon: '<i class="ph ph-trend-up"></i>' },
-  { id: 'financial', name: 'Financial', href: 'financial.html', icon: '<i class="ph ph-currency-dollar"></i>' },
-  { id: 'operations', name: 'Operations', href: 'operations.html', icon: '<i class="ph ph-gear"></i>' },
-  { id: 'support', name: 'Support', href: 'support.html', icon: '<i class="ph ph-headset"></i>' },
-  { id: 'sales', name: 'Sales', href: 'sales.html', icon: '<i class="ph ph-briefcase"></i>' },
-  { id: 'executive', name: 'Executive', href: 'executive.html', icon: '<i class="ph ph-chart-pie-slice"></i>' },
+  // User Personal Workspace
+  { id: 'employee', name: 'My Workspace', href: 'employee.html', icon: '<i class="ph ph-desktop"></i>' },
+
+  // Analytics Dashboards (Admin Only)
+  { id: 'marketing', name: 'Marketing', href: 'marketing.html', icon: '<i class="ph ph-trend-up"></i>', adminOnly: true },
+  { id: 'financial', name: 'Financial', href: 'financial.html', icon: '<i class="ph ph-currency-dollar"></i>', adminOnly: true },
+  { id: 'operations', name: 'Operations', href: 'operations.html', icon: '<i class="ph ph-gear"></i>', adminOnly: true },
+  { id: 'support', name: 'Support', href: 'support.html', icon: '<i class="ph ph-headset"></i>', adminOnly: true },
+  { id: 'sales', name: 'Sales', href: 'sales.html', icon: '<i class="ph ph-briefcase"></i>', adminOnly: true },
+  { id: 'executive', name: 'Executive', href: 'executive.html', icon: '<i class="ph ph-chart-pie-slice"></i>', adminOnly: true },
   
   // Agency Expansion (New)
   { id: 'admin-panel', name: 'Employees', href: 'admin-panel.html', icon: '<i class="ph ph-users-three"></i>', adminOnly: true },
