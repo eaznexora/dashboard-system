@@ -11,15 +11,22 @@ const AdminPanel = {
     
     try {
       const res = await fetch('/api/employees');
-      const emps = await res.json();
-      const activeEmps = emps.filter(e => e.isActive);
-      const inactiveEmps = emps.filter(e => !e.isActive);
+      const users = await res.json();
+      
+      const members = users.filter(u => u.role === 'EMPLOYEE' && u.isActive !== false);
+      const terminated = users.filter(u => u.role === 'EMPLOYEE' && u.isActive === false);
+      const currentlyWorking = users.filter(u => u.role === 'EMPLOYEE' && u.isActive !== false && u.isClockedIn).length;
+      
+      const activeEmps = users.filter(e => e.isActive);
+      const inactiveEmps = users.filter(e => !e.isActive);
       
       let html = `
         <div class="view-header">
           <div>
             <h2 class="view-title">Team Management</h2>
-            <p class="view-subtitle">${activeEmps.length} Active Members · ${inactiveEmps.length} Terminated</p>
+            <p class="view-subtitle" id="emp-stats">
+              <i class="ph ph-info"></i> ${members.length} Active Members &middot; ${terminated.length} Terminated &middot; <span style="color:var(--success-color); font-weight:700;">${currentlyWorking} Currently Working</span>
+            </p>
           </div>
           <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
         </div>
@@ -263,81 +270,105 @@ const AdminPanel = {
 
   async viewEmployeeDetails(id) {
     try {
-      const empsRes = await fetch('/api/employees');
-      const emps = await empsRes.json();
-      const emp = emps.find(e => e._id === id);
+      showLoader();
+      const resp = await fetch(`/api/employees/${id}`);
+      const emp = await resp.json();
       
-      const historyRes = await fetch(`/api/employees/history/${id}`);
-      const history = await historyRes.json();
+      // Fetch currently working projects for this employee
+      const projResp = await fetch(`/api/projects?employeeId=${id}`);
+      const projects = await projResp.json();
+      const activeProjects = projects.filter(p => p.status === 'active');
 
       const modalHtml = `
-        <div class="modal-overlay" id="emp-modal">
-          <div class="modal-content" style="max-width:600px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-              <h3 style="font-weight:800;">Employee details</h3>
-              <button onclick="document.getElementById('emp-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+        <div class="modal-overlay" id="emp-detail-modal">
+          <div class="modal-content" style="max-width: 650px; padding: 2.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 2rem;">
+              <h2 style="font-weight: 800; font-size: 1.5rem;">Employee details</h2>
+              <button onclick="document.getElementById('emp-detail-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
             </div>
-            
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
               <div>
-                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Designation</label>
-                <div style="font-weight:600;">${emp.designation || 'Not set'}</div>
+                <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Designation</label>
+                <div style="font-weight:700;">${emp.designation || 'Specialist'}</div>
               </div>
               <div>
-                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Department</label>
-                <div style="font-weight:600;">${emp.department || 'Not set'}</div>
+                <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Department</label>
+                <div style="font-weight:700;">${emp.department || 'Creative'}</div>
               </div>
               <div>
-                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Today's work</label>
-                <div style="font-weight:600; color:var(--accent-color);">${history.todayHours || 0} hrs</div>
+                <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Today's Work</label>
+                <div style="font-weight:700; color:var(--accent-color);">${emp.todayHours ? emp.todayHours.toFixed(2) : '0.00'} hrs</div>
               </div>
-               <div>
-                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Account Status</label>
+              <div>
+                <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Account Status</label>
                 <div style="display:flex; align-items:center; gap:0.5rem;">
-                   <span style="font-weight:700; color:${emp.isActive ? 'var(--success-color)' : 'var(--danger-color)'}">${emp.isActive ? 'ACTIVE' : 'TERMINATED (FIRED)'}</span>
-                   <button onclick="AdminPanel.toggleEmployeeStatus('${emp._id}', ${!emp.isActive})" 
-                           class="btn" 
-                           style="font-size:0.7rem; padding:0.25rem 0.6rem; background:${emp.isActive ? '#fee2e2' : 'var(--accent-light)'}; color:${emp.isActive ? 'var(--danger-color)' : 'var(--accent-color)'}; border:none; font-weight:700;">
-                    ${emp.isActive ? 'FIRE NOW' : 'REACTIVATE'}
-                   </button>
+                  <span style="font-weight:800; color:${emp.isActive !== false ? 'var(--success-color)' : 'var(--danger-color)'};">
+                    ${emp.isActive !== false ? 'ACTIVE' : 'FIRED'}
+                  </span>
+                  ${emp.isActive !== false ? `<button class="btn btn-danger" style="font-size:0.65rem; padding:0.25rem 0.5rem; border-radius:6px; font-weight:700;" onclick="AdminPanel.fireEmployee('${emp._id}')">FIRE NOW</button>` : ''}
                 </div>
               </div>
             </div>
 
-            <div style="border-top:1px solid var(--border-color); padding-top:1.5rem;">
-              <h4 style="font-weight:700; margin-bottom:1rem; font-size:0.875rem;">Agency Performance Log</h4>
-              ${history.logs.length === 0 ? '<p style="font-size:0.875rem; color:var(--text-secondary);">No logs found.</p>' : `
-                <div style="max-height:200px; overflow-y:auto; border:1px solid #f1f5f9; border-radius:8px;">
-                  <table style="width:100%; border-collapse:collapse; font-size:0.75rem;">
-                    <thead style="background:#f8fafc; border-bottom:1px solid #f1f5f9;">
-                      <tr>
-                        <th style="padding:0.75rem; text-align:left;">Date</th>
-                        <th style="padding:0.75rem; text-align:left;">Clock In</th>
-                        <th style="padding:0.75rem; text-align:left;">Clock Out</th>
-                        <th style="padding:0.75rem; text-align:right;">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${history.logs.map(log => `
-                        <tr style="border-bottom:1px solid #f8fafc;">
-                          <td style="padding:0.75rem; font-weight:600;">${new Date(log.clockIn).toLocaleDateString()}</td>
-                          <td style="padding:0.75rem; color:var(--text-secondary);">${new Date(log.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
-                          <td style="padding:0.75rem; color:var(--text-secondary);">${log.clockOut ? new Date(log.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}</td>
-                          <td style="padding:0.75rem; font-weight:700; color:var(--accent-color); text-align:right;">${log.totalHours || 0}h</td>
-                        </tr>
-                      `).join('')}
-                    </tbody>
-                  </table>
+            <div style="border-top: 1px solid #f1f5f9; padding: 1.5rem 0; margin-bottom: 1.5rem; display:grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+              <div>
+                <h4 style="font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.05em;">Contact Information</h4>
+                <div style="font-size:0.875rem; display:grid; gap:0.4rem;">
+                  <div style="display:flex; align-items:center; gap:0.5rem;"><i class="ph ph-envelope" style="color:var(--accent-color);"></i> ${emp.email}</div>
+                  <div style="display:flex; align-items:center; gap:0.5rem;"><i class="ph ph-phone" style="color:var(--accent-color);"></i> ${emp.phone || 'No phone listed'}</div>
+                  ${emp.location ? `<div style="display:flex; align-items:center; gap:0.5rem;"><i class="ph ph-map-pin" style="color:var(--accent-color);"></i> ${emp.location}</div>` : ''}
                 </div>
-              `}
+              </div>
+              <div>
+                <h4 style="font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem; letter-spacing:0.05em;">Active Projects</h4>
+                <div style="font-size:0.875rem; display:grid; gap:0.4rem;">
+                   ${activeProjects.length > 0 ? activeProjects.map(p => `
+                      <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <div style="width:8px; height:8px; border-radius:50%; background:${p.color || 'var(--accent-color)'};"></div>
+                        <span style="font-weight:600;">${p.name}</span>
+                      </div>
+                   `).join('') : '<div style="color:var(--text-secondary); font-style:italic;">No active projects</div>'}
+                </div>
+              </div>
+            </div>
+
+            <h3 style="font-weight: 800; font-size: 1rem; margin-bottom: 1.25rem;">Agency Performance Log</h3>
+            <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 12px;">
+              <table class="data-table" style="margin: 0; font-size: 0.8rem;">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Clock In</th>
+                    <th>Clock Out</th>
+                    <th style="text-align:right;">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${emp.history && emp.history.length > 0 ? emp.history.reverse().map(h => `
+                    <tr style="border-bottom:1px solid #f8fafc;">
+                      <td style="font-weight:600;">${new Date(h.startTime).toLocaleDateString()}</td>
+                      <td style="color:var(--text-secondary);">${new Date(h.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</td>
+                      <td style="font-weight:600; color:${h.endTime ? 'var(--text-primary)' : 'var(--success-color)'};">
+                        ${h.endTime ? new Date(h.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'ACTIVE'}
+                      </td>
+                      <td style="text-align:right; font-weight:700; color:var(--accent-color);">
+                        ${h.duration ? (h.duration / 3600).toFixed(2) + 'h' : '0h'}
+                      </td>
+                    </tr>
+                  `).join('') : '<tr><td colspan="4" style="text-align:center;">No history available</td></tr>'}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
       `;
       document.body.insertAdjacentHTML('beforeend', modalHtml);
-      window.initCustomSelects();
     } catch (err) {
-      toast('Error loading details', 'error');
+      console.error(err);
+      toast('Failed to load performance log', 'error');
+    } finally {
+      hideLoader();
     }
   },
 

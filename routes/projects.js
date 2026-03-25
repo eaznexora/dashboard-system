@@ -2,10 +2,20 @@ const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
 
-// GET all projects
+// GET all projects (supports ?employeeId= filter)
 router.get('/', async (req, res) => {
   try {
-    const projects = await Project.find()
+    let query = {};
+    if (req.query.employeeId) {
+      query = {
+        $or: [
+          { lead: req.query.employeeId },
+          { members: req.query.employeeId }
+        ]
+      };
+    }
+
+    const projects = await Project.find(query)
       .populate('client', 'company contactName')
       .populate('lead', 'name email image')
       .populate('members', 'name email image')
