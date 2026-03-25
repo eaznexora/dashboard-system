@@ -622,6 +622,19 @@ const AdminPanel = {
             </div>
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
                <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Budget (₹)</label>
+                  <input type="number" id="np-budget" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+               </div>
+               <div class="form-group">
+                  <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Lead Manager</label>
+                  <select id="np-lead" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
+                    <option value="">-- No Lead --</option>
+                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
+                  </select>
+               </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+               <div class="form-group">
                   <label style="font-size:0.75rem; font-weight:700; color:var(--text-secondary);">Start Date</label>
                   <input type="date" id="np-start" class="form-control" style="width:100%; padding:0.75rem; border:1px solid var(--border-color); border-radius:8px;">
                </div>
