@@ -2556,7 +2556,8 @@ const AdminPanel = {
     if (!window.ApexCharts) return console.error('ApexCharts not loaded');
     
     // 1. Revenue Intelligence Chart (History + Forecast)
-    const totalProjected = data.revenueHistory.slice(4).reduce((a, b) => a + b, 0);
+    // Include CURRENT month (index 3) in "Projected" if user wants to see the total budget (e.g. ₹70,000)
+    const totalProjected = data.revenueHistory.slice(3).reduce((a, b) => a + b, 0);
     
     new ApexCharts(document.querySelector("#revenue-chart"), {
       series: [{ name: 'Total Revenue', data: data.revenueHistory }],
@@ -2584,7 +2585,7 @@ const AdminPanel = {
         }]
       },
       title: {
-        text: `₹${totalProjected.toLocaleString()} Total Projected (Next 4 mo)`,
+        text: `₹${totalProjected.toLocaleString()} Total Revenue Forecast`,
         align: 'left',
         style: { fontSize: '14px', fontWeight: 700, color: 'var(--accent-color)' }
       },
@@ -2607,12 +2608,16 @@ const AdminPanel = {
             <div style="margin-bottom:0.5rem; font-size:1.1rem; font-weight:800; color:var(--accent-color);">₹${total.toLocaleString()}</div>
             <div style="display:grid; gap:0.4rem;">`;
           
-          projects.forEach(p => {
-             html += `<div style="display:flex; justify-content:space-between; gap:1.5rem; font-size:0.8rem;">
-                <span style="color:var(--text-primary); font-weight:600;">${p.name}</span>
-                <span style="color:var(--text-secondary);">₹${p.budget.toLocaleString()}</span>
-             </div>`;
-          });
+          if(!projects || projects.length === 0) {
+            html += `<div style="font-size:0.8rem; color:var(--text-secondary);">No project contributions</div>`;
+          } else {
+            projects.forEach(p => {
+               html += `<div style="display:flex; justify-content:space-between; gap:1.5rem; font-size:0.8rem;">
+                  <span style="color:var(--text-primary); font-weight:600;">${p.name}</span>
+                  <span style="color:var(--text-secondary);">₹${p.budget.toLocaleString()}</span>
+               </div>`;
+            });
+          }
           
           html += `</div></div>`;
           return html;
@@ -2629,30 +2634,38 @@ const AdminPanel = {
       legend: { position: 'bottom' }
     }).render();
 
-    // 3. Employee Utilization (Professional Linear Style)
+    // 3. Employee Utilization (Professional Vertical Style)
+    // To ensure bars are visible even at 0h, we map the values
+    const utilData = data.employeeHours.map(h => h === 0 ? 0.05 : h); 
+
     new ApexCharts(document.querySelector("#util-chart"), {
-      series: [{ name: 'Hours Today', data: data.employeeHours }],
-      chart: { type: 'bar', height: 350, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      series: [{ name: 'Hours Today', data: utilData }],
+      chart: { type: 'bar', height: 380, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
       plotOptions: { 
         bar: { 
           borderRadius: 8, 
-          columnWidth: '50%',
+          columnWidth: data.employeeNames.length > 5 ? '70%' : '50%',
           distributed: true,
           dataLabels: { position: 'top' }
         } 
       },
-      colors: ['#6366f1', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+      colors: ['#6366f1', '#8b5cf6', '#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899'],
       dataLabels: {
         enabled: true,
-        formatter: (val) => val + "h",
-        offsetY: -20,
-        style: { fontSize: '12px', fontWeight: 800, colors: ['#475569'] }
+        formatter: (val) => (val === 0.05 ? 0 : val) + "h",
+        offsetY: -25,
+        style: { fontSize: '11px', fontWeight: 800, colors: ['#475569'] }
       },
       xaxis: { 
         categories: data.employeeNames,
-        labels: { style: { fontWeight: 600, colors: '#64748b' } }
+        labels: { 
+          rotate: -45,
+          style: { fontWeight: 600, colors: '#64748b', fontSize: '10px' } 
+        }
       },
       yaxis: {
+        min: 0,
+        max: Math.max(8, ...data.employeeHours) + 2,
         title: { text: 'Hours Worked', style: { color: '#64748b', fontWeight: 600 } },
         labels: { style: { colors: '#64748b' } }
       },
@@ -2663,7 +2676,7 @@ const AdminPanel = {
       },
       tooltip: {
         theme: 'light',
-        y: { formatter: (val) => val + " hours today" }
+        y: { formatter: (val) => (val === 0.05 ? 0 : val) + " hours today" }
       },
       legend: { show: false }
     }).render();

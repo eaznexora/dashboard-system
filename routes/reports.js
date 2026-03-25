@@ -69,11 +69,12 @@ router.get('/', async (req, res) => {
         projectBreakdown.push(monthlyProjects);
     }
 
-    // 6. Employee Utilization (Today's Working Hours - Only Active Employees)
+    // 6. Employee Utilization (Today's Working Hours - All Active Members)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     
-    const activeEmployees = await User.find({ role: 'EMPLOYEE', isActive: true });
+    // Show all active members (not just those with 'EMPLOYEE' role)
+    const activeEmployees = await User.find({ isActive: true });
     const todayLogs = await TimeLog.find({ clockIn: { $gte: todayStart } });
 
     const employeeHours = activeEmployees.map(e => {
