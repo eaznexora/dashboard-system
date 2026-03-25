@@ -33,11 +33,22 @@ router.post('/', async (req, res) => {
     }
 });
 
-// PATCH issue status
+// PATCH issue status & admin reply
 router.patch('/:id', async (req, res) => {
     try {
-        const { status } = req.body;
-        const issue = await Issue.findByIdAndUpdate(req.params.id, { status, updatedAt: Date.now() }, { new: true });
+        const { status, adminReply } = req.body;
+        const updateData = { status, updatedAt: Date.now() };
+        
+        if (adminReply !== undefined) {
+            updateData.adminReply = adminReply;
+            updateData.adminRepliedAt = Date.now();
+        }
+        
+        if (status === 'resolved' || status === 'approved' || status === 'rejected') {
+            updateData.resolvedAt = Date.now();
+        }
+
+        const issue = await Issue.findByIdAndUpdate(req.params.id, updateData, { new: true });
         res.json(issue);
     } catch (err) {
         res.status(500).json({ message: 'Update failed' });

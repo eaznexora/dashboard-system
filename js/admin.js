@@ -2813,7 +2813,9 @@ const AdminPanel = {
                 <td style="padding:1rem;">
                   <span style="padding:0.2rem 0.5rem; border-radius:4px; font-weight:700; font-size:0.65rem; border:1px solid;
                     ${iss.status === 'open' ? 'background:#fee2e2; color:var(--danger-color); border-color:#fecaca;' : 
-                      iss.status === 'resolved' ? 'background:#d1fae5; color:var(--success-color); border-color:#a7f3d0;' : 
+                      iss.status === 'approved' ? 'background:#d1fae5; color:var(--success-color); border-color:#a7f3d0;' :
+                      iss.status === 'rejected' ? 'background:#fee2e2; color:var(--danger-color); border-color:#fecaca;' :
+                      iss.status === 'resolved' ? 'background:#f1f5f9; color:var(--text-secondary); border-color:#e2e8f0;' :
                       'background:#e0f2fe; color:#0369a1; border-color:#bae6fd;'}">
                     ${iss.status.toUpperCase()}
                   </span>
@@ -2841,39 +2843,55 @@ const AdminPanel = {
 
     const modalHtml = `
       <div class="modal-overlay" id="issue-detail-modal">
-        <div class="modal-content" style="max-width:600px;">
+        <div class="modal-content" style="max-width:650px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem;">
             <div>
-              <div style="font-size:0.7rem; font-weight:800; color:var(--danger-color); margin-bottom:0.4rem; text-transform:uppercase;">Issue Report</div>
-              <h3 style="font-weight:800; font-size:1.4rem;">${iss.title}</h3>
+              <div style="font-size:0.75rem; font-weight:800; color:var(--accent-color); margin-bottom:0.4rem; text-transform:uppercase;">AGENCY INTELLIGENCE REPORT</div>
+              <h3 style="font-weight:800; font-size:1.5rem;">${iss.title}</h3>
             </div>
             <button onclick="document.getElementById('issue-detail-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
           
-          <div style="background:#f8fafc; border-radius:12px; padding:1.5rem; margin-bottom:1.5rem; border:1px solid var(--border-color);">
-             <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem;">Description / Complaint</label>
-             <div style="font-size:0.95rem; line-height:1.6; color:var(--text-primary); white-space:pre-wrap;">${iss.description || 'No additional details provided.'}</div>
+          <div style="background:#f8fafc; border-radius:16px; padding:1.5rem; margin-bottom:2rem; border:1px solid var(--border-color);">
+             <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.75rem;">Staff Description / Feedback</label>
+             <div style="font-size:1rem; line-height:1.7; color:var(--text-primary); white-space:pre-wrap;">${iss.description || 'No additional details provided.'}</div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; border-top:1px solid #f1f5f9; padding-top:1.5rem;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:2rem;">
              <div>
-                <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem;">Submitted By</label>
-                <div style="font-weight:700; display:flex; align-items:center; gap:0.5rem;">
-                   <div class="avatar" style="width:24px; height:24px; font-size:0.6rem;">${iss.submittedBy?.name ? iss.submittedBy.name[0] : '?'}</div>
-                   ${iss.submittedBy?.name || 'Unknown'}
+                <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Reported By</label>
+                <div style="font-weight:700; display:flex; align-items:center; gap:0.75rem;">
+                   <div class="avatar" style="width:32px; height:32px; font-size:0.8rem;">${iss.submittedBy?.name ? iss.submittedBy.name[0] : '?'}</div>
+                   <div style="font-size:0.95rem;">${iss.submittedBy?.name || 'Unknown Staff member'}</div>
                 </div>
              </div>
              <div>
-                <label style="display:block; font-size:0.7rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem;">Status</label>
-                <div style="font-weight:700; font-size:0.9rem; color:${iss.status === 'resolved' ? 'var(--success-color)' : 'var(--danger-color)'}">${iss.status.toUpperCase()}</div>
+                <label style="display:block; font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.5rem;">Current Status</label>
+                <span class="status-badge" style="background:${iss.status==='approved'?'#d1fae5':iss.status==='rejected'?'#fee2e2':'#e0f2fe'}; 
+                      color:${iss.status==='approved'?'#065f46':iss.status==='rejected'?'#991b1b':'#0369a1'};">
+                  ${iss.status.toUpperCase()}
+                </span>
              </div>
           </div>
-          
-          <div style="display:flex; gap:1rem; margin-top:2rem;">
-             ${iss.status !== 'resolved' ? `
-               <button class="btn btn-primary" style="flex:1; justify-content:center;" onclick="document.getElementById('issue-detail-modal').remove(); AdminPanel.resolveIssue('${iss._id}')">Mark as Resolved</button>
-             ` : ''}
-             <button class="btn btn-secondary" style="flex:1; justify-content:center; color:var(--danger-color); border-color:var(--danger-color);" onclick="document.getElementById('issue-detail-modal').remove(); AdminPanel.deleteIssue('${iss._id}')">Delete Issue</button>
+
+          <div style="border-top:1px solid #f1f5f9; padding-top:2rem;">
+             <h4 style="font-weight:800; font-size:0.875rem; margin-bottom:1rem; color:var(--text-primary);">ADMINISTRATION RESPONSE</h4>
+             <textarea id="admin-reply-text" class="form-control" style="min-height:120px; font-size:0.9rem;" placeholder="Type your formal response or directives here...">${iss.adminReply || ''}</textarea>
+             
+             <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:1rem; margin-top:1.5rem;">
+                <button class="btn btn-primary" style="justify-content:center; padding:0.75rem; background:var(--success-color);" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'approved')">
+                  <i class="ph ph-check-circle"></i> Approve
+                </button>
+                <button class="btn btn-secondary" style="justify-content:center; padding:0.75rem; color:var(--danger-color); border-color:var(--danger-color);" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'rejected')">
+                  <i class="ph ph-minus-circle"></i> Reject
+                </button>
+                <button class="btn btn-secondary" style="justify-content:center; padding:0.75rem;" onclick="AdminPanel.submitAdminResponse('${iss._id}', 'resolved')">
+                  <i class="ph ph-flag-checkered"></i> Resolve
+                </button>
+             </div>
+             <button class="btn btn-secondary" style="width:100%; justify-content:center; margin-top:1rem; color:var(--text-secondary); border:none;" onclick="AdminPanel.deleteIssue('${iss._id}')">
+               <i class="ph ph-trash"></i> Permanently Delete Report
+             </button>
           </div>
         </div>
       </div>
@@ -2881,27 +2899,20 @@ const AdminPanel = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
-  async resolveIssue(id) {
+  async submitAdminResponse(id, status) {
+    const reply = document.getElementById('admin-reply-text').value;
     try {
       const res = await fetch(`/api/issues/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'resolved' })
+        body: JSON.stringify({ status, adminReply: reply })
       });
-      if(res.ok) this.loadAdminIssues();
-    } catch(err) { toast('Failed to update issue', 'error'); }
-  },
-
-  async deleteIssue(id) {
-    window.confirmModal('Delete Issue', 'Are you sure you want to permanently remove this issue from the log?', async () => {
-      try {
-        const res = await fetch(`/api/issues/${id}`, { method: 'DELETE' });
-        if(res.ok) {
-          toast('Issue deleted successfully');
-          this.loadAdminIssues();
-        }
-      } catch(err) { toast('Failed to delete issue', 'error'); }
-    });
+      if(res.ok) {
+        toast(`Report ${status} successfully.`, 'success');
+        document.getElementById('issue-detail-modal')?.remove();
+        this.loadAdminIssues();
+      }
+    } catch(err) { toast('Failed to submit response', 'error'); }
   },
 
   async loadEmployeeReportingView() {
@@ -2990,36 +3001,18 @@ const AdminPanel = {
               ${iss.status.toUpperCase()}
             </span>
           </div>
-          <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.5rem;">${iss.description}</div>
+          <div style="font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.75rem; line-height:1.5;">${iss.description}</div>
+          
+          ${iss.adminReply ? `
+            <div style="background:#f8fafc; border-radius:8px; padding:0.75rem; border-left:3px solid var(--accent-color); margin-bottom:0.75rem;">
+               <div style="font-size:0.6rem; font-weight:800; color:var(--accent-color); text-transform:uppercase; margin-bottom:0.25rem;">Admin Response</div>
+               <div style="font-size:0.75rem; color:var(--text-primary); font-weight:500;">${iss.adminReply}</div>
+            </div>
+          ` : ''}
+
           <div style="font-size:0.65rem; color:var(--text-secondary);">Submitted on ${new Date(iss.createdAt).toLocaleDateString()}</div>
         </div>
       `).join('');
     } catch(err) { console.error('History failed'); }
-  },
-
-  async resolveIssue(id) {
-    try {
-      const res = await fetch(`/api/issues/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'resolved' })
-      });
-      if(res.ok) {
-        toast('Issue marked as resolved', 'success');
-        this.loadAdminIssues();
-      }
-    } catch(err) { toast('Failed to resolve issue', 'error'); }
-  },
-
-  async deleteIssue(id) {
-    window.confirmModal('Delete Issue', 'Are you sure you want to remove this report from the system?', async () => {
-      try {
-        const res = await fetch(`/api/issues/${id}`, { method: 'DELETE' });
-        if(res.ok) {
-          toast('Issue deleted');
-          this.loadAdminIssues();
-        }
-      } catch(err) { toast('Deletion failed', 'error'); }
-    });
   }
 };

@@ -5,8 +5,11 @@ const issueSchema = new mongoose.Schema({
   description: { type: String, required: true },
   project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
   submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  status: { type: String, enum: ['open', 'in-review', 'resolved'], default: 'open' },
+  status: { type: String, enum: ['open', 'in-review', 'approved', 'rejected', 'resolved'], default: 'open' },
   priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
+  adminReply: { type: String, default: '' },
+  adminRepliedAt: { type: Date },
+  resolvedAt: { type: Date },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now }
 });
