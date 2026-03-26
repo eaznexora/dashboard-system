@@ -259,9 +259,6 @@ const AssetHub = {
                     <button onclick="AssetHub.showFilterMenu(event, 'person')" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.person ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
                         ${this.filters.person || 'People'} <i class="ph ph-caret-down text-[10px]"></i>
                     </button>
-                    <button onclick="AssetHub.showFilterMenu(event, 'modified')" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.modified ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
-                        ${this.filters.modified || 'Modified'} <i class="ph ph-caret-down text-[10px]"></i>
-                    </button>
                 </div>
                 <div class="flex items-center gap-3">
                     <button onclick="AssetHub.toggleSelectMode()" class="px-5 py-2 rounded-full border border-gray-200 text-[13px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${this.isSelectMode ? 'bg-blue-50 border-blue-200 text-blue-600' : 'hover:bg-gray-50 text-gray-500'}">
@@ -400,7 +397,7 @@ const AssetHub = {
                     <div class="selection-checkbox absolute top-3 left-3 w-6 h-6 rounded-full border-2 z-20 flex items-center justify-center transition-all ${this.isSelectMode ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'} ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/80 border-gray-300'}">
                         ${isSelected ? '<i class="ph-bold ph-check text-white text-[12px]"></i>' : ''}
                     </div>
-                    ${isImg ? `<img src="${asset.thumbnailUrl || asset.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : this.getLargeIcon(ext)}
+                    ${isImg ? `<img src="${asset.thumbnailUrl || asset.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : this.getLargeIcon(asset.mimeType, asset.name)}
                 </div>
                 <div class="p-5 flex items-center gap-4 bg-white border-t border-gray-50 relative">
                     <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">${this.getSmallIcon(asset.mimeType, asset.name)}</div>
@@ -544,7 +541,11 @@ const AssetHub = {
     async restoreItem(id, type) {
         try {
             const res = await fetch(`/api/assets/${id}/restore?type=${type}`, { method: 'PATCH', credentials: 'include' });
-            if (res.ok) { showNotification('Item restored', 'success'); this.loadTrash(); }
+            if (res.ok) {
+                showNotification('Item restored', 'success');
+                if (this.isTrashView) this.loadTrash();
+                else this.loadData();
+            }
         } catch (e) { showNotification('Restore failed', 'error'); }
     },
 
@@ -552,7 +553,11 @@ const AssetHub = {
         this.showConfirmModal('Delete Forever?', 'This action is irreversible. All data will be physically removed from storage.', async () => {
             try {
                 const res = await fetch(`/api/assets/${id}/permanent?type=${type}`, { method: 'DELETE', credentials: 'include' });
-                if (res.ok) { showNotification('Permanently deleted', 'success'); this.loadTrash(); }
+                if (res.ok) {
+                    showNotification('Permanently deleted', 'success');
+                    if (this.isTrashView) this.loadTrash();
+                    else this.loadData();
+                }
             } catch (e) { showNotification('Deletion failed', 'error'); }
         });
     },
@@ -841,7 +846,8 @@ const AssetHub = {
                 }
                 showNotification('Bulk delete completed', 'success');
                 this.clearSelection();
-                this.loadData();
+                if (this.isTrashView) this.loadTrash();
+                else this.loadData();
             });
             this.clearMenus();
             return;
@@ -940,7 +946,7 @@ const AssetHub = {
         const isVid = finalMime?.startsWith('video/');
         const isPdf = finalMime?.includes('pdf');
         const ext = finalName?.split('.').pop().toLowerCase();
-        const isCode = ['html', 'css', 'js', 'json', 'txt', 'py', 'php', 'c', 'cpp'].includes(ext);
+        const isCode = ['html', 'css', 'js', 'json', 'txt', 'py', 'php', 'c', 'cpp', 'md', 'xml', 'sql'].includes(ext);
         const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
 
         const overlayId = 'preview-overlay';
