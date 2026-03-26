@@ -13,6 +13,7 @@ const AssetHub = {
     clipboard: { id: null, type: null, action: null }, // { id, type, action: 'copy' | 'cut' }
     isTrashView: false,
     filters: { type: null, person: null, modified: null },
+    selectedPeopleFilter: null,
     selectedItems: new Set(),
     isSelectMode: false,
 
@@ -188,6 +189,22 @@ const AssetHub = {
     render(folders = this.folders, assets = this.assets) {
         if (!this.container) return;
         try {
+            // BUILD UNIQUE USERS MAP
+            const uniqueUsers = new Map();
+            [...this.folders, ...this.assets].forEach(item => {
+                if (item.createdBy && typeof item.createdBy === 'object' && item.createdBy._id) {
+                    uniqueUsers.set(item.createdBy._id, item.createdBy.name);
+                }
+            });
+
+            // APPLY PEOPLE FILTER
+            let displayFolders = folders;
+            let displayAssets = assets;
+            if (this.selectedPeopleFilter) {
+                displayFolders = folders.filter(f => (f.createdBy?._id || f.createdBy) === this.selectedPeopleFilter);
+                displayAssets = assets.filter(a => (a.createdBy?._id || a.createdBy) === this.selectedPeopleFilter);
+            }
+
             const folderName = this.isTrashView ? 'Trash' : (this.breadcrumbs.length > 0 ? this.breadcrumbs[this.breadcrumbs.length - 1].name : 'Eaz Drive');
 
             this.container.innerHTML = `
@@ -228,9 +245,20 @@ const AssetHub = {
                     <button onclick="AssetHub.showFilterMenu(event, 'type')" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.type ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
                         ${this.filters.type || 'Type'} <i class="ph ph-caret-down text-[10px]"></i>
                     </button>
-                    <button onclick="AssetHub.showFilterMenu(event, 'person')" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.person ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
-                        ${this.filters.person || 'People'} <i class="ph ph-caret-down text-[10px]"></i>
-                    </button>
+                    <!-- PEOPLE FILTER DROPDOWN -->
+                    <div class="relative group/people">
+                        <button class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.selectedPeopleFilter ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
+                            <i class="ph ph-users text-lg"></i>
+                            ${this.selectedPeopleFilter ? uniqueUsers.get(this.selectedPeopleFilter) : 'People'}
+                            <i class="ph ph-caret-down text-[10px]"></i>
+                        </button>
+                        <div class="absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 opacity-0 invisible group-hover/people:opacity-100 group-hover/people:visible transition-all z-[100] transform origin-top scale-95 group-hover/people:scale-100">
+                            <button onclick="AssetHub.setPeopleFilter(null)" class="w-full text-left px-5 py-3 text-[13px] hover:bg-blue-50 transition-colors ${!this.selectedPeopleFilter ? 'text-blue-600 font-bold' : 'text-gray-600'}">All People</button>
+                            ${Array.from(uniqueUsers).map(([id, name]) => `
+                                <button onclick="AssetHub.setPeopleFilter('${id}')" class="w-full text-left px-5 py-3 text-[13px] hover:bg-blue-50 transition-colors ${this.selectedPeopleFilter === id ? 'text-blue-600 font-bold' : 'text-gray-600'}">${name}</button>
+                            `).join('')}
+                        </div>
+                    </div>
                 </div>
                 <div class="flex items-center gap-3">
                     <button onclick="AssetHub.toggleSelectMode()" class="px-5 py-2 rounded-full border border-gray-200 text-[13px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${this.isSelectMode ? 'bg-blue-50 border-blue-200 text-blue-600' : 'hover:bg-gray-50 text-gray-500'}">
@@ -265,7 +293,7 @@ const AssetHub = {
 
             <!-- Main Body -->
             <div class="flex-1 overflow-y-auto p-10 bg-gray-50" id="hub-body">
-                ${this.viewMode === 'grid' ? this.renderGridView(folders, assets) : this.renderListView(folders, assets)}
+                ${this.viewMode === 'grid' ? this.renderGridView(displayFolders, displayAssets) : this.renderListView(displayFolders, displayAssets)}
             </div>
         `;
         } catch (err) {
@@ -471,6 +499,7 @@ const AssetHub = {
                         <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in transition-all" style="top:${safeY}px; left:${safeX}px;">
                             <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${id}')`}" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-xl text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
                             ${isHtml ? `<button onclick="window.open('${itemData.url}', '_blank'); AssetHub.hideContextMenu();" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-globe text-xl text-blue-500"></i> Open on web</button>` : ''}
+                            <button onclick="AssetHub.showFileInfo('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-info text-xl text-blue-500"></i> File Information</button>
                             ${type === 'asset' ? `
                                 <button onclick="AssetHub.copyToClipboard('${id}', '${type}', 'copy')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-copy text-xl text-blue-500"></i> Copy</button>
                                 <button onclick="AssetHub.downloadItem('${id}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-download-simple text-xl text-blue-500"></i> Download</button>
@@ -994,19 +1023,28 @@ const AssetHub = {
 
     downloadItem(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; a.click(); },
 
-    showFileInfo(item) {
+    showFileInfo(id, type) {
+        const item = type === 'folder' ? this.folders.find(f => f._id === id) : this.assets.find(a => a._id === id);
+        if (!item) return;
+
+        const uploadedBy = typeof item.createdBy === 'object' && item.createdBy ? item.createdBy.name : 'Unknown Employee';
         const html = `
             <div id="info-modal" class="fixed inset-0 z-[400] bg-black/40 backdrop-blur-md flex items-center justify-center animate-in fade-in transition-all">
                 <div class="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg p-14 relative">
                     <button onclick="document.getElementById('info-modal').remove()" class="absolute top-10 right-10 text-gray-400 hover:text-gray-900"><i class="ph ph-x text-3xl"></i></button>
                     <div class="flex items-center gap-10 mb-14">
-                        <div class="w-24 h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center text-3xl shadow-inner">${this.getSmallIcon(item.mimeType)}</div>
-                        <div><h3 class="text-3xl font-black text-gray-900 truncate max-w-xs">${item.name}</h3><p class="text-[11px] font-black text-blue-500 uppercase tracking-[0.2em] mt-2">Resource Metadata</p></div>
+                        <div class="w-24 h-24 bg-gray-50 rounded-[2rem] flex items-center justify-center text-3xl shadow-inner text-blue-500">
+                            <i class="ph ph-info ph-bold"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-3xl font-black text-gray-900 truncate max-w-xs">${item.name}</h3>
+                            <p class="text-[11px] font-black text-blue-500 uppercase tracking-[0.2em] mt-2">Resource Metadata</p>
+                        </div>
                     </div>
                     <div class="space-y-8 border-t border-gray-100 pt-10 text-sm">
-                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Extension</span><span class="font-bold text-gray-800">${item.mimeType || 'Directory'}</span></div>
-                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Disk Weight</span><span class="font-bold text-gray-800">${this.formatSize(item.size)}</span></div>
-                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Uploaded By</span><span class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full font-black text-[10px] uppercase">Admin / Team Nexora</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Type</span><span class="font-bold text-gray-800">${type === 'folder' ? 'Folder' : (item.mimeType || 'Unknown')}</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Size</span><span class="font-bold text-gray-800">${this.formatSize(item.size)}</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Uploaded By</span><span class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full font-black text-[10px] uppercase">${uploadedBy}</span></div>
                         <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Timestamp</span><span class="font-black text-gray-800 text-[11px]">${new Date(item.createdAt).toLocaleString()}</span></div>
                     </div>
                 </div>
@@ -1042,5 +1080,6 @@ const AssetHub = {
     },
 
     async deleteItem(id, type) { this.showConfirmModal('Delete to Trash?', 'This item will be moved to the trash folder temporarily.', async () => { try { await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' }); this.loadData(); showNotification('Trashed', 'success'); } catch (e) { showNotification('Failed', 'error'); } }); },
-    setView(mode) { this.viewMode = mode; this.applyFiltersAndRender(); }
+    setView(mode) { this.viewMode = mode; this.applyFiltersAndRender(); },
+    setPeopleFilter(id) { this.selectedPeopleFilter = id; this.render(); }
 };

@@ -41,7 +41,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
+const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 * 1024 } // 5GB Limit
 });
@@ -54,8 +54,8 @@ router.get('/', async (req, res) => {
     const parentFolder = (req.query.folderId === 'null' || !req.query.folderId) ? null : req.query.folderId;
 
     const [folders, assets] = await Promise.all([
-      Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 }),
-      Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 })
+      Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 }).populate('createdBy', 'name'),
+      Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 }).populate('createdBy', 'name')
     ]);
 
     let breadcrumbs = [];
@@ -79,8 +79,8 @@ router.get('/', async (req, res) => {
 router.get('/trash', async (req, res) => {
   try {
     const [folders, assets] = await Promise.all([
-      Folder.find({ isTrashed: true }).sort({ name: 1 }),
-      Asset.find({ isTrashed: true }).sort({ updatedAt: -1 })
+      Folder.find({ isTrashed: true }).sort({ name: 1 }).populate('createdBy', 'name'),
+      Asset.find({ isTrashed: true }).sort({ updatedAt: -1 }).populate('createdBy', 'name')
     ]);
     res.json({ folders, assets });
   } catch (err) {
@@ -144,7 +144,7 @@ router.post('/upload', upload.array('file', 1000), async (req, res) => {
         console.error('[UPLOAD_DB_ERROR]:', dbErr);
       }
     }
-    
+
     if (global.io) global.io.emit('asset_update');
     return res.status(200).json(savedAssets);
   } catch (err) {
