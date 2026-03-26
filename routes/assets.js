@@ -7,6 +7,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const Folder = require('../models/Folder');
 const Asset = require('../models/Asset');
+const User = require('../models/User');
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_eaz_123';
 
@@ -49,7 +50,7 @@ const upload = multer({ storage });
  */
 router.get('/', async (req, res) => {
   try {
-    const parentFolder = req.query.folderId === 'null' || !req.query.folderId ? null : req.query.folderId;
+    const parentFolder = (req.query.folderId === 'null' || !req.query.folderId) ? null : req.query.folderId;
 
     const [folders, assets] = await Promise.all([
       Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 }),
@@ -97,7 +98,7 @@ router.post('/folders', async (req, res) => {
 
     const folder = new Folder({
       name,
-      parentFolder: parentFolder === 'null' || !parentFolder ? null : parentFolder,
+      parentFolder: (parentFolder === 'null' || !parentFolder) ? null : parentFolder,
       createdBy: String(req.user.id)
     });
 
@@ -125,7 +126,6 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype);
 
     if (isImage) {
-      // Process with Sharp
       await sharp(file.path)
         .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
         .toFile(finalPath);
@@ -137,11 +137,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
         .toFile(thumbPath);
       thumbnailUrl = `/uploads/${thumbName}`;
     } else {
-      // Direct Move for non-images (PDF, ZIP, DOCX, etc.)
       fs.renameSync(file.path, finalPath);
     }
 
-    // Cleanup Temp if not already moved (Sharp doesn't move, it writes new file)
     if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
 
     const asset = new Asset({
@@ -159,13 +157,58 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     if (global.io) global.io.emit('asset_update');
     res.status(201).json(asset);
   } catch (err) {
-    console.error('[UPLOAD_ERROR]:', err);
     res.status(500).json({ error: 'Upload failed: ' + err.message });
   }
 });
 
 /**
- * POST: DUPLICATE ITEM
+ * PATCH: RESTORE FROM TRASH
+ */
+router.patch('/:id/restore', async (req, res) => {
+  try {
+    const { type } = req.query;
+    if (type === 'folder') await Folder.findByIdAndUpdate(req.params.id, { isTrashed: false });
+    else await Asset.findByIdAndUpdate(req.params.id, { isTrashed: false });
+
+    if (global.io) global.io.emit('asset_update');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Restore failed: ' + err.message });
+  }
+});
+
+/**
+ * DELETE: PERMANENT DELETION
+ */
+router.delete('/:id/permanent', async (req, res) => {
+  try {
+    const { type } = req.query;
+    if (type === 'folder') {
+      await Folder.findByIdAndDelete(req.params.id);
+    } else {
+      const asset = await Asset.findByIdAndDelete(req.params.id);
+      if (asset) {
+        // Physically delete main file
+        const mainPath = path.join(__dirname, '..', asset.url);
+        if (fs.existsSync(mainPath)) fs.unlinkSync(mainPath);
+        
+        // Physically delete thumbnail
+        if (asset.thumbnailUrl) {
+          const thumbPath = path.join(__dirname, '..', asset.thumbnailUrl);
+          if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
+        }
+      }
+    }
+
+    if (global.io) global.io.emit('asset_update');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Permanent deletion failed: ' + err.message });
+  }
+});
+
+/**
+ * POST: DUPLICATE
  */
 router.post('/:id/duplicate', async (req, res) => {
   try {
@@ -174,19 +217,14 @@ router.post('/:id/duplicate', async (req, res) => {
 
     if (type === 'folder') {
       const original = await Folder.findById(req.params.id);
-      if (!original) return res.status(404).json({ error: 'Folder not found' });
-      
       const clone = new Folder({
         name: original.name + ' - Copy',
         parentFolder: targetFolder,
         createdBy: String(req.user.id)
       });
       await clone.save();
-      // Note: Deep cloning of contents or subfolders not implemented here for simplicity
     } else {
       const original = await Asset.findById(req.params.id);
-      if (!original) return res.status(404).json({ error: 'Asset not found' });
-
       const clone = new Asset({
         name: original.name + ' - Copy',
         originalName: original.originalName,
@@ -208,18 +246,14 @@ router.post('/:id/duplicate', async (req, res) => {
 });
 
 /**
- * PATCH: MOVE ITEM
+ * PATCH: MOVE
  */
 router.patch('/:id/move', async (req, res) => {
   try {
     const { type, destinationFolder } = req.body;
     const targetFolder = (destinationFolder === 'null' || !destinationFolder) ? null : destinationFolder;
-
-    if (type === 'folder') {
-      await Folder.findByIdAndUpdate(req.params.id, { parentFolder: targetFolder });
-    } else {
-      await Asset.findByIdAndUpdate(req.params.id, { parentFolder: targetFolder });
-    }
+    if (type === 'folder') await Folder.findByIdAndUpdate(req.params.id, { parentFolder: targetFolder });
+    else await Asset.findByIdAndUpdate(req.params.id, { parentFolder: targetFolder });
 
     if (global.io) global.io.emit('asset_update');
     res.json({ success: true });
@@ -229,14 +263,13 @@ router.patch('/:id/move', async (req, res) => {
 });
 
 /**
- * PATCH: TRASH / RENAME
+ * PATCH: RENAME / TRASH
  */
 router.patch('/:id/trash', async (req, res) => {
   try {
     const { type } = req.query;
     if (type === 'folder') await Folder.findByIdAndUpdate(req.params.id, { isTrashed: true });
     else await Asset.findByIdAndUpdate(req.params.id, { isTrashed: true });
-
     if (global.io) global.io.emit('asset_update');
     res.json({ success: true });
   } catch (err) {
@@ -249,7 +282,6 @@ router.patch('/:id/rename', async (req, res) => {
     const { name, type } = req.body;
     if (type === 'folder') await Folder.findByIdAndUpdate(req.params.id, { name });
     else await Asset.findByIdAndUpdate(req.params.id, { name });
-
     if (global.io) global.io.emit('asset_update');
     res.json({ success: true });
   } catch (err) {
