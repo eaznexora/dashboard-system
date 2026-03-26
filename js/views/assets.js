@@ -450,29 +450,115 @@ const AssetHub = {
         const input = document.createElement('input');
         input.type = 'file';
         input.multiple = true;
-        if (isFolder) { input.webkitdirectory = true; }
+        if (isFolder) { 
+            input.setAttribute('webkitdirectory', ''); 
+            input.setAttribute('directory', ''); 
+        }
         input.onchange = (e) => { this.handleFileUpload(e.target.files); }; 
         input.click();
     },
 
     async handleFileUpload(files) {
         if (!files || files.length === 0) return;
+
         const formData = new FormData();
         Array.from(files).forEach(f => formData.append('file', f));
         formData.append('parentFolder', this.currentFolderId || 'null');
-        
-        showNotification(`Securing ${files.length} asset(s)...`, 'info');
-        try {
-            const res = await fetch('/api/assets/upload', { method: 'POST', body: formData, credentials: 'include' });
-            if (res.ok) { 
-                showNotification('Assets secured successfully', 'success'); 
-                this.loadData(); 
-            } else {
-                throw new Error('Upload blocked by security engine');
+
+        const toastId = 'upload-toast-' + Date.now();
+        const toastHtml = `
+            <div id="${toastId}" class="fixed bottom-10 right-10 z-[1000] bg-white rounded-[2.5rem] shadow-[0_40px_120px_rgba(0,0,0,0.25)] border border-gray-100 p-10 w-[24rem] animate-in slide-in-from-right-20 duration-500 overflow-hidden">
+                <div class="flex items-center justify-between mb-8">
+                    <div class="flex items-center gap-5">
+                        <div class="w-14 h-14 bg-blue-50 rounded-[1.25rem] flex items-center justify-center text-blue-600 shadow-inner">
+                            <i class="ph-bold ph-cloud-arrow-up text-3xl animate-bounce"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="font-black text-gray-900 text-[15px] tracking-tight truncate">Syncing assets...</h4>
+                            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">${files.length > 1 ? `${files.length} items in transit` : truncateFileName(files[0].name, 20)}</p>
+                        </div>
+                    </div>
+                    <span id="${toastId}-percent" class="text-blue-600 font-black text-xl italic">0%</span>
+                </div>
+                <div class="h-4 w-full bg-gray-50 rounded-full overflow-hidden shadow-inner border border-gray-100 p-1 relative">
+                    <div id="${toastId}-bar" class="h-full bg-blue-600 rounded-full transition-all duration-300 w-[0%] shadow-[0_0_15px_rgba(37,99,235,0.4)]"></div>
+                </div>
+                <p id="${toastId}-status" class="text-[11px] text-gray-400 font-bold text-center uppercase tracking-[0.2em] mt-6 italic">Optimizing stream buffers...</p>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', toastHtml);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/assets/upload', true);
+        xhr.withCredentials = true;
+
+        xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                const bar = document.getElementById(`${toastId}-bar`);
+                const text = document.getElementById(`${toastId}-percent`);
+                if (bar) bar.style.width = percent + '%';
+                if (text) text.innerText = percent + '%';
             }
-        } catch (e) { 
-            showNotification(e.message, 'error'); 
+        });
+
+        xhr.onload = () => {
+            const toast = document.getElementById(toastId);
+            const status = document.getElementById(`${toastId}-status`);
+            const bar = document.getElementById(`${toastId}-bar`);
+            const iconContainer = toast?.querySelector('.bg-blue-50');
+
+            if (xhr.status >= 200 && xhr.status < 300) {
+                if(status) {
+                    status.innerText = 'Sync Completed Successfully';
+                    status.classList.replace('text-gray-400', 'text-green-600');
+                }
+                if(bar) bar.className = 'h-full bg-green-500 rounded-full transition-all duration-300 w-full shadow-[0_0_20px_rgba(16,185,129,0.4)]';
+                if(iconContainer) {
+                    iconContainer.classList.replace('bg-blue-50', 'bg-green-50');
+                    iconContainer.innerHTML = '<i class="ph-bold ph-check-circle text-3xl text-green-600"></i>';
+                }
+                
+                setTimeout(() => {
+                    toast?.classList.add('opacity-0', 'translate-x-full');
+                    setTimeout(() => {
+                        toast?.remove();
+                        this.loadData();
+                    }, 500);
+                }, 3000);
+            } else {
+                this.handleUploadError(toastId, 'Server Rejection');
+            }
+        };
+
+        xhr.onerror = () => this.handleUploadError(toastId, 'Network Fault');
+        xhr.send(formData);
+
+        function truncateFileName(name, len) {
+            return name.length > len ? name.substring(0, len) + '...' : name;
         }
+    },
+
+    handleUploadError(toastId, message) {
+        const toast = document.getElementById(toastId);
+        const status = document.getElementById(`${toastId}-status`);
+        const bar = document.getElementById(`${toastId}-bar`);
+        const iconContainer = toast?.querySelector('div > div:first-child');
+
+        if(status) {
+            status.innerText = 'CRITICAL: ' + message;
+            status.classList.replace('text-gray-400', 'text-red-600');
+        }
+        if(bar) bar.className = 'h-full bg-red-600 rounded-full w-full shadow-[0_0_20px_rgba(220,38,38,0.4)]';
+        if(iconContainer) {
+            iconContainer.classList.replace('bg-blue-50', 'bg-red-50');
+            iconContainer.innerHTML = '<i class="ph-bold ph-warning-circle text-3xl text-red-600"></i>';
+        }
+        
+        setTimeout(() => {
+            toast?.classList.add('opacity-0', 'translate-x-full');
+            setTimeout(() => toast?.remove(), 500);
+        }, 6000);
     },
 
     copyToClipboard(id, type, action) { this.clipboard = { id, type, action }; showNotification('Copied', 'success'); this.render(); },
