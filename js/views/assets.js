@@ -320,7 +320,6 @@ const AssetHub = {
                 </div>
                 <button onclick="AssetHub.clearSelection()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all ml-2 text-gray-400 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
             </div>
-            </div>
 
             <!-- Main Body -->
             <div class="flex-1 overflow-y-auto p-10 bg-gray-50" id="hub-body">
@@ -365,9 +364,9 @@ const AssetHub = {
                     <tbody>
                         ${rows.map(item => {
                             const isHtml = item.name?.toLowerCase().endsWith('.html');
-                            const dblClickAction = item.isFolder ? `loadData('${item._id}')` : (isHtml ? `window.open('${item.url}', '_blank')` : `openItem('${item._id}')`);
+                            const dblClickAction = item.isFolder ? `AssetHub.loadData('${item._id}')` : (isHtml ? `window.open('${item.url}', '_blank')` : `AssetHub.openItem('${item._id}')`);
                             return `
-                            <tr ondblclick="AssetHub.${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
+                            <tr ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
                                 <td class="py-4 px-4 flex items-center gap-4">
                                     ${item.isFolder ? '<i class="ph ph-folder text-2xl text-gray-400"></i>' : this.getSmallIcon(item.mimeType, item.name)}
                                     <span class="font-bold text-gray-700">${item.name}</span>
@@ -421,7 +420,7 @@ const AssetHub = {
 
         return `
             <div data-id="${asset._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${asset._id}', 'asset')" onclick="AssetHub.toggleSelection('${asset._id}', event)" ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
-                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, '${asset._id || folder._id}', '${type}')" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10"><i class="ph ph-dots-three-vertical text-lg"></i></button>
+                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10"><i class="ph ph-dots-three-vertical text-lg"></i></button>
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
                     ${isImg ? `<img src="${asset.thumbnailUrl || asset.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
                 </div>
