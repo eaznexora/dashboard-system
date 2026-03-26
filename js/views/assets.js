@@ -13,10 +13,21 @@ const AssetHub = {
     clipboard: { id: null, type: null, action: null }, // { id, type, action: 'copy' | 'cut' }
     isTrashView: false,
     filters: { type: null, person: null, modified: null },
+    selectedItems: new Set(),
 
     init(user) {
         this.container = document.getElementById('asset-hub-container');
         if (!this.container) return;
+
+        // Inject Drop Overlay
+        const overlayHtml = `
+            <div id="drop-overlay" class="fixed inset-0 z-[999] bg-blue-600/90 flex flex-col items-center justify-center text-white opacity-0 pointer-events-none transition-opacity duration-300 backdrop-blur-sm">
+                <i class="ph-fill ph-cloud-arrow-up text-9xl mb-8 animate-bounce"></i>
+                <h2 class="text-4xl font-black uppercase tracking-[0.3em] text-center px-10">Drop files to upload to Eaz Drive</h2>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', overlayHtml);
+        this.dropOverlay = document.getElementById('drop-overlay');
 
         // Initialize Socket
         if (typeof io !== 'undefined') {
@@ -32,24 +43,26 @@ const AssetHub = {
     },
 
     setupInteractivity() {
-        // --- DRAG & DROP ---
-        const dropZone = this.container;
-        ['dragenter', 'dragover'].forEach(name => {
-            dropZone.addEventListener(name, (e) => {
-                if (this.isTrashView) return;
-                e.preventDefault(); e.stopPropagation();
-                dropZone.classList.add('border-4', 'border-blue-500', 'border-dashed', 'bg-blue-50/20');
-            });
+        // --- GLOBAL DRAG & DROP OVERLAY ---
+        window.addEventListener('dragenter', (e) => {
+            if (this.isTrashView) return;
+            e.preventDefault();
+            this.dropOverlay?.classList.remove('opacity-0', 'pointer-events-none');
         });
 
-        ['dragleave', 'drop'].forEach(name => {
-            dropZone.addEventListener(name, (e) => {
-                e.preventDefault(); e.stopPropagation();
-                dropZone.classList.remove('border-4', 'border-blue-500', 'border-dashed', 'bg-blue-50/20');
-            });
+        window.addEventListener('dragover', (e) => {
+            e.preventDefault();
         });
 
-        dropZone.addEventListener('drop', (e) => {
+        window.addEventListener('dragleave', (e) => {
+            if (e.relatedTarget === null || e.relatedTarget === undefined) {
+                this.dropOverlay?.classList.add('opacity-0', 'pointer-events-none');
+            }
+        });
+
+        window.addEventListener('drop', (e) => {
+            e.preventDefault();
+            this.dropOverlay?.classList.add('opacity-0', 'pointer-events-none');
             if (this.isTrashView) return;
             const files = e.dataTransfer.files;
             if (files.length > 0) this.handleFileUpload(files);
@@ -88,6 +101,7 @@ const AssetHub = {
         try {
             this.isTrashView = false;
             this.currentFolderId = folderId;
+            this.selectedItems.clear(); 
             const res = await fetch(`/api/assets?folderId=${folderId || 'null'}`, { credentials: 'include' });
             if (!res.ok) throw new Error('Failed to synchronize data');
 
@@ -167,7 +181,7 @@ const AssetHub = {
                     <span class="hover:text-blue-600 cursor-pointer ${!this.isTrashView && !this.currentFolderId ? 'text-blue-600' : ''}" onclick="AssetHub.loadData(null)">Eaz Drive</span>
                     ${this.breadcrumbs.map(bc => `
                         <i class="ph ph-caret-right text-[10px] mx-1"></i>
-                        <span class="hover:text-blue-600 cursor-pointer" onclick="AssetHub.loadData('${bc.id}')">${bc.name}</span>
+                        <span ondragenter="event.preventDefault(); this.classList.add('text-blue-500', 'scale-110')" ondragover="event.preventDefault()" ondragleave="this.classList.remove('text-blue-500', 'scale-110')" ondrop="AssetHub.handleBreadcrumbDrop('${bc.id}', event)" class="hover:text-blue-600 cursor-pointer transition-all inline-block" onclick="AssetHub.loadData('${bc.id}')">${bc.name}</span>
                     `).join('')}
                     ${this.isTrashView ? `
                         <i class="ph ph-caret-right text-[10px] mx-1"></i>
@@ -211,6 +225,23 @@ const AssetHub = {
                         <span>Trash</span>
                     </button>
                 </div>
+            </div>
+            
+            <!-- Bulk Action Bar -->
+            ${this.selectedItems.size > 0 ? `
+                <div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[90] bg-gray-900 text-white px-8 py-5 rounded-[2rem] shadow-2xl flex items-center gap-8 animate-in slide-in-from-bottom-10 border border-white/10 backdrop-blur-md">
+                    <div class="flex items-center gap-4 pr-6 border-r border-white/10">
+                        <span class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-sm">${this.selectedItems.size}</span>
+                        <span class="font-black uppercase tracking-widest text-[11px]">Items selected</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="AssetHub.bulkAction('copy')" class="px-5 py-3 rounded-xl hover:bg-white/10 transition-all flex items-center gap-3 font-bold text-sm"><i class="ph-fill ph-copy"></i> Copy</button>
+                        <button onclick="AssetHub.bulkAction('cut')" class="px-5 py-3 rounded-xl hover:bg-white/10 transition-all flex items-center gap-3 font-bold text-sm"><i class="ph-fill ph-scissors"></i> Move</button>
+                        <button onclick="AssetHub.bulkAction('delete')" class="px-5 py-3 rounded-xl hover:bg-red-500/20 text-red-400 font-bold text-sm flex items-center gap-3"><i class="ph-fill ph-trash"></i> Delete</button>
+                    </div>
+                    <button onclick="AssetHub.clearSelection()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-all ml-2"><i class="ph ph-x text-xl"></i></button>
+                </div>
+            ` : ''}
             </div>
 
             <!-- Main Body -->
@@ -274,11 +305,12 @@ const AssetHub = {
     },
 
     renderFolderCard(f) {
+        const isSelected = this.selectedItems.has(f._id);
         return `
-            <div ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card flex items-center gap-4 bg-white border border-gray-200 rounded-xl px-5 py-4 hover:border-blue-500 hover:shadow-md transition-all cursor-pointer group relative">
-                <i class="ph-fill ph-folder text-3xl text-gray-400 group-hover:text-blue-500 transition-colors"></i>
+            <div onmousedown="if(event.button === 0) AssetHub.toggleSelection('${f._id}', event)" ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200'} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
+                <i class="ph-fill ph-folder text-3xl ${isSelected ? 'text-blue-500' : 'text-gray-400'} group-hover:text-blue-500 transition-colors"></i>
                 <span class="flex-1 font-bold text-gray-700 truncate text-[14px]">${f.name}</span>
-                <button onclick="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors">
+                <button onmousedown="event.stopPropagation()" onclick="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-100 transition-colors">
                     <i class="ph ph-dots-three-vertical-bold"></i>
                 </button>
             </div>
@@ -288,6 +320,7 @@ const AssetHub = {
     renderFileCard(a) {
         const isImg = ['image/jpeg', 'image/png', 'image/webp'].includes(a.mimeType);
         const ext = a.name.split('.').pop().toLowerCase();
+        const isSelected = this.selectedItems.has(a._id);
         
         let iconHtml = '';
         if (!isImg) {
@@ -300,9 +333,9 @@ const AssetHub = {
         }
 
         return `
-            <div ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card flex flex-col bg-white border border-gray-200 rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
+            <div onmousedown="if(event.button === 0) AssetHub.toggleSelection('${a._id}', event)" ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xl' : 'border-gray-200'} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
-                    ${isImg ? `<img src="${a.thumbnailUrl || a.url}" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
+                    ${isImg ? `<img src="${a.thumbnailUrl || a.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
                 </div>
                 <div class="p-5 flex items-center gap-4 bg-white border-t border-gray-50">
                     <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">${this.getSmallIcon(a.mimeType, a.name)}</div>
@@ -310,7 +343,7 @@ const AssetHub = {
                         <p class="text-[13px] font-bold text-gray-800 truncate">${a.name}</p>
                         <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">${this.formatSize(a.size)}</p>
                     </div>
-                    <button onclick="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-colors"><i class="ph ph-dots-three-vertical-bold"></i></button>
+                    <button onmousedown="event.stopPropagation()" onclick="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors"><i class="ph ph-dots-three-vertical-bold"></i></button>
                 </div>
             </div>
         `;
@@ -345,8 +378,7 @@ const AssetHub = {
                     <button onclick="AssetHub.promptNewFolder()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-folder-plus text-xl text-blue-500"></i> New folder</button>
                     ${this.clipboard.id ? `<button onclick="AssetHub.pasteItem()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-clipboard-text text-xl text-blue-500"></i> Paste (Ctrl+V)</button>` : ''}
                     <div class="h-[1px] bg-gray-100 my-1"></div>
-                    <button onclick="AssetHub.triggerFileUpload(false)" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-file-arrow-up text-xl text-blue-500"></i> File upload</button>
-                    <button onclick="AssetHub.triggerFileUpload(true)" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-folder-plus text-xl text-blue-500"></i> Folder upload</button>
+                    <button onclick="AssetHub.triggerFileUpload()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-file-arrow-up text-xl text-blue-500"></i> File upload</button>
                 </div>
             `;
         } else if (mode === 'item') {
@@ -463,13 +495,10 @@ const AssetHub = {
         };
     },
 
-    triggerFileUpload(isFolder = false) {
+    triggerFileUpload() {
         const input = document.createElement('input');
         input.type = 'file';
         input.multiple = true;
-        if (isFolder) { 
-            input.webkitdirectory = true; 
-        }
         input.onchange = (e) => { this.handleFileUpload(e.target.files); }; 
         input.click();
     },
@@ -596,12 +625,89 @@ const AssetHub = {
     copyToClipboard(id, type, action) { this.clipboard = { id, type, action }; showNotification('Copied', 'success'); this.render(); },
 
     async pasteItem(targetFolderId = this.currentFolderId) {
-        if (!this.clipboard.id) return;
-        const { id, type, action } = this.clipboard;
+        if (!this.clipboard.id && (!this.clipboard.items || this.clipboard.items.length === 0)) return;
+        
+        const action = this.clipboard.action;
+        const items = this.clipboard.items || [{ id: this.clipboard.id, type: this.clipboard.type }];
+        
         try {
-            const res = await fetch(`/api/assets/${id}/${action === 'copy' ? 'duplicate' : 'move'}`, { method: action === 'copy' ? 'POST' : 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ type, destinationFolder: targetFolderId }), credentials: 'include' });
-            if (res.ok) { showNotification('Pasted', 'success'); this.clipboard = { id: null, type: null, action: null }; this.loadData(); }
-        } catch (e) { showNotification('Paste failed', 'error'); }
+            for (const item of items) {
+                const endpoint = action === 'copy' ? 'duplicate' : 'move';
+                const method = action === 'copy' ? 'POST' : 'PATCH';
+                await fetch(`/api/assets/${item.id}/${endpoint}`, { 
+                    method, 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ type: item.type, destinationFolder: targetFolderId }), 
+                    credentials: 'include' 
+                });
+            }
+            showNotification(`Action completed for ${items.length} items`, 'success');
+            this.clipboard = { id: null, type: null, action: null, items: [] }; 
+            this.loadData();
+        } catch (e) { 
+            showNotification('Operation failed', 'error'); 
+        }
+    },
+
+    toggleSelection(id, e) {
+        if (e) { e.preventDefault(); e.stopPropagation(); }
+        if (this.selectedItems.has(id)) this.selectedItems.delete(id);
+        else this.selectedItems.add(id);
+        this.applyFiltersAndRender();
+    },
+
+    clearSelection() {
+        this.selectedItems.clear();
+        this.applyFiltersAndRender();
+    },
+
+    async bulkAction(action) {
+        if (this.selectedItems.size === 0) return;
+        
+        if (action === 'delete') {
+            this.showConfirmModal(`Delete ${this.selectedItems.size} items?`, 'These items will be moved to the trash.', async () => {
+                for (const id of this.selectedItems) {
+                    const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
+                    await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' });
+                }
+                showNotification('Bulk delete completed', 'success');
+                this.clearSelection();
+                this.loadData();
+            });
+            return;
+        }
+
+        if (action === 'copy' || action === 'cut') {
+            const items = Array.from(this.selectedItems).map(id => ({
+                id,
+                type: this.folders.find(f => f._id === id) ? 'folder' : 'asset'
+            }));
+            
+            this.clipboard = { items, action: action === 'copy' ? 'copy' : 'cut' };
+            showNotification(`${this.selectedItems.size} items copied to clipboard`, 'success');
+            this.clearSelection();
+        }
+    },
+
+    async handleBreadcrumbDrop(folderId, e) {
+        e.preventDefault();
+        const bc = e.target;
+        bc.classList.remove('text-blue-500', 'scale-110');
+
+        if (this.selectedItems.size > 0) {
+            for (const id of this.selectedItems) {
+                const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
+                await fetch(`/api/assets/${id}/move`, { 
+                    method: 'PATCH', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify({ type, destinationFolder: folderId }), 
+                    credentials: 'include' 
+                });
+            }
+            showNotification(`Moved ${this.selectedItems.size} items`, 'success');
+            this.clearSelection();
+            this.loadData();
+        }
     },
 
     openItem(url, mime, name) {
