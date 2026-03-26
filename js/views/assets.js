@@ -382,23 +382,25 @@ const AssetHub = {
         `;
     },
 
-    renderFolderCard(f) {
-        const isSelected = this.selectedItems.has(f._id);
-        const selClasses = isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200';
+    renderFolderCard(folder) {
+        const type = 'folder';
+        const isSelected = this.selectedItems.has(folder._id);
+        const selClasses = isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'border-gray-200';
         return `
-            <div data-id="${f._id}" data-type="folder" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${f._id}', 'folder')" onclick="AssetHub.toggleSelection('${f._id}', event)" ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${selClasses} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
-                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-dots-three-vertical text-lg"></i></button>
+            <div data-id="${folder._id}" data-type="folder" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${folder._id}', 'folder')" onclick="AssetHub.toggleSelection('${folder._id}', event)" ondblclick="AssetHub.loadData('${folder._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${folder._id}', 'folder', ${JSON.stringify(folder).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${selClasses} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
+                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, '${folder._id}', 'folder')" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10"><i class="ph ph-dots-three-vertical text-lg"></i></button>
                 <i class="ph-fill ph-folder text-3xl ${isSelected ? 'text-blue-500' : 'text-gray-400'} group-hover:text-blue-500 transition-colors"></i>
-                <span class="flex-1 font-bold text-gray-700 truncate text-[14px]">${f.name}</span>
+                <span class="flex-1 font-bold text-gray-700 truncate text-[14px]">${folder.name}</span>
             </div>
         `;
     },
 
-    renderFileCard(a) {
-        const isImg = ['image/jpeg', 'image/png', 'image/webp'].includes(a.mimeType);
-        const ext = a.name.split('.').pop().toLowerCase();
-        const isSelected = this.selectedItems.has(a._id);
-        const selClasses = isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xl' : 'border-gray-200';
+    renderFileCard(asset) {
+        const type = 'asset';
+        const isImg = ['image/jpeg', 'image/png', 'image/webp'].includes(asset.mimeType);
+        const ext = asset.name.split('.').pop().toLowerCase();
+        const isSelected = this.selectedItems.has(asset._id);
+        const selClasses = isSelected ? 'ring-2 ring-blue-500 bg-blue-50 shadow-xl' : 'border-gray-200';
         
         let iconHtml = '';
         if (!isImg) {
@@ -411,16 +413,16 @@ const AssetHub = {
         }
 
         return `
-            <div data-id="${a._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${a._id}', 'asset')" onclick="AssetHub.toggleSelection('${a._id}', event)" ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
-                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-dots-three-vertical text-lg"></i></button>
+            <div data-id="${asset._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${asset._id}', 'asset')" onclick="AssetHub.toggleSelection('${asset._id}', event)" ondblclick="AssetHub.openItem('${asset.url}', '${asset.mimeType}', '${asset.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
+                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, '${asset._id || folder._id}', '${type}')" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10"><i class="ph ph-dots-three-vertical text-lg"></i></button>
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
-                    ${isImg ? `<img src="${a.thumbnailUrl || a.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
+                    ${isImg ? `<img src="${asset.thumbnailUrl || asset.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
                 </div>
                 <div class="p-5 flex items-center gap-4 bg-white border-t border-gray-50">
-                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">${this.getSmallIcon(a.mimeType, a.name)}</div>
+                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">${this.getSmallIcon(asset.mimeType, asset.name)}</div>
                     <div class="flex-1 min-w-0">
-                        <p class="text-[13px] font-bold text-gray-800 truncate">${a.name}</p>
-                        <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">${this.formatSize(a.size)}</p>
+                        <p class="text-[13px] font-bold text-gray-800 truncate">${asset.name}</p>
+                        <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">${this.formatSize(asset.size)}</p>
                     </div>
                 </div>
             </div>
@@ -778,22 +780,13 @@ const AssetHub = {
         
         if (isSelected) {
             card.classList.remove('border-gray-200');
-            card.classList.add('border-blue-500', 'ring-2', 'ring-blue-500/20');
-            if (type === 'folder') {
-                card.classList.add('bg-blue-50/10');
-                if (icon) icon.classList.replace('text-gray-400', 'text-blue-500');
-            } else {
-                card.classList.add('shadow-xl');
-            }
+            card.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50');
+            if (type === 'folder' && icon) icon.classList.replace('text-gray-400', 'text-blue-500');
+            else if (type === 'asset') card.classList.add('shadow-xl');
         } else {
             card.classList.add('border-gray-200');
-            card.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500/20');
-            if (type === 'folder') {
-                card.classList.remove('bg-blue-50/10');
-                if (icon) icon.classList.replace('text-blue-500', 'text-gray-400');
-            } else {
-                card.classList.remove('shadow-xl');
-            }
+            card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'shadow-xl');
+            if (type === 'folder' && icon) icon.classList.replace('text-blue-500', 'text-gray-400');
         }
     },
 
