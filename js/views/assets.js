@@ -106,25 +106,25 @@ const AssetHub = {
         window.addEventListener('click', () => this.clearMenus());
 
         // --- MARQUEE SELECTION ---
-        const hubBody = document.getElementById('hub-body');
-        if (hubBody) {
-            hubBody.addEventListener('mousedown', (e) => {
-                if (e.button !== 0 || !e.target) return;
-                if (e.target.closest('.asset-card') || e.target.closest('button')) return;
-                
-                this.isDragging = true;
-                this.startX = e.clientX;
-                this.startY = e.clientY;
+        this.container.addEventListener('mousedown', (e) => {
+            if (e.button !== 0 || !e.target) return;
+            
+            // Only trigger if clicking directly on the hub-body background
+            const isHubBody = e.target.id === 'hub-body' || e.target.closest('#hub-body');
+            if (!isHubBody || e.target.closest('.asset-card') || e.target.closest('button')) return;
+            
+            this.isDragging = true;
+            this.startX = e.clientX;
+            this.startY = e.clientY;
 
-                this.selectionBox = document.createElement('div');
-                this.selectionBox.className = 'fixed bg-blue-500/10 border border-blue-500/50 pointer-events-none z-[100] rounded-sm';
-                this.selectionBox.style.left = `${this.startX}px`;
-                this.selectionBox.style.top = `${this.startY}px`;
-                this.selectionBox.style.width = '0px';
-                this.selectionBox.style.height = '0px';
-                document.body.appendChild(this.selectionBox);
-            });
-        }
+            this.selectionBox = document.createElement('div');
+            this.selectionBox.className = 'fixed bg-blue-500/10 border border-blue-500/50 pointer-events-none z-[100] rounded-sm';
+            this.selectionBox.style.left = `${this.startX}px`;
+            this.selectionBox.style.top = `${this.startY}px`;
+            this.selectionBox.style.width = '0px';
+            this.selectionBox.style.height = '0px';
+            document.body.appendChild(this.selectionBox);
+        });
 
         window.addEventListener('mousemove', (e) => {
             if (!this.isDragging || !this.selectionBox) return;
@@ -177,8 +177,8 @@ const AssetHub = {
         });
 
         // --- BACKGROUND CLICK TO DESELECT ---
-        hubBody.addEventListener('click', (e) => {
-            if (e.target === hubBody || e.target.id === 'hub-body') {
+        this.container.addEventListener('click', (e) => {
+            if (e.target.id === 'hub-body') {
                 this.clearSelection();
             }
         });
