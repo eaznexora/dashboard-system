@@ -2951,6 +2951,33 @@ const AdminPanel = {
     } catch(err) { toast('Failed to submit response', 'error'); }
   },
 
+  async deleteIssue(id) {
+    window.confirmModal('Delete Report', 'Permanently remove this agency intelligence report? This cannot be undone.', async () => {
+      try {
+        const res = await fetch(`/api/issues/${id}`, { method: 'DELETE' });
+        if(res.ok) {
+          toast('Report deleted successfully');
+          document.getElementById('issue-detail-modal')?.remove();
+          this.loadAdminIssues();
+        }
+      } catch(err) { toast('Failed to delete report', 'error'); }
+    });
+  },
+
+  async resolveIssue(id) {
+    try {
+      const res = await fetch(`/api/issues/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'resolved' })
+      });
+      if(res.ok) {
+        toast('Issue marked as resolved', 'success');
+        this.loadAdminIssues();
+      }
+    } catch(err) { toast('Failed to resolve issue', 'error'); }
+  },
+
   async loadEmployeeReportingView() {
     const container = document.getElementById('dashboard-content');
     const user = getCurrentUser();
