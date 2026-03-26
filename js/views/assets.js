@@ -80,7 +80,7 @@ const AssetHub = {
 
         // --- GLOBAL CONTEXT MENU ---
         this.container.addEventListener('contextmenu', (e) => {
-            if (e.target.closest('.asset-card')) return; 
+            if (e.target.closest('.asset-card')) return;
             e.preventDefault();
             this.showContextMenu(e, 'global');
         });
@@ -90,7 +90,7 @@ const AssetHub = {
         window.addEventListener('keydown', (e) => {
             if (e.altKey && e.key.toLowerCase() === 'c') {
                 altCMode = true;
-                setTimeout(() => { altCMode = false; }, 2000); 
+                setTimeout(() => { altCMode = false; }, 2000);
             }
             if (altCMode) {
                 if (e.key.toLowerCase() === 'f') { e.preventDefault(); this.promptNewFolder(); altCMode = false; }
@@ -144,7 +144,7 @@ const AssetHub = {
         try {
             this.isTrashView = false;
             this.currentFolderId = folderId;
-            this.selectedItems.clear(); 
+            this.selectedItems.clear();
             const res = await fetch(`/api/assets?folderId=${folderId || 'null'}`, { credentials: 'include' });
             if (!res.ok) throw new Error('Failed to synchronize data');
 
@@ -170,7 +170,7 @@ const AssetHub = {
             this.folders = data.folders || [];
             this.assets = data.assets || [];
             this.breadcrumbs = [];
-            
+
             this.applyFiltersAndRender();
         } catch (err) {
             if (window.showNotification) showNotification(err.message, 'error');
@@ -218,7 +218,7 @@ const AssetHub = {
         try {
             const folderName = this.isTrashView ? 'Trash' : (this.breadcrumbs.length > 0 ? this.breadcrumbs[this.breadcrumbs.length - 1].name : 'Eaz Drive');
 
-        this.container.innerHTML = `
+            this.container.innerHTML = `
             <!-- Header -->
             <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0 sticky top-0 z-10 transition-all">
                 <div class="flex items-center gap-3 font-bold text-[12px] text-gray-400 uppercase tracking-widest">
@@ -346,10 +346,10 @@ const AssetHub = {
                     </thead>
                     <tbody>
                         ${rows.map(item => {
-                            const isHtml = item.name?.toLowerCase().endsWith('.html');
-                            // Fix: Ensure window.open is not prefixed with AssetHub.
-                            const dblClickAction = item.isFolder ? `AssetHub.loadData('${item._id}')` : (isHtml ? `window.open('${item.url}', '_blank')` : `AssetHub.openItem('${item._id}')`);
-                            return `
+            const isHtml = item.name?.toLowerCase().endsWith('.html');
+            // Fix: Ensure window.open is not prefixed with AssetHub.
+            const dblClickAction = item.isFolder ? `AssetHub.loadData('${item._id}')` : (isHtml ? `window.open('${item.url}', '_blank')` : `AssetHub.openItem('${item._id}')`);
+            return `
                             <tr ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
                                 <td class="py-4 px-4 flex items-center gap-4">
                                     ${item.isFolder ? '<i class="ph ph-folder text-2xl text-gray-400"></i>' : this.getSmallIcon(item.mimeType, item.name)}
@@ -362,7 +362,7 @@ const AssetHub = {
                                 </td>
                             </tr>
                             `;
-                        }).join('')}
+        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -390,7 +390,7 @@ const AssetHub = {
         const ext = asset.name.split('.').pop().toLowerCase();
         const isSelected = this.selectedItems.has(asset._id);
         const selClasses = isSelected ? '' : 'border-gray-200';
-        
+
         const isHtml = asset.name.toLowerCase().endsWith('.html');
         const dblClickAction = isHtml ? `window.open('${asset.url}', '_blank')` : `AssetHub.openItem('${asset._id}')`;
 
@@ -412,6 +412,17 @@ const AssetHub = {
                 </div>
             </div>
         `;
+    },
+
+    getLargeIcon(mime, name) {
+        if (mime?.startsWith('image/')) return '<i class="ph-fill ph-image text-blue-500 text-6xl"></i>';
+        const ext = name?.split('.').pop().toLowerCase();
+        if (ext === 'pdf') return '<i class="ph-fill ph-file-pdf text-red-500 text-6xl"></i>';
+        if (['xls', 'xlsx', 'csv'].includes(ext)) return '<i class="ph-fill ph-file-xls text-green-500 text-6xl"></i>';
+        if (['doc', 'docx'].includes(ext)) return '<i class="ph-fill ph-file-doc text-blue-500 text-6xl"></i>';
+        if (['js', 'html', 'css', 'json', 'py', 'php', 'c', 'cpp'].includes(ext)) return '<i class="ph-fill ph-file-code text-yellow-500 text-6xl"></i>';
+        if (['zip', 'rar', '7z'].includes(ext)) return '<i class="ph-fill ph-file-zip text-purple-500 text-6xl"></i>';
+        return `<div class="w-16 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center font-black text-gray-300 uppercase text-sm">${ext || '?'}</div>`;
     },
 
     getSmallIcon(mime, name) {
@@ -512,7 +523,7 @@ const AssetHub = {
         this.clearMenus();
         const rect = e.target.getBoundingClientRect();
         const items = type === 'type' ? ['Folders', 'Images', 'Documents', 'Reset'] : (type === 'modified' ? ['Today', 'Last 7 days', 'Last 30 days', 'Reset'] : ['Admin', 'Nexora Team', 'Development', 'Reset']);
-        
+
         const menuHtml = `
             <div id="filter-menu" class="fixed z-[180] bg-white rounded-xl shadow-xl border border-gray-100 p-2 w-48 animate-in fade-in transition-all" style="top:${rect.bottom + 8}px; left:${rect.left}px;">
                 ${items.map(it => `
@@ -524,7 +535,7 @@ const AssetHub = {
     },
 
     applyFilter(type, value) {
-        if(value === 'Reset') this.filters[type] = null;
+        if (value === 'Reset') this.filters[type] = null;
         else this.filters[type] = value;
         this.clearMenus();
         this.applyFiltersAndRender();
@@ -584,10 +595,10 @@ const AssetHub = {
         input.select();
         document.getElementById(`${modalId}-done`).onclick = async () => {
             const name = input.value.trim();
-            if(!name) return;
+            if (!name) return;
             document.getElementById(modalId).remove();
             try {
-                await fetch(`/api/assets/${id}/rename`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, type }), credentials: 'include' });
+                await fetch(`/api/assets/${id}/rename`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, type }), credentials: 'include' });
                 this.loadData();
             } catch (e) { showNotification('Rename failed', 'error'); }
         };
@@ -597,7 +608,7 @@ const AssetHub = {
         const input = document.createElement('input');
         input.type = 'file';
         input.multiple = true;
-        input.onchange = (e) => { this.handleFileUpload(e.target.files); }; 
+        input.onchange = (e) => { this.handleFileUpload(e.target.files); };
         input.click();
     },
 
@@ -657,7 +668,7 @@ const AssetHub = {
                     if (xhr.status >= 200 && xhr.status < 300) resolve();
                     else {
                         let errMsg = 'Server rejection';
-                        try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch(e) {}
+                        try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch (e) { }
                         reject(errMsg);
                     }
                 };
@@ -682,9 +693,9 @@ const AssetHub = {
                 iconContainer.classList.replace('bg-blue-50', 'bg-green-50');
                 iconContainer.innerHTML = '<i class="ph-bold ph-check-circle text-2xl text-green-600"></i>';
             }
-            
+
             if (window.showNotification) showNotification('Vault sync completed successfully', 'success');
-            
+
             setTimeout(() => {
                 toast?.classList.add('opacity-0', 'translate-x-[120%]');
                 setTimeout(() => {
@@ -705,15 +716,15 @@ const AssetHub = {
         const bar = document.getElementById(`${toastId}-bar`);
         const iconContainer = toast?.querySelector('.bg-blue-50') || toast?.querySelector('.bg-green-50');
 
-        if(title) title.innerText = 'Upload failed';
-        if(bar) bar.className = 'h-full bg-red-600 rounded-full w-full';
-        if(iconContainer) {
+        if (title) title.innerText = 'Upload failed';
+        if (bar) bar.className = 'h-full bg-red-600 rounded-full w-full';
+        if (iconContainer) {
             iconContainer.className = 'w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 shadow-sm shrink-0';
             iconContainer.innerHTML = '<i class="ph-bold ph-warning-circle text-2xl"></i>';
         }
-        
+
         if (window.showNotification) showNotification(message, 'error');
-        
+
         setTimeout(() => {
             toast?.classList.add('opacity-0', 'translate-x-full');
             setTimeout(() => toast?.remove(), 500);
@@ -724,33 +735,33 @@ const AssetHub = {
 
     async pasteItem(targetFolderId = this.currentFolderId) {
         if (!this.clipboard.id && (!this.clipboard.items || this.clipboard.items.length === 0)) return;
-        
+
         const action = this.clipboard.action;
         const items = this.clipboard.items || [{ id: this.clipboard.id, type: this.clipboard.type }];
-        
+
         try {
             for (const item of items) {
                 const endpoint = action === 'copy' ? 'duplicate' : 'move';
                 const method = action === 'copy' ? 'POST' : 'PATCH';
-                await fetch(`/api/assets/${item.id}/${endpoint}`, { 
-                    method, 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ type: item.type, destinationFolder: targetFolderId }), 
-                    credentials: 'include' 
+                await fetch(`/api/assets/${item.id}/${endpoint}`, {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: item.type, destinationFolder: targetFolderId }),
+                    credentials: 'include'
                 });
             }
             showNotification(`Action completed for ${items.length} items`, 'success');
-            this.clipboard = { id: null, type: null, action: null, items: [] }; 
+            this.clipboard = { id: null, type: null, action: null, items: [] };
             this.loadData();
-        } catch (e) { 
-            showNotification('Operation failed', 'error'); 
+        } catch (e) {
+            showNotification('Operation failed', 'error');
         }
     },
 
     toggleSelection(id, e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
         const card = document.querySelector(`.asset-card[data-id="${id}"]`);
-        
+
         if (this.selectedItems.has(id)) {
             this.selectedItems.delete(id);
             if (card) this.updateCardSelectionUI(card, false);
@@ -758,7 +769,7 @@ const AssetHub = {
             this.selectedItems.add(id);
             if (card) this.updateCardSelectionUI(card, true);
         }
-        
+
         this.updateBulkActionBar();
     },
 
@@ -775,7 +786,7 @@ const AssetHub = {
 
     updateCardSelectionUI(card, isSelected) {
         if (!card) return;
-        
+
         // Remove old highlight classes
         card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'shadow-xl');
         if (!isSelected) card.classList.add('border-gray-200');
@@ -799,7 +810,7 @@ const AssetHub = {
     updateBulkActionBar() {
         const bar = document.getElementById('bulk-action-bar');
         const countBadge = document.getElementById('selection-count-badge');
-        
+
         if (this.selectedItems.size > 0) {
             if (countBadge) countBadge.innerText = `${this.selectedItems.size} Selected`;
             if (bar) bar.classList.remove('hidden', 'translate-y-20', 'opacity-0');
@@ -814,7 +825,7 @@ const AssetHub = {
 
     async bulkAction(action) {
         if (this.selectedItems.size === 0) return;
-        
+
         if (action === 'delete') {
             this.showConfirmModal(`Delete ${this.selectedItems.size} items?`, 'These items will be moved to the trash.', async () => {
                 for (const id of this.selectedItems) {
@@ -851,7 +862,7 @@ const AssetHub = {
                 id,
                 type: this.folders.find(f => f._id === id) ? 'folder' : 'asset'
             }));
-            
+
             this.clipboard = { items, action: action === 'copy' ? 'copy' : 'cut' };
             showNotification(`${this.selectedItems.size} items copied to clipboard`, 'success');
             this.clearMenus();
@@ -894,11 +905,11 @@ const AssetHub = {
             try {
                 for (const id of itemIds) {
                     const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
-                    await fetch(`/api/assets/${id}/move`, { 
-                        method: 'PATCH', 
-                        headers: {'Content-Type': 'application/json'}, 
-                        body: JSON.stringify({ type, destinationFolder: targetFolderId === 'null' ? null : targetFolderId }), 
-                        credentials: 'include' 
+                    await fetch(`/api/assets/${id}/move`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type, destinationFolder: targetFolderId === 'null' ? null : targetFolderId }),
+                        credentials: 'include'
                     });
                 }
                 showNotification(`Successfully moved ${itemIds.length} items`, 'success');
@@ -924,7 +935,7 @@ const AssetHub = {
                 finalName = asset.name;
             }
         }
-        
+
         const isImg = finalMime?.startsWith('image/');
         const isVid = finalMime?.startsWith('video/');
         const isPdf = finalMime?.includes('pdf');
@@ -1063,10 +1074,10 @@ const AssetHub = {
         input.focus();
         document.getElementById(`${modalId}-done`).onclick = async () => {
             const name = input.value.trim();
-            if(!name) return;
+            if (!name) return;
             document.getElementById(modalId).remove();
             try {
-                await fetch('/api/assets/folders', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, parentFolder: this.currentFolderId }), credentials: 'include' });
+                await fetch('/api/assets/folders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, parentFolder: this.currentFolderId }), credentials: 'include' });
                 this.loadData();
             } catch (e) { showNotification('Failed', 'error'); }
         };
