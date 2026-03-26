@@ -264,7 +264,7 @@ const AssetHub = {
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button onclick="AssetHub.toggleSelectMode()" class="px-5 py-2 rounded-full border border-gray-200 hover:bg-blue-50 text-[13px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${this.isSelectMode ? 'bg-blue-50 border-blue-200 text-blue-600' : 'text-gray-500'}">
+                    <button onclick="AssetHub.toggleSelectMode()" class="px-5 py-2 rounded-full border border-gray-200 text-[13px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${this.isSelectMode ? 'bg-blue-50 border-blue-200 text-blue-600' : 'hover:bg-gray-50 text-gray-500'}">
                         <i class="ph ph-check-square text-lg"></i> Select
                     </button>
                     <button onclick="AssetHub.loadTrash()" class="px-5 py-2 rounded-full border border-transparent hover:bg-red-50 text-[13px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${this.isTrashView ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'text-gray-400 hover:text-red-500'} group">
@@ -372,14 +372,12 @@ const AssetHub = {
     renderFolderCard(folder) {
         const type = 'folder';
         const isSelected = this.selectedItems.has(folder._id);
-        const selClasses = isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : 'border-gray-200';
+        const selClasses = isSelected ? '' : 'border-gray-200';
         return `
             <div data-id="${folder._id}" data-type="folder" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${folder._id}', 'folder')" onclick="if(AssetHub.isSelectMode) AssetHub.toggleSelection('${folder._id}', event)" ondblclick="AssetHub.loadData('${folder._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${folder._id}', 'folder', ${JSON.stringify(folder).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${selClasses} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
-                ${this.isSelectMode ? `
-                    <div class="w-5 h-5 rounded-full border-2 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-200'} flex items-center justify-center transition-all">
-                        ${isSelected ? '<i class="ph ph-check text-[10px] text-white font-bold"></i>' : ''}
-                    </div>
-                ` : ''}
+                <div class="selection-checkbox absolute top-3 left-3 w-6 h-6 rounded-full border-2 z-20 flex items-center justify-center transition-all ${this.isSelectMode ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'} ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/80 border-gray-300'}">
+                    ${isSelected ? '<i class="ph-bold ph-check text-white text-[12px]"></i>' : ''}
+                </div>
                 <i class="ph-fill ph-folder text-3xl ${isSelected ? 'text-blue-500' : 'text-gray-400'} group-hover:text-blue-500 transition-colors"></i>
                 <span class="flex-1 font-bold text-gray-700 truncate text-[14px]">${folder.name}</span>
             </div>
@@ -391,30 +389,18 @@ const AssetHub = {
         const isImg = ['image/jpeg', 'image/png', 'image/webp'].includes(asset.mimeType);
         const ext = asset.name.split('.').pop().toLowerCase();
         const isSelected = this.selectedItems.has(asset._id);
-        const selClasses = isSelected ? 'ring-2 ring-blue-500 bg-blue-50 shadow-xl' : 'border-gray-200';
+        const selClasses = isSelected ? '' : 'border-gray-200';
         
-        let iconHtml = '';
-        if (!isImg) {
-            if (ext === 'pdf') iconHtml = '<i class="ph-fill ph-file-pdf text-red-500 text-6xl"></i>';
-            else if (['xls', 'xlsx', 'csv'].includes(ext)) iconHtml = '<i class="ph-fill ph-file-xls text-green-500 text-6xl"></i>';
-            else if (['doc', 'docx'].includes(ext)) iconHtml = '<i class="ph-fill ph-file-doc text-blue-500 text-6xl"></i>';
-            else if (['js', 'html', 'css', 'json', 'py', 'php'].includes(ext)) iconHtml = '<i class="ph-fill ph-file-code text-yellow-500 text-6xl"></i>';
-            else if (ext === 'zip' || ext === 'rar' || ext === '7z') iconHtml = '<i class="ph-fill ph-file-zip text-purple-500 text-6xl"></i>';
-            else iconHtml = `<div class="w-16 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center font-black text-gray-200 uppercase">${ext}</div>`;
-        }
-
         const isHtml = asset.name.toLowerCase().endsWith('.html');
         const dblClickAction = isHtml ? `window.open('${asset.url}', '_blank')` : `AssetHub.openItem('${asset._id}')`;
 
         return `
             <div data-id="${asset._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${asset._id}', 'asset')" onclick="if(AssetHub.isSelectMode) AssetHub.toggleSelection('${asset._id}', event)" ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
-                    ${this.isSelectMode ? `
-                        <div class="absolute top-4 left-4 w-6 h-6 rounded-full border-2 ${isSelected ? 'bg-blue-500 border-blue-500' : 'border-gray-300 bg-white/50'} flex items-center justify-center transition-all z-20">
-                            ${isSelected ? '<i class="ph ph-check text-[12px] text-white font-bold"></i>' : ''}
-                        </div>
-                    ` : ''}
-                    ${isImg ? `<img src="${asset.thumbnailUrl || asset.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
+                    <div class="selection-checkbox absolute top-3 left-3 w-6 h-6 rounded-full border-2 z-20 flex items-center justify-center transition-all ${this.isSelectMode ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'} ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/80 border-gray-300'}">
+                        ${isSelected ? '<i class="ph-bold ph-check text-white text-[12px]"></i>' : ''}
+                    </div>
+                    ${isImg ? `<img src="${asset.thumbnailUrl || asset.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : this.getLargeIcon(ext)}
                 </div>
                 <div class="p-5 flex items-center gap-4 bg-white border-t border-gray-50 relative">
                     <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">${this.getSmallIcon(asset.mimeType, asset.name)}</div>
@@ -422,7 +408,7 @@ const AssetHub = {
                         <p class="text-[13px] font-bold text-gray-800 truncate">${asset.name}</p>
                         <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">${this.formatSize(asset.size)}</p>
                     </div>
-                    <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"><i class="ph ph-dots-three-vertical-bold text-lg"></i></button>
+                    <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="text-gray-800 hover:text-blue-600 transition-colors ml-auto p-2"><i class="ph ph-dots-three-vertical-bold text-xl"></i></button>
                 </div>
             </div>
         `;
@@ -444,18 +430,10 @@ const AssetHub = {
         const i = Math.floor(Math.log(size) / Math.log(1024));
         return (size / Math.pow(1024, i)).toFixed(1) * 1 + ' ' + ['B', 'KB', 'MB', 'GB', 'TB', 'PB'][i];
     },
-
     showContextMenu(e, mode, id, type, itemData) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
-        
-        // Deselect others if right-clicking an unselected item
-        if (mode === 'item' && !this.selectedItems.has(id)) {
-            this.selectedItems.clear();
-            this.selectedItems.add(id);
-            this.render(); // Full render to show active selection
-        }
-
         this.clearMenus();
+
         const x = e.clientX, y = e.clientY;
         const safeY = Math.min(y, window.innerHeight - 350);
         const safeX = Math.min(x, window.innerWidth - 270);
@@ -475,32 +453,50 @@ const AssetHub = {
             const isSelected = this.selectedItems.has(id);
             if (this.selectedItems.size > 1 && isSelected) {
                 // Bulk Context Menu
-                menuHtml = `
-                    <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in transition-all" style="top:${safeY}px; left:${safeX}px;">
-                        <div class="px-5 py-3 border-b border-gray-100 mb-1">
-                            <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">${this.selectedItems.size} Items Selected</p>
+                if (this.isTrashView) {
+                    menuHtml = `
+                        <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in transition-all" style="top:${safeY}px; left:${safeX}px;">
+                             <button onclick="AssetHub.bulkAction('restore')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-arrow-counter-clockwise"></i> Restore Selection</button>
+                             <button onclick="AssetHub.bulkAction('delete-permanent')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash"></i> Delete Forever</button>
                         </div>
-                        <button onclick="AssetHub.bulkAction('copy')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-copy text-xl text-blue-500"></i> Copy Items</button>
-                        <button onclick="AssetHub.bulkAction('download')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-download-simple text-xl text-blue-500"></i> Download ZIP</button>
-                        <div class="h-[1px] bg-gray-100 my-1"></div>
-                        <button onclick="AssetHub.bulkAction('delete')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-500 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Delete Selection</button>
-                    </div>
-                `;
+                    `;
+                } else {
+                    menuHtml = `
+                        <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in transition-all" style="top:${safeY}px; left:${safeX}px;">
+                            <div class="px-5 py-3 border-b border-gray-100 mb-1">
+                                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">${this.selectedItems.size} Items Selected</p>
+                            </div>
+                            <button onclick="AssetHub.bulkAction('copy')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-copy text-xl text-blue-500"></i> Copy Items</button>
+                            <button onclick="AssetHub.bulkAction('download')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-download-simple text-xl text-blue-500"></i> Download ZIP</button>
+                            <div class="h-[1px] bg-gray-100 my-1"></div>
+                            <button onclick="AssetHub.bulkAction('delete')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Delete Selection</button>
+                        </div>
+                    `;
+                }
             } else {
                 // Single Item Menu
                 const isHtml = type === 'asset' && itemData?.name?.toLowerCase().endsWith('.html');
-                menuHtml = `
-                    <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in transition-all" style="top:${safeY}px; left:${safeX}px;">
-                        <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${id}', '${type}')`}" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-xl text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
-                        ${isHtml ? `<button onclick="window.open('${itemData.url}', '_blank'); AssetHub.hideContextMenu();" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-globe text-xl text-blue-500"></i> Open on web</button>` : ''}
-                        <button onclick="AssetHub.copyToClipboard('${itemData?.url || ''}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-link text-xl text-blue-500"></i> Copy Link</button>
-                        ${type === 'asset' ? `
-                            <button onclick="AssetHub.downloadItem('${id}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-download-simple text-xl text-blue-500"></i> Download</button>
-                        ` : ''}
-                        <div class="h-[1px] bg-gray-100 my-1"></div>
-                        <button onclick="AssetHub.deleteItem('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-500 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Move to trash</button>
-                    </div>
-                `;
+                if (this.isTrashView) {
+                    menuHtml = `
+                        <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in transition-all" style="top:${safeY}px; left:${safeX}px;">
+                            <button onclick="AssetHub.restoreItem('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-arrow-counter-clockwise"></i> Restore</button>
+                            <button onclick="AssetHub.deletePermanent('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash"></i> Delete Forever</button>
+                        </div>
+                    `;
+                } else {
+                    menuHtml = `
+                        <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in transition-all" style="top:${safeY}px; left:${safeX}px;">
+                            <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${id}', '${type}')`}" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-xl text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
+                            ${isHtml ? `<button onclick="window.open('${itemData.url}', '_blank'); AssetHub.hideContextMenu();" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-globe text-xl text-blue-500"></i> Open on web</button>` : ''}
+                            ${type === 'asset' ? `
+                                <button onclick="AssetHub.copyToClipboard('${itemData?.url || ''}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-link text-xl text-blue-500"></i> Copy Link</button>
+                                <button onclick="AssetHub.downloadItem('${id}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-download-simple text-xl text-blue-500"></i> Download</button>
+                            ` : ''}
+                            <div class="h-[1px] bg-gray-100 my-1"></div>
+                            <button onclick="AssetHub.deleteItem('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Move to trash</button>
+                        </div>
+                    `;
+                }
             }
         }
 
@@ -508,6 +504,7 @@ const AssetHub = {
     },
 
     clearMenus() { document.getElementById('ctx-menu')?.remove(); document.getElementById('filter-menu')?.remove(); },
+
     hideContextMenu() { this.clearMenus(); },
 
     showFilterMenu(e, type) {
@@ -768,28 +765,34 @@ const AssetHub = {
     toggleSelectMode() {
         this.isSelectMode = !this.isSelectMode;
         if (!this.isSelectMode) this.clearSelection();
-        else this.render();
+        this.render();
     },
 
     clearSelection() {
         this.selectedItems.clear();
         document.querySelectorAll('.asset-card').forEach(card => this.updateCardSelectionUI(card, false));
-        this.updateBulkActionBar();
     },
 
     updateCardSelectionUI(card, isSelected) {
-        const type = card.getAttribute('data-type');
-        const icon = card.querySelector('.ph-folder');
+        if (!card) return;
         
-        if (isSelected) {
-            card.classList.remove('border-gray-200');
-            card.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50');
-            if (type === 'folder' && icon) icon.classList.replace('text-gray-400', 'text-blue-500');
-            else if (type === 'asset') card.classList.add('shadow-xl');
-        } else {
-            card.classList.add('border-gray-200');
-            card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'shadow-xl');
-            if (type === 'folder' && icon) icon.classList.replace('text-blue-500', 'text-gray-400');
+        // Remove old highlight classes
+        card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50', 'shadow-xl');
+        if (!isSelected) card.classList.add('border-gray-200');
+        else card.classList.remove('border-gray-200');
+
+        // Update the checkbox UI
+        const checkbox = card.querySelector('.selection-checkbox');
+        if (checkbox) {
+            if (isSelected) {
+                checkbox.classList.add('bg-blue-500', 'border-blue-500');
+                checkbox.classList.remove('bg-white/80', 'border-gray-300');
+                checkbox.innerHTML = '<i class="ph-bold ph-check text-white text-[12px]"></i>';
+            } else {
+                checkbox.classList.remove('bg-blue-500', 'border-blue-500');
+                checkbox.classList.add('bg-white/80', 'border-gray-300');
+                checkbox.innerHTML = '';
+            }
         }
     },
 
@@ -815,8 +818,15 @@ const AssetHub = {
         if (action === 'delete') {
             this.showConfirmModal(`Delete ${this.selectedItems.size} items?`, 'These items will be moved to the trash.', async () => {
                 for (const id of this.selectedItems) {
+                    const item = this.folders.find(f => f._id === id) || this.assets.find(a => a._id === id);
                     const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
-                    await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' });
+                    if (id && type) {
+                        try {
+                            await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' });
+                        } catch (e) {
+                            console.error(`Failed to delete ${type} ${id}:`, e);
+                        }
+                    }
                 }
                 showNotification('Bulk delete completed', 'success');
                 this.clearSelection();
