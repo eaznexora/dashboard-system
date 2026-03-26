@@ -495,7 +495,7 @@ const AdminPanel = {
       <div class="modal-overlay" id="task-modal">
         <div class="modal-content">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <h3 style="font-weight:800;">Create New Task</h3>
+            <h3 style="font-weight:800;">${taskId ? 'Edit Task' : 'Create New Task'}</h3>
             <button onclick="document.getElementById('task-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
           <div style="display:grid; gap:1.25rem;">
@@ -503,11 +503,20 @@ const AdminPanel = {
               <label>Task Title</label>
               <input type="text" id="t-title" class="form-control" placeholder="What needs to be done?">
             </div>
+
+            <div class="form-group">
+               <label>Project</label>
+               <select id="t-project" class="form-control">
+                 <option value="">-- No Project (Admin Task) --</option>
+                 ${projects.map(p => `<option value="${p._id}" ${projectId === p._id ? 'selected' : ''}>${p.name}</option>`).join('')}
+               </select>
+            </div>
             
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
                   <label>Assignee</label>
-                  <select id="t-assignee" class="form-control">
+                  <select id="t-assign" class="form-control">
+                    <option value="">-- Unassigned --</option>
                     ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
                   </select>
                </div>
@@ -515,22 +524,35 @@ const AdminPanel = {
                   <label>Priority</label>
                   <select id="t-priority" class="form-control">
                     <option value="low">LOW</option>
-                    <option value="medium">MEDIUM</option>
+                    <option value="medium" selected>MEDIUM</option>
                     <option value="high">HIGH</option>
+                    <option value="urgent">URGENT</option>
                   </select>
                </div>
             </div>
 
-            <div class="form-group">
-              <label>Status</label>
-              <select id="t-status" class="form-control">
-                <option value="pending">PENDING</option>
-                <option value="in-progress">IN PROGRESS</option>
-                <option value="completed">COMPLETED</option>
-              </select>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+               <div class="form-group">
+                <label>Status</label>
+                <select id="t-status" class="form-control">
+                  <option value="pending">PENDING</option>
+                  <option value="in-progress">IN PROGRESS</option>
+                  <option value="review">IN REVIEW</option>
+                  <option value="completed">COMPLETED</option>
+                </select>
+               </div>
+               <div class="form-group">
+                 <label>Deadline</label>
+                 <input type="date" id="t-deadline" class="form-control">
+               </div>
             </div>
 
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask()">Create Task</button>
+            <div class="form-group">
+              <label>Detailed Description</label>
+              <textarea id="t-desc" class="form-control" style="min-height:100px;" placeholder="Provide additional context..."></textarea>
+            </div>
+
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask('${taskId || ''}')">${taskId ? 'Update Task' : 'Create Task'}</button>
           </div>
         </div>
       </div>
@@ -909,21 +931,24 @@ const AdminPanel = {
   },
 
   async saveTask(taskId = null) {
+    // Correct Handle if taskId is passed as string 'null' or empty
+    const actualTaskId = (taskId && taskId !== 'null' && taskId !== '') ? taskId : null;
+
     const body = {
       title: document.getElementById('t-title').value,
       description: document.getElementById('t-desc').value,
-      project: document.getElementById('t-project').value,
+      project: document.getElementById('t-project').value || undefined,
       assignedTo: document.getElementById('t-assign').value || undefined,
       priority: document.getElementById('t-priority').value,
       deadline: document.getElementById('t-deadline').value || undefined,
-      status: 'pending'
+      status: document.getElementById('t-status').value
     };
 
     if (!body.title) return toast('Title is required', 'warning');
 
     try {
-      const url = taskId ? `/api/tasks/${taskId}` : '/api/tasks';
-      const method = taskId ? 'PATCH' : 'POST';
+      const url = actualTaskId ? `/api/tasks/${actualTaskId}` : '/api/tasks';
+      const method = actualTaskId ? 'PATCH' : 'POST';
 
       const res = await fetch(url, {
         method,
@@ -938,7 +963,7 @@ const AdminPanel = {
         } else {
             this.viewProjectDetails(projId);
         }
-        toast(taskId ? 'Task updated successfully' : 'Task created successfully');
+        toast(actualTaskId ? 'Task updated successfully' : 'Task created successfully');
       }
     } catch (err) {
       toast('Failed to save task', 'error');
