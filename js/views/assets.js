@@ -101,8 +101,7 @@ const AssetHub = {
         });
 
         window.addEventListener('click', () => this.clearMenus());
-
-        window.addEventListener('click', () => this.clearMenus());
+        window.addEventListener('scroll', () => this.clearMenus(), true);
 
         // --- BACKGROUND CLICK TO DESELECT ---
         this.container.addEventListener('click', (e) => {
