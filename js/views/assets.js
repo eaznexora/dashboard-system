@@ -422,7 +422,7 @@ const AssetHub = {
             menuHtml = `
                 <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in" style="top:${y}px; left:${safeX}px;">
                     <button onclick="AssetHub.promptNewFolder()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-folder-plus text-xl text-blue-500"></i> New folder</button>
-                    ${this.clipboard.id ? `<button onclick="AssetHub.pasteItem()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-clipboard-text text-xl text-blue-500"></i> Paste (Ctrl+V)</button>` : ''}
+                    ${(this.clipboard.id || (this.clipboard.items && this.clipboard.items.length > 0)) ? `<button onclick="AssetHub.pasteItem()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-clipboard-text text-xl text-blue-500"></i> Paste</button>` : ''}
                     <div class="h-[1px] bg-gray-100 my-1"></div>
                     <button onclick="AssetHub.triggerFileUpload()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-file-arrow-up text-xl text-blue-500"></i> File upload</button>
                 </div>
@@ -467,6 +467,7 @@ const AssetHub = {
                             <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${id}', '${type}')`}" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-xl text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
                             ${isHtml ? `<button onclick="window.open('${itemData.url}', '_blank'); AssetHub.hideContextMenu();" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-globe text-xl text-blue-500"></i> Open on web</button>` : ''}
                             ${type === 'asset' ? `
+                                <button onclick="AssetHub.copyToClipboard('${id}', '${type}', 'copy')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-copy text-xl text-blue-500"></i> Copy</button>
                                 <button onclick="AssetHub.downloadItem('${id}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-download-simple text-xl text-blue-500"></i> Download</button>
                             ` : ''}
                             <div class="h-[1px] bg-gray-100 my-1"></div>
@@ -769,10 +770,7 @@ const AssetHub = {
         this.render();
     },
 
-    clearSelection() {
-        this.selectedItems.clear();
-        document.querySelectorAll('.asset-card').forEach(card => this.updateCardSelectionUI(card, false));
-    },
+    clearSelection() { this.selectedItems.clear(); this.isSelectMode = false; this.render(); },
 
     updateCardSelectionUI(card, isSelected) {
         if (!card) return;
@@ -819,21 +817,18 @@ const AssetHub = {
         if (action === 'delete') {
             if (this.isTrashView) return this.bulkPermanentDelete();
             this.showConfirmModal(`Delete ${this.selectedItems.size} items?`, 'These items will be moved to the trash.', async () => {
-                for (const id of this.selectedItems) {
-                    const item = this.folders.find(f => f._id === id) || this.assets.find(a => a._id === id);
-                    const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
-                    if (id && type) {
-                        try {
-                            await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' });
-                        } catch (e) {
-                            console.error(`Failed to delete ${type} ${id}:`, e);
-                        }
+                showNotification('Deleting items...', 'info');
+                try {
+                    for (const id of this.selectedItems) {
+                        const isFolder = this.folders.some(f => f._id === id);
+                        const type = isFolder ? 'folder' : 'asset';
+                        await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' });
                     }
+                    showNotification('Items moved to trash', 'success');
+                    this.clearSelection();
+                } catch (err) {
+                    showNotification('Some items failed to delete', 'error');
                 }
-                showNotification('Bulk delete completed', 'success');
-                this.clearSelection();
-                if (this.isTrashView) this.loadTrash();
-                else this.loadData();
             });
             this.clearMenus();
             return;
