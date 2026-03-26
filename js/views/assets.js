@@ -329,7 +329,7 @@ const AssetHub = {
                     ${this.clipboard.id ? `<button onclick="AssetHub.pasteItem()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-clipboard-text text-xl text-blue-500"></i> Paste (Ctrl+V)</button>` : ''}
                     <div class="h-[1px] bg-gray-100 my-1"></div>
                     <button onclick="AssetHub.triggerFileUpload(false)" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-file-arrow-up text-xl text-blue-500"></i> File upload</button>
-                    <button onclick="AssetHub.triggerFileUpload(true)" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-folder-arrow-up text-xl text-blue-500"></i> Folder upload</button>
+                    <button onclick="AssetHub.triggerFileUpload(true)" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-folder-plus text-xl text-blue-500"></i> Folder upload</button>
                 </div>
             `;
         } else if (mode === 'item') {
@@ -451,8 +451,7 @@ const AssetHub = {
         input.type = 'file';
         input.multiple = true;
         if (isFolder) { 
-            input.setAttribute('webkitdirectory', ''); 
-            input.setAttribute('directory', ''); 
+            input.webkitdirectory = true; 
         }
         input.onchange = (e) => { this.handleFileUpload(e.target.files); }; 
         input.click();
@@ -462,28 +461,30 @@ const AssetHub = {
         if (!files || files.length === 0) return;
 
         const formData = new FormData();
-        Array.from(files).forEach(f => formData.append('file', f));
+        Array.from(files).forEach(f => {
+            if (f.size > 0 || f.name) formData.append('file', f);
+        });
         formData.append('parentFolder', this.currentFolderId || 'null');
 
         const toastId = 'upload-toast-' + Date.now();
+        const itemCount = files.length;
         const toastHtml = `
-            <div id="${toastId}" class="fixed bottom-10 right-10 z-[1000] bg-white rounded-[2.5rem] shadow-[0_40px_120px_rgba(0,0,0,0.25)] border border-gray-100 p-10 w-[24rem] animate-in slide-in-from-right-20 duration-500 overflow-hidden">
-                <div class="flex items-center justify-between mb-8">
-                    <div class="flex items-center gap-5">
-                        <div class="w-14 h-14 bg-blue-50 rounded-[1.25rem] flex items-center justify-center text-blue-600 shadow-inner">
-                            <i class="ph-bold ph-cloud-arrow-up text-3xl animate-bounce"></i>
+            <div id="${toastId}" class="fixed bottom-10 right-10 z-[1000] bg-white rounded-3xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-8 w-[24rem] animate-in slide-in-from-right-10 duration-500 overflow-hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm shrink-0">
+                            <i class="ph-bold ph-upload-simple text-2xl"></i>
                         </div>
                         <div class="min-w-0">
-                            <h4 class="font-black text-gray-900 text-[15px] tracking-tight truncate">Syncing assets...</h4>
-                            <p class="text-[10px] text-gray-400 font-black uppercase tracking-widest mt-1">${files.length > 1 ? `${files.length} items in transit` : truncateFileName(files[0].name, 20)}</p>
+                            <h4 id="${toastId}-title" class="font-black text-gray-900 text-[14px] truncate">Uploading ${itemCount} item${itemCount > 1 ? 's' : ''}...</h4>
+                            <p id="${toastId}-subtitle" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 truncate">${files[0].name}</p>
                         </div>
                     </div>
-                    <span id="${toastId}-percent" class="text-blue-600 font-black text-xl italic">0%</span>
+                    <span id="${toastId}-percent" class="text-blue-600 font-black text-base italic">0%</span>
                 </div>
-                <div class="h-4 w-full bg-gray-50 rounded-full overflow-hidden shadow-inner border border-gray-100 p-1 relative">
-                    <div id="${toastId}-bar" class="h-full bg-blue-600 rounded-full transition-all duration-300 w-[0%] shadow-[0_0_15px_rgba(37,99,235,0.4)]"></div>
+                <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden mb-2">
+                    <div id="${toastId}-bar" class="h-full bg-blue-600 rounded-full transition-all duration-300 w-[0%]"></div>
                 </div>
-                <p id="${toastId}-status" class="text-[11px] text-gray-400 font-bold text-center uppercase tracking-[0.2em] mt-6 italic">Optimizing stream buffers...</p>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', toastHtml);
@@ -504,20 +505,19 @@ const AssetHub = {
 
         xhr.onload = () => {
             const toast = document.getElementById(toastId);
-            const status = document.getElementById(`${toastId}-status`);
+            const title = document.getElementById(`${toastId}-title`);
             const bar = document.getElementById(`${toastId}-bar`);
             const iconContainer = toast?.querySelector('.bg-blue-50');
 
             if (xhr.status >= 200 && xhr.status < 300) {
-                if(status) {
-                    status.innerText = 'Sync Completed Successfully';
-                    status.classList.replace('text-gray-400', 'text-green-600');
-                }
-                if(bar) bar.className = 'h-full bg-green-500 rounded-full transition-all duration-300 w-full shadow-[0_0_20px_rgba(16,185,129,0.4)]';
+                if(title) title.innerText = `${itemCount} upload${itemCount > 1 ? 's' : ''} complete`;
+                if(bar) bar.className = 'h-full bg-green-500 rounded-full transition-all duration-300 w-full';
                 if(iconContainer) {
                     iconContainer.classList.replace('bg-blue-50', 'bg-green-50');
-                    iconContainer.innerHTML = '<i class="ph-bold ph-check-circle text-3xl text-green-600"></i>';
+                    iconContainer.innerHTML = '<i class="ph-bold ph-check-circle text-2xl text-green-600"></i>';
                 }
+                
+                if (window.showNotification) showNotification('Upload completed successfully', 'success');
                 
                 setTimeout(() => {
                     toast?.classList.add('opacity-0', 'translate-x-full');
@@ -527,33 +527,33 @@ const AssetHub = {
                     }, 500);
                 }, 3000);
             } else {
-                this.handleUploadError(toastId, 'Server Rejection');
+                let errMsg = 'Upload failed';
+                try {
+                    const resp = JSON.parse(xhr.responseText);
+                    errMsg = resp.error || errMsg;
+                } catch(e) { /* ignore */ }
+                this.handleUploadError(toastId, errMsg);
             }
         };
 
-        xhr.onerror = () => this.handleUploadError(toastId, 'Network Fault');
+        xhr.onerror = () => this.handleUploadError(toastId, 'Network interruption: Connection lost');
         xhr.send(formData);
-
-        function truncateFileName(name, len) {
-            return name.length > len ? name.substring(0, len) + '...' : name;
-        }
     },
 
     handleUploadError(toastId, message) {
         const toast = document.getElementById(toastId);
-        const status = document.getElementById(`${toastId}-status`);
+        const title = document.getElementById(`${toastId}-title`);
         const bar = document.getElementById(`${toastId}-bar`);
-        const iconContainer = toast?.querySelector('div > div:first-child');
+        const iconContainer = toast?.querySelector('.bg-blue-50') || toast?.querySelector('.bg-green-50');
 
-        if(status) {
-            status.innerText = 'CRITICAL: ' + message;
-            status.classList.replace('text-gray-400', 'text-red-600');
-        }
-        if(bar) bar.className = 'h-full bg-red-600 rounded-full w-full shadow-[0_0_20px_rgba(220,38,38,0.4)]';
+        if(title) title.innerText = 'Upload failed';
+        if(bar) bar.className = 'h-full bg-red-600 rounded-full w-full';
         if(iconContainer) {
-            iconContainer.classList.replace('bg-blue-50', 'bg-red-50');
-            iconContainer.innerHTML = '<i class="ph-bold ph-warning-circle text-3xl text-red-600"></i>';
+            iconContainer.className = 'w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-600 shadow-sm shrink-0';
+            iconContainer.innerHTML = '<i class="ph-bold ph-warning-circle text-2xl"></i>';
         }
+        
+        if (window.showNotification) showNotification(message, 'error');
         
         setTimeout(() => {
             toast?.classList.add('opacity-0', 'translate-x-full');
