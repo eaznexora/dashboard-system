@@ -11,14 +11,7 @@ const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_eaz_123';
 
 // --- DIRECTORY GUARANTEE ---
 const UPLOAD_ROOT = path.join(__dirname, '../uploads');
-const TEMP_ROOT = path.join(UPLOAD_ROOT, 'temp');
-
-try {
-  if (!fs.existsSync(UPLOAD_ROOT)) fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
-  if (!fs.existsSync(TEMP_ROOT)) fs.mkdirSync(TEMP_ROOT, { recursive: true });
-} catch (e) {
-  console.error('[ASSETS_INIT_ERROR]:', e);
-}
+if (!fs.existsSync(UPLOAD_ROOT)) fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
 
 // --- AUTH PROTECTION ---
 const protect = (req, res, next) => {
@@ -36,12 +29,22 @@ const protect = (req, res, next) => {
 
 router.use(protect);
 
-// --- MULTER CONFIG ---
+// --- BULLETPROOF MULTER CONFIG ---
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, TEMP_ROOT),
-  filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname.replace(/\s+/g, '_'))
+  destination: (req, file, cb) => {
+    cb(null, UPLOAD_ROOT);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  }
 });
-const upload = multer({ storage });
+
+const upload = multer({ 
+  storage,
+  limits: { fileSize: 500 * 1024 * 1024 } // 500MB Limit
+});
 
 /**
  * GET: LIST ASSETS & FOLDERS
@@ -55,7 +58,6 @@ router.get('/', async (req, res) => {
       Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 })
     ]);
 
-    // Construct Breadcrumbs
     let breadcrumbs = [];
     if (parentFolder) {
       let current = await Folder.findById(parentFolder);
@@ -109,37 +111,46 @@ router.post('/folders', async (req, res) => {
 });
 
 /**
- * POST: UPLOAD FILE (Direct Move - Stable)
+ * POST: UPLOAD FILE (Bulletproof fail-safe implementation)
  */
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
     const { parentFolder } = req.body;
     const file = req.file;
-    if (!file) return res.status(400).json({ error: 'No file received' });
 
-    const fileName = file.filename; 
-    const finalPath = path.join(UPLOAD_ROOT, fileName);
+    if (!file) {
+      return res.status(400).json({ error: 'No file received' });
+    }
 
-    // DIRECT MOVE: NO SHARP (Ensures 100% extension preservation and avoids scanning loops)
-    fs.renameSync(file.path, finalPath);
+    // Attempt to save to database
+    try {
+      const asset = new Asset({
+        name: file.originalname,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        url: `/uploads/${file.filename}`,
+        thumbnailUrl: null,
+        parentFolder: (parentFolder === 'null' || !parentFolder) ? null : parentFolder,
+        uploadedBy: String(req.user.id)
+      });
 
-    const asset = new Asset({
-      name: file.originalname,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      url: `/uploads/${fileName}`,
-      thumbnailUrl: null, // Removed thumbnail generation to ensure 100% stability
-      parentFolder: (parentFolder === 'null' || !parentFolder) ? null : parentFolder,
-      uploadedBy: String(req.user.id)
-    });
-
-    await asset.save();
-    if (global.io) global.io.emit('asset_update');
-    res.status(201).json(asset);
+      await asset.save();
+      
+      if (global.io) global.io.emit('asset_update');
+      
+      // Return 200 OK JSON to prevent frontend hang
+      return res.status(200).json(asset);
+    } catch (dbErr) {
+      // DATABASE FAIL-SAFE: CLEAN UP ORPHANED FILE
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+      throw dbErr;
+    }
   } catch (err) {
-    console.error('[UPLOAD_ERROR]:', err);
-    res.status(500).json({ error: 'Upload failed: ' + err.message });
+    console.error('[CRITICAL_UPLOAD_FAILURE]:', err);
+    return res.status(500).json({ error: 'Upload process failed: ' + err.message });
   }
 });
 
@@ -170,8 +181,8 @@ router.delete('/:id/permanent', async (req, res) => {
     } else {
       const asset = await Asset.findByIdAndDelete(req.params.id);
       if (asset) {
-        const mainPath = path.join(__dirname, '..', asset.url);
-        if (fs.existsSync(mainPath)) fs.unlinkSync(mainPath);
+        const filePath = path.join(UPLOAD_ROOT, path.basename(asset.url));
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
       }
     }
 
