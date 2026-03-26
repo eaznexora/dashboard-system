@@ -52,7 +52,7 @@ const AssetHub = {
         dropZone.addEventListener('drop', (e) => {
             if (this.isTrashView) return;
             const files = e.dataTransfer.files;
-            if (files.length > 0) this.handleFileUpload(files[0]);
+            if (files.length > 0) this.handleFileUpload(files);
         });
 
         // --- GLOBAL CONTEXT MENU ---
@@ -254,7 +254,7 @@ const AssetHub = {
                     </thead>
                     <tbody>
                         ${rows.map(item => `
-                            <tr ondblclick="AssetHub.${item.isFolder ? `loadData('${item._id}')` : `openItem('${item.url}', '${item.mimeType}')`}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
+                            <tr ondblclick="AssetHub.${item.isFolder ? `loadData('${item._id}')` : `openItem('${item.url}', '${item.mimeType}', '${item.name}')`}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
                                 <td class="py-4 px-4 flex items-center gap-4">
                                     ${item.isFolder ? '<i class="ph ph-folder text-2xl text-gray-400"></i>' : this.getSmallIcon(item.mimeType)}
                                     <span class="font-bold text-gray-700">${item.name}</span>
@@ -287,7 +287,7 @@ const AssetHub = {
     renderFileCard(a) {
         const isImg = ['image/jpeg', 'image/png', 'image/webp'].includes(a.mimeType);
         return `
-            <div ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card flex flex-col bg-white border border-gray-200 rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative">
+            <div ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card flex flex-col bg-white border border-gray-200 rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative">
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
                     ${isImg ? `<img src="${a.thumbnailUrl || a.url}" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : `<div class="w-16 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center font-black text-gray-200 uppercase">${a.name.split('.').pop()}</div>`}
                 </div>
@@ -339,7 +339,7 @@ const AssetHub = {
                         <button onclick="AssetHub.restoreItem('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-arrow-counter-clockwise text-xl"></i> Restore</button>
                         <button onclick="AssetHub.deletePermanent('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Delete Forever</button>
                     ` : `
-                        <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${itemData.url}', '${itemData.mimeType}')`}" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
+                        <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${itemData.url}', '${itemData.mimeType}', '${itemData.name}')`}" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
                         <button onclick="AssetHub.downloadItem('${itemData.url}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-download-simple text-blue-500"></i> Download</button>
                         <button onclick="AssetHub.renameItem('${id}', '${type}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-pencil-simple text-blue-500"></i> Rename</button>
                         <div class="h-[1px] bg-gray-100 my-1"></div>
@@ -448,22 +448,30 @@ const AssetHub = {
     triggerFileUpload(isFolder = false) {
         const input = document.createElement('input');
         input.type = 'file';
-        if (isFolder) { input.webkitdirectory = true; input.multiple = true; }
-        input.onchange = (e) => { this.handleFileUpload(e.target.files[0]); }; 
+        input.multiple = true;
+        if (isFolder) { input.webkitdirectory = true; }
+        input.onchange = (e) => { this.handleFileUpload(e.target.files); }; 
         input.click();
     },
 
-    async handleFileUpload(file) {
-        if (!file) return;
+    async handleFileUpload(files) {
+        if (!files || files.length === 0) return;
         const formData = new FormData();
-        formData.append('file', file);
+        Array.from(files).forEach(f => formData.append('file', f));
         formData.append('parentFolder', this.currentFolderId || 'null');
-        showNotification('Securing asset...', 'info');
+        
+        showNotification(`Securing ${files.length} asset(s)...`, 'info');
         try {
             const res = await fetch('/api/assets/upload', { method: 'POST', body: formData, credentials: 'include' });
-            if (res.ok) { showNotification('Success', 'success'); this.loadData(); }
-            else throw new Error('Upload blocked');
-        } catch (e) { showNotification(e.message, 'error'); }
+            if (res.ok) { 
+                showNotification('Assets secured successfully', 'success'); 
+                this.loadData(); 
+            } else {
+                throw new Error('Upload blocked by security engine');
+            }
+        } catch (e) { 
+            showNotification(e.message, 'error'); 
+        }
     },
 
     copyToClipboard(id, type, action) { this.clipboard = { id, type, action }; showNotification('Copied', 'success'); this.render(); },
@@ -477,11 +485,96 @@ const AssetHub = {
         } catch (e) { showNotification('Paste failed', 'error'); }
     },
 
-    openItem(url, mime) {
-        if (mime.startsWith('image/')) {
-            const html = `<div onclick="this.remove()" class="fixed inset-0 z-[600] bg-black/95 flex items-center justify-center p-10 cursor-zoom-out"><img src="${url}" class="max-w-full max-h-full rounded-xl shadow-2xl"></div>`;
-            document.body.insertAdjacentHTML('beforeend', html);
-        } else window.open(url, '_blank');
+    openItem(url, mime, name) {
+        const isImg = mime?.startsWith('image/');
+        const isVid = mime?.startsWith('video/');
+        const isPdf = mime?.includes('pdf');
+        const isCode = ['text/plain', 'text/html', 'text/css', 'application/javascript', 'application/json'].includes(mime) || 
+                       ['.txt', '.html', '.css', '.js', '.json'].some(ext => name?.toLowerCase().endsWith(ext));
+
+        const overlayId = 'preview-overlay';
+        let contentHtml = '';
+
+        if (isImg) {
+            contentHtml = `<img src="${url}" class="max-h-[85vh] object-contain rounded-lg shadow-2xl animate-in zoom-in duration-300">`;
+        } else if (isVid) {
+            contentHtml = `<video src="${url}" controls autoplay class="max-h-[85vh] rounded-lg shadow-2xl"></video>`;
+        } else if (isPdf) {
+            contentHtml = `<iframe src="${url}" class="w-full h-[85vh] rounded-lg bg-white border-0 shadow-2xl"></iframe>`;
+        } else if (isCode) {
+            contentHtml = `<div id="code-preview" class="w-full max-w-5xl h-[85vh] bg-[#0d1117] rounded-xl p-8 overflow-auto text-left shadow-2xl border border-white/5">
+                <div class="flex items-center justify-center h-full text-blue-400 font-mono animate-pulse">Initializing source explorer...</div>
+            </div>`;
+            fetch(url).then(r => r.text()).then(txt => {
+                const el = document.getElementById('code-preview');
+                if (el) el.innerHTML = `<pre><code class="text-green-400 font-mono text-sm leading-relaxed">${this.escapeHtml(txt)}</code></pre>`;
+            }).catch(() => {
+                const el = document.getElementById('code-preview');
+                if (el) el.innerHTML = `<div class="flex items-center justify-center h-full text-red-400">Security: Failed to load stream content</div>`;
+            });
+        } else {
+            contentHtml = `
+                <div class="bg-white rounded-[4rem] p-20 text-center max-w-md shadow-[0_50px_100px_rgba(0,0,0,0.5)] animate-in zoom-in duration-300">
+                    <div class="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-10 text-gray-200 text-6xl shadow-inner">
+                        <i class="ph ph-file-dashed"></i>
+                    </div>
+                    <h3 class="text-3xl font-black text-gray-900 mb-4">No Preview</h3>
+                    <p class="text-gray-400 font-bold mb-14 leading-relaxed tracking-tight">This asset format is restricted or unsupported for live preview.</p>
+                    <div class="flex flex-col gap-4">
+                        <button onclick="AssetHub.downloadItem('${url}', '${name}')" class="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+                            <i class="ph-bold ph-download-simple"></i> Download Resource
+                        </button>
+                        <button onclick="document.getElementById('${overlayId}').remove()" class="w-full py-4 text-gray-400 font-black hover:text-gray-900 transition-colors uppercase tracking-widest text-[11px]">Dismiss</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        const overlayHtml = `
+            <div id="${overlayId}" class="fixed inset-0 z-[999] bg-black/90 backdrop-blur-md flex flex-col animate-in fade-in transition-all">
+                <div class="h-24 px-10 flex items-center justify-between border-b border-white/5 bg-black/40 shrink-0">
+                    <div class="flex items-center gap-6 min-w-0">
+                        <button onclick="document.getElementById('${overlayId}').remove()" class="group flex items-center gap-3 text-white/40 hover:text-white transition-all uppercase tracking-[0.2em] font-black text-[10px]">
+                            <div class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:border-white/30 transition-all"><i class="ph-bold ph-arrow-left"></i></div>
+                            <span>Back to Vault</span>
+                        </button>
+                        <div class="h-8 w-[1px] bg-white/10"></div>
+                        <h4 class="text-white font-black truncate text-xl tracking-tight">${name}</h4>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button onclick="AssetHub.downloadItem('${url}', '${name}')" class="p-4 bg-white/5 hover:bg-white/10 text-white rounded-3xl transition-all flex items-center gap-4 px-8 font-black text-[12px] uppercase tracking-widest border border-white/5 shadow-2xl">
+                            <i class="ph-bold ph-download-simple text-blue-500"></i>
+                            <span>Secure Download</span>
+                        </button>
+                        <button onclick="document.getElementById('${overlayId}').remove()" class="w-14 h-14 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-[1.5rem] transition-all flex items-center justify-center border border-red-500/20 group">
+                            <i class="ph-bold ph-x text-2xl"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 flex items-center justify-center p-14 overflow-hidden">
+                    ${contentHtml}
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', overlayHtml);
+
+        const escListener = (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById(overlayId);
+                if (modal) {
+                    modal.remove();
+                    window.removeEventListener('keydown', escListener);
+                }
+            }
+        };
+        window.addEventListener('keydown', escListener);
+    },
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     },
 
     downloadItem(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; a.click(); },

@@ -43,7 +43,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ 
   storage,
-  limits: { fileSize: 500 * 1024 * 1024 } // 500MB Limit
+  limits: { fileSize: 5 * 1024 * 1024 * 1024 } // 5GB Limit
 });
 
 /**
@@ -111,43 +111,42 @@ router.post('/folders', async (req, res) => {
 });
 
 /**
- * POST: UPLOAD FILE (Bulletproof fail-safe implementation)
+ * POST: UPLOAD FILES (Support for 5GB + Array Uploads)
  */
-router.post('/upload', upload.single('file'), async (req, res) => {
+router.post('/upload', upload.array('file', 1000), async (req, res) => {
   try {
     const { parentFolder } = req.body;
-    const file = req.file;
+    const files = req.files;
 
-    if (!file) {
-      return res.status(400).json({ error: 'No file received' });
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No files received' });
     }
 
-    // Attempt to save to database
-    try {
-      const asset = new Asset({
-        name: file.originalname,
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
-        url: `/uploads/${file.filename}`,
-        thumbnailUrl: null,
-        parentFolder: (parentFolder === 'null' || !parentFolder) ? null : parentFolder,
-        uploadedBy: String(req.user.id)
-      });
+    const savedAssets = [];
+    for (const file of files) {
+      try {
+        const asset = new Asset({
+          name: file.originalname,
+          originalName: file.originalname,
+          mimeType: file.mimetype,
+          size: file.size,
+          url: `/uploads/${file.filename}`,
+          thumbnailUrl: null,
+          parentFolder: (parentFolder === 'null' || !parentFolder) ? null : parentFolder,
+          createdBy: String(req.user.id)
+        });
 
-      await asset.save();
-      
-      if (global.io) global.io.emit('asset_update');
-      
-      // Return 200 OK JSON to prevent frontend hang
-      return res.status(200).json(asset);
-    } catch (dbErr) {
-      // DATABASE FAIL-SAFE: CLEAN UP ORPHANED FILE
-      if (fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
+        await asset.save();
+        savedAssets.push(asset);
+      } catch (dbErr) {
+        // DATABASE FAIL-SAFE: CLEAN UP ORPHANED FILE
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        console.error('[UPLOAD_DB_ERROR]:', dbErr);
       }
-      throw dbErr;
     }
+    
+    if (global.io) global.io.emit('asset_update');
+    return res.status(200).json(savedAssets);
   } catch (err) {
     console.error('[CRITICAL_UPLOAD_FAILURE]:', err);
     return res.status(500).json({ error: 'Upload process failed: ' + err.message });
@@ -219,7 +218,7 @@ router.post('/:id/duplicate', async (req, res) => {
         url: original.url,
         thumbnailUrl: original.thumbnailUrl,
         parentFolder: targetFolder,
-        uploadedBy: String(req.user.id)
+        createdBy: String(req.user.id)
       });
       await clone.save();
     }

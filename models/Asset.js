@@ -8,7 +8,7 @@ const AssetSchema = new mongoose.Schema({
   url: { type: String, required: true },
   thumbnailUrl: { type: String },
   parentFolder: { type: mongoose.Schema.Types.ObjectId, ref: 'Folder', default: null },
-  uploadedBy: { type: String },
+  createdBy: { type: String },
   isTrashed: { type: Boolean, default: false }
 }, { timestamps: true });
 
