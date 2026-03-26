@@ -194,10 +194,10 @@ const AssetHub = {
             <!-- Header -->
             <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0 sticky top-0 z-10 transition-all">
                 <div class="flex items-center gap-3 font-bold text-[12px] text-gray-400 uppercase tracking-widest">
-                    <span ondragover="event.preventDefault(); this.classList.add('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all'); event.dataTransfer.dropEffect = 'move';" ondragleave="this.classList.remove('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all');" ondrop="AssetHub.handleBreadcrumbDrop(event, 'null')" class="hover:text-blue-600 cursor-pointer transition-all ${!this.isTrashView && !this.currentFolderId ? 'text-blue-600' : ''}" onclick="AssetHub.loadData(null)">Eaz Drive</span>
+                    <span class="hover:text-blue-600 cursor-pointer transition-all ${!this.isTrashView && !this.currentFolderId ? 'text-blue-600' : ''}" onclick="AssetHub.loadData(null)">Eaz Drive</span>
                     ${this.breadcrumbs.map(bc => `
                         <i class="ph ph-caret-right text-[10px] mx-1"></i>
-                        <span ondragover="event.preventDefault(); this.classList.add('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all'); event.dataTransfer.dropEffect = 'move';" ondragleave="this.classList.remove('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all');" ondrop="AssetHub.handleBreadcrumbDrop(event, '${bc.id}')" class="hover:text-blue-600 cursor-pointer transition-all inline-block" onclick="AssetHub.loadData('${bc.id}')">${bc.name}</span>
+                        <span class="hover:text-blue-600 cursor-pointer transition-all inline-block" onclick="AssetHub.loadData('${bc.id}')">${bc.name}</span>
                     `).join('')}
                     ${this.isTrashView ? `
                         <i class="ph ph-caret-right text-[10px] mx-1"></i>
@@ -341,7 +341,7 @@ const AssetHub = {
         const isSelected = this.selectedItems.has(folder._id);
         const selClasses = isSelected ? '' : 'border-gray-200';
         return `
-            <div data-id="${folder._id}" data-type="folder" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${folder._id}', 'folder')" onclick="if(AssetHub.isSelectMode) AssetHub.toggleSelection('${folder._id}', event)" ondblclick="AssetHub.loadData('${folder._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${folder._id}', 'folder', ${JSON.stringify(folder).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${selClasses} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
+            <div data-id="${folder._id}" data-type="folder" draggable="false" onclick="if(AssetHub.isSelectMode) AssetHub.toggleSelection('${folder._id}', event)" ondblclick="AssetHub.loadData('${folder._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${folder._id}', 'folder', ${JSON.stringify(folder).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${selClasses} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
                 <div class="selection-checkbox absolute top-3 left-3 w-6 h-6 rounded-full border-2 z-20 flex items-center justify-center transition-all ${this.isSelectMode ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'} ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/80 border-gray-300'}">
                     ${isSelected ? '<i class="ph-bold ph-check text-white text-[12px]"></i>' : ''}
                 </div>
@@ -361,7 +361,7 @@ const AssetHub = {
         const dblClickAction = `AssetHub.openItem('${asset._id}')`;
 
         return `
-            <div data-id="${asset._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${asset._id}', 'asset')" onclick="if(AssetHub.isSelectMode) AssetHub.toggleSelection('${asset._id}', event)" ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
+            <div data-id="${asset._id}" data-type="asset" draggable="false" onclick="if(AssetHub.isSelectMode) AssetHub.toggleSelection('${asset._id}', event)" ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
                     <div class="selection-checkbox absolute top-3 left-3 w-6 h-6 rounded-full border-2 z-20 flex items-center justify-center transition-all ${this.isSelectMode ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'} ${isSelected ? 'bg-blue-500 border-blue-500' : 'bg-white/80 border-gray-300'}">
                         ${isSelected ? '<i class="ph-bold ph-check text-white text-[12px]"></i>' : ''}
@@ -861,51 +861,6 @@ const AssetHub = {
     bulkDownload() { this.bulkAction('download'); },
     bulkDelete() { this.bulkAction('delete'); },
 
-    handleItemDragStart(e, id, type) {
-        if (!this.selectedItems.has(id)) {
-            this.selectedItems.clear();
-            this.selectedItems.add(id);
-            this.applyFiltersAndRender();
-        }
-        e.dataTransfer.setData('application/json', JSON.stringify(Array.from(this.selectedItems)));
-        e.dataTransfer.effectAllowed = 'move';
-    },
-
-    async handleBreadcrumbDrop(e, targetFolderId) {
-        e.preventDefault();
-        const bc = e.target;
-        bc.classList.remove('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all');
-
-        if (targetFolderId === String(this.currentFolderId)) return;
-
-        let itemIds = [];
-        try {
-            itemIds = JSON.parse(e.dataTransfer.getData('application/json'));
-        } catch (err) {
-            // Fallback for files dragged from outside or legacy selection
-            itemIds = Array.from(this.selectedItems);
-        }
-
-        if (itemIds.length > 0) {
-            showNotification('Moving items...', 'info');
-            try {
-                for (const id of itemIds) {
-                    const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
-                    await fetch(`/api/assets/${id}/move`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ type, destinationFolder: targetFolderId === 'null' ? null : targetFolderId }),
-                        credentials: 'include'
-                    });
-                }
-                showNotification(`Successfully moved ${itemIds.length} items`, 'success');
-                this.clearSelection();
-                this.loadData();
-            } catch (err) {
-                showNotification('Failed to move items', 'error');
-            }
-        }
-    },
 
     openItem(idOrUrl, mime, name) {
         let url = idOrUrl;
