@@ -442,6 +442,15 @@ const AssetHub = {
 
     showContextMenu(e, mode, id, type, itemData) {
         e.preventDefault(); e.stopPropagation();
+
+        if (mode === 'item') {
+            if (!this.selectedItems.has(id)) {
+                this.selectedItems.clear();
+                this.selectedItems.add(id);
+                this.applyFiltersAndRender();
+            }
+        }
+
         this.clearMenus();
         const x = e.clientX, y = e.clientY;
         let menuHtml = '';
@@ -457,25 +466,40 @@ const AssetHub = {
             `;
         } else if (mode === 'item') {
             const isT = this.isTrashView;
-            menuHtml = `
-                <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_40px_120px_rgba(0,0,0,0.25)] border border-gray-100 p-2 w-72 animate-in fade-in" style="top:${y > window.innerHeight - 400 ? y - 400 : y}px; left:${x > window.innerWidth - 300 ? x - 280 : x}px;">
-                    ${isT ? `
-                        <button onclick="AssetHub.restoreItem('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-arrow-counter-clockwise text-xl"></i> Restore</button>
-                        <button onclick="AssetHub.deletePermanent('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Delete Forever</button>
-                    ` : `
-                        <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${itemData.url}', '${itemData.mimeType}', '${itemData.name}')`}" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
-                        <button onclick="AssetHub.downloadItem('${itemData.url}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-download-simple text-blue-500"></i> Download</button>
-                        <button onclick="AssetHub.renameItem('${id}', '${type}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-pencil-simple text-blue-500"></i> Rename</button>
+            if (this.selectedItems.size > 1 && !isT) {
+                // BULK CONTEXT MENU
+                menuHtml = `
+                    <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_40px_120px_rgba(0,0,0,0.25)] border border-gray-100 p-2 w-72 animate-in fade-in" style="top:${y > window.innerHeight - 300 ? y - 300 : y}px; left:${x > window.innerWidth - 300 ? x - 280 : x}px;">
+                        <span class="block px-5 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 mb-1">${this.selectedItems.size} items selected</span>
+                        <button onclick="AssetHub.bulkCopy()" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-copy text-blue-500 text-xl"></i> Copy</button>
+                        <button onclick="AssetHub.bulkMove()" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-folder-simple-dashed text-blue-500 text-xl"></i> Move</button>
+                        <button onclick="AssetHub.bulkDownload()" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-download-simple text-blue-500 text-xl"></i> Download</button>
                         <div class="h-[1px] bg-gray-100 my-1"></div>
-                        <button onclick="AssetHub.copyToClipboard('${id}', '${type}', 'copy')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-copy text-gray-400"></i> Copy</button>
-                        ${this.clipboard.id ? `<button onclick="AssetHub.pasteItem('${id}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold"><i class="ph ph-clipboard-text"></i> Paste</button>` : ''}
-                        <div class="h-[1px] bg-gray-100 my-1"></div>
-                        <button onclick="AssetHub.showFileInfo(${JSON.stringify(itemData).replace(/"/g, '&quot;')})" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-info text-gray-400"></i> File information</button>
-                        <div class="h-[1px] bg-gray-100 my-1"></div>
-                        <button onclick="AssetHub.deleteItem('${id}', '${type}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold mt-1"><i class="ph ph-trash-simple"></i> Move to trash</button>
-                    `}
-                </div>
-            `;
+                        <button onclick="AssetHub.bulkDelete()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Move to trash</button>
+                    </div>
+                `;
+            } else {
+                // STANDARD ITEM MENU
+                menuHtml = `
+                    <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_40px_120px_rgba(0,0,0,0.25)] border border-gray-100 p-2 w-72 animate-in fade-in" style="top:${y > window.innerHeight - 400 ? y - 400 : y}px; left:${x > window.innerWidth - 300 ? x - 280 : x}px;">
+                        ${isT ? `
+                            <button onclick="AssetHub.restoreItem('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-arrow-counter-clockwise text-xl"></i> Restore</button>
+                            <button onclick="AssetHub.deletePermanent('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Delete Forever</button>
+                        ` : `
+                            <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${itemData.url}', '${itemData.mimeType}', '${itemData.name}')`}" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
+                            <button onclick="AssetHub.downloadItem('${itemData.url}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-download-simple text-blue-500"></i> Download</button>
+                            <button onclick="AssetHub.renameItem('${id}', '${type}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-pencil-simple text-blue-500"></i> Rename</button>
+                            <div class="h-[1px] bg-gray-100 my-1"></div>
+                            <button onclick="AssetHub.copyToClipboard('${id}', '${type}', 'copy')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-copy text-gray-400"></i> Copy</button>
+                            ${this.clipboard.id ? `<button onclick="AssetHub.pasteItem('${id}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold"><i class="ph ph-clipboard-text"></i> Paste</button>` : ''}
+                            <div class="h-[1px] bg-gray-100 my-1"></div>
+                            <button onclick="AssetHub.showFileInfo(${JSON.stringify(itemData).replace(/"/g, '&quot;')})" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-info text-gray-400"></i> File information</button>
+                            <div class="h-[1px] bg-gray-100 my-1"></div>
+                            <button onclick="AssetHub.deleteItem('${id}', '${type}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold mt-1"><i class="ph ph-trash-simple"></i> Move to trash</button>
+                        `}
+                    </div>
+                `;
+            }
         }
 
         document.body.insertAdjacentHTML('beforeend', menuHtml);
@@ -748,6 +772,7 @@ const AssetHub = {
                 this.clearSelection();
                 this.loadData();
             });
+            this.clearMenus();
             return;
         }
 
@@ -757,6 +782,7 @@ const AssetHub = {
                 if (asset) this.downloadItem(asset.url, asset.name);
             }
             showNotification('Bulk download started', 'success');
+            this.clearMenus();
             return;
         }
 
@@ -768,9 +794,15 @@ const AssetHub = {
             
             this.clipboard = { items, action: action === 'copy' ? 'copy' : 'cut' };
             showNotification(`${this.selectedItems.size} items copied to clipboard`, 'success');
+            this.clearMenus();
             this.clearSelection();
         }
     },
+
+    bulkCopy() { this.bulkAction('copy'); },
+    bulkMove() { this.bulkAction('cut'); },
+    bulkDownload() { this.bulkAction('download'); },
+    bulkDelete() { this.bulkAction('delete'); },
 
     handleItemDragStart(e, id, type) {
         if (!this.selectedItems.has(id)) {
