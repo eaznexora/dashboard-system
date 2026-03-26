@@ -363,10 +363,13 @@ const AssetHub = {
                         </tr>
                     </thead>
                     <tbody>
-                        ${rows.map(item => `
-                            <tr ondblclick="AssetHub.${item.isFolder ? `loadData('${item._id}')` : `openItem('${item.url}', '${item.mimeType}', '${item.name}')`}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
+                        ${rows.map(item => {
+                            const isHtml = item.name?.toLowerCase().endsWith('.html');
+                            const dblClickAction = item.isFolder ? `loadData('${item._id}')` : (isHtml ? `window.open('${item.url}', '_blank')` : `openItem('${item._id}')`);
+                            return `
+                            <tr ondblclick="AssetHub.${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
                                 <td class="py-4 px-4 flex items-center gap-4">
-                                    ${item.isFolder ? '<i class="ph ph-folder text-2xl text-gray-400"></i>' : this.getSmallIcon(item.mimeType)}
+                                    ${item.isFolder ? '<i class="ph ph-folder text-2xl text-gray-400"></i>' : this.getSmallIcon(item.mimeType, item.name)}
                                     <span class="font-bold text-gray-700">${item.name}</span>
                                 </td>
                                 <td class="py-4 px-4 text-sm text-gray-500 font-medium">${new Date(item.updatedAt).toLocaleDateString()}</td>
@@ -375,7 +378,8 @@ const AssetHub = {
                                     <button onclick="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-300 hover:text-gray-700 hover:bg-white transition-colors"><i class="ph ph-dots-three-vertical-bold"></i></button>
                                 </td>
                             </tr>
-                        `).join('')}
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -412,8 +416,11 @@ const AssetHub = {
             else iconHtml = `<div class="w-16 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center font-black text-gray-200 uppercase">${ext}</div>`;
         }
 
+        const isHtml = asset.name.toLowerCase().endsWith('.html');
+        const dblClickAction = isHtml ? `window.open('${asset.url}', '_blank')` : `AssetHub.openItem('${asset._id}')`;
+
         return `
-            <div data-id="${asset._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${asset._id}', 'asset')" onclick="AssetHub.toggleSelection('${asset._id}', event)" ondblclick="AssetHub.openItem('${asset.url}', '${asset.mimeType}', '${asset.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
+            <div data-id="${asset._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${asset._id}', 'asset')" onclick="AssetHub.toggleSelection('${asset._id}', event)" ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
                 <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, '${asset._id || folder._id}', '${type}')" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10"><i class="ph ph-dots-three-vertical text-lg"></i></button>
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
                     ${isImg ? `<img src="${asset.thumbnailUrl || asset.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
@@ -493,6 +500,7 @@ const AssetHub = {
                             <button onclick="AssetHub.deletePermanent('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Delete Forever</button>
                         ` : `
                             <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${itemData.url}', '${itemData.mimeType}', '${itemData.name}')`}" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
+                            ${itemData?.name?.toLowerCase().endsWith('.html') ? `<button onclick="window.open('${itemData.url}', '_blank'); AssetHub.hideContextMenu();" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-globe text-blue-500"></i> Open on web</button>` : ''}
                             <button onclick="AssetHub.downloadItem('${itemData.url}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-download-simple text-blue-500"></i> Download</button>
                             <button onclick="AssetHub.renameItem('${id}', '${type}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-pencil-simple text-blue-500"></i> Rename</button>
                             <div class="h-[1px] bg-gray-100 my-1"></div>
@@ -512,6 +520,7 @@ const AssetHub = {
     },
 
     clearMenus() { document.getElementById('ctx-menu')?.remove(); document.getElementById('filter-menu')?.remove(); },
+    hideContextMenu() { this.clearMenus(); },
 
     showFilterMenu(e, type) {
         e.preventDefault(); e.stopPropagation();
@@ -897,11 +906,25 @@ const AssetHub = {
         }
     },
 
-    openItem(url, mime, name) {
-        const isImg = mime?.startsWith('image/');
-        const isVid = mime?.startsWith('video/');
-        const isPdf = mime?.includes('pdf');
-        const ext = name?.split('.').pop().toLowerCase();
+    openItem(idOrUrl, mime, name) {
+        let url = idOrUrl;
+        let finalMime = mime;
+        let finalName = name;
+
+        // Support ID-based lookup if mime/name are missing
+        if (!mime && !name) {
+            const asset = this.assets.find(a => a._id === idOrUrl);
+            if (asset) {
+                url = asset.url;
+                finalMime = asset.mimeType;
+                finalName = asset.name;
+            }
+        }
+        
+        const isImg = finalMime?.startsWith('image/');
+        const isVid = finalMime?.startsWith('video/');
+        const isPdf = finalMime?.includes('pdf');
+        const ext = finalName?.split('.').pop().toLowerCase();
         const isCode = ['html', 'css', 'js', 'json', 'txt', 'py', 'php', 'c', 'cpp'].includes(ext);
         const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
 
@@ -956,12 +979,12 @@ const AssetHub = {
                         </button>
                         <div class="h-10 w-[1px] bg-white/5"></div>
                         <div class="min-w-0">
-                            <h4 class="text-white font-black truncate text-2xl tracking-tighter uppercase mb-1">${name}</h4>
+                            <h4 class="text-white font-black truncate text-2xl tracking-tighter uppercase mb-1">${finalName}</h4>
                             <p class="text-blue-500 font-black text-[9px] uppercase tracking-[0.2em] opacity-80">${ext} resource stream</p>
                         </div>
                     </div>
                     <div class="flex items-center gap-5">
-                        <button onclick="AssetHub.downloadItem('${url}', '${name}')" class="p-4 bg-white/5 hover:bg-white/10 text-white rounded-3xl transition-all flex items-center gap-5 px-10 font-black text-[11px] uppercase tracking-widest border border-white/5 shadow-2xl group">
+                        <button onclick="AssetHub.downloadItem('${url}', '${finalName}')" class="p-4 bg-white/5 hover:bg-white/10 text-white rounded-3xl transition-all flex items-center gap-5 px-10 font-black text-[11px] uppercase tracking-widest border border-white/5 shadow-2xl group">
                             <i class="ph-bold ph-download-simple text-blue-500 group-hover:scale-125 transition-transform"></i>
                             <span>Secure Download</span>
                         </button>
