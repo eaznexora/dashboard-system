@@ -1,13 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const Folder = require('../models/Folder');
 const Asset = require('../models/Asset');
-const User = require('../models/User');
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_eaz_123';
 
@@ -111,7 +109,7 @@ router.post('/folders', async (req, res) => {
 });
 
 /**
- * POST: UPLOAD FILE (Bulletproof Extension Handling)
+ * POST: UPLOAD FILE (Direct Move - Stable)
  */
 router.post('/upload', upload.single('file'), async (req, res) => {
   try {
@@ -121,26 +119,9 @@ router.post('/upload', upload.single('file'), async (req, res) => {
 
     const fileName = file.filename; 
     const finalPath = path.join(UPLOAD_ROOT, fileName);
-    let thumbnailUrl = null;
 
-    const isImage = ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype);
-
-    if (isImage) {
-      await sharp(file.path)
-        .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
-        .toFile(finalPath);
-
-      const thumbName = 'thumb-' + fileName;
-      const thumbPath = path.join(UPLOAD_ROOT, thumbName);
-      await sharp(file.path)
-        .resize(400, 400, { fit: 'cover' })
-        .toFile(thumbPath);
-      thumbnailUrl = `/uploads/${thumbName}`;
-    } else {
-      fs.renameSync(file.path, finalPath);
-    }
-
-    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    // DIRECT MOVE: NO SHARP (Ensures 100% extension preservation and avoids scanning loops)
+    fs.renameSync(file.path, finalPath);
 
     const asset = new Asset({
       name: file.originalname,
@@ -148,7 +129,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
       mimeType: file.mimetype,
       size: file.size,
       url: `/uploads/${fileName}`,
-      thumbnailUrl,
+      thumbnailUrl: null, // Removed thumbnail generation to ensure 100% stability
       parentFolder: (parentFolder === 'null' || !parentFolder) ? null : parentFolder,
       uploadedBy: String(req.user.id)
     });
@@ -157,6 +138,7 @@ router.post('/upload', upload.single('file'), async (req, res) => {
     if (global.io) global.io.emit('asset_update');
     res.status(201).json(asset);
   } catch (err) {
+    console.error('[UPLOAD_ERROR]:', err);
     res.status(500).json({ error: 'Upload failed: ' + err.message });
   }
 });
@@ -188,15 +170,8 @@ router.delete('/:id/permanent', async (req, res) => {
     } else {
       const asset = await Asset.findByIdAndDelete(req.params.id);
       if (asset) {
-        // Physically delete main file
         const mainPath = path.join(__dirname, '..', asset.url);
         if (fs.existsSync(mainPath)) fs.unlinkSync(mainPath);
-        
-        // Physically delete thumbnail
-        if (asset.thumbnailUrl) {
-          const thumbPath = path.join(__dirname, '..', asset.thumbnailUrl);
-          if (fs.existsSync(thumbPath)) fs.unlinkSync(thumbPath);
-        }
       }
     }
 

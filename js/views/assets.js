@@ -124,6 +124,9 @@ const AssetHub = {
         let filteredFolders = [...this.folders];
         let filteredAssets = [...this.assets];
 
+        const now = new Date();
+        const oneDay = 24 * 60 * 60 * 1000;
+
         // Type Filter logic
         if (this.filters.type) {
             if (this.filters.type === 'Folders') filteredAssets = [];
@@ -134,63 +137,83 @@ const AssetHub = {
             }
         }
 
+        // Modified Filter logic
+        if (this.filters.modified) {
+            const modDate = (item) => new Date(item.createdAt || item.updatedAt);
+            if (this.filters.modified === 'Today') {
+                filteredFolders = filteredFolders.filter(f => (now - modDate(f)) < oneDay);
+                filteredAssets = filteredAssets.filter(a => (now - modDate(a)) < oneDay);
+            } else if (this.filters.modified === 'Last 7 days') {
+                filteredFolders = filteredFolders.filter(f => (now - modDate(f)) < (7 * oneDay));
+                filteredAssets = filteredAssets.filter(a => (now - modDate(a)) < (7 * oneDay));
+            } else if (this.filters.modified === 'Last 30 days') {
+                filteredFolders = filteredFolders.filter(f => (now - modDate(f)) < (30 * oneDay));
+                filteredAssets = filteredAssets.filter(a => (now - modDate(a)) < (30 * oneDay));
+            }
+        }
+
         // Render
         this.render(filteredFolders, filteredAssets);
     },
 
     render(folders = this.folders, assets = this.assets) {
         if (!this.container) return;
-        const folderName = this.isTrashView ? 'Trash' : (this.breadcrumbs.length > 0 ? this.breadcrumbs[this.breadcrumbs.length - 1].name : 'Asset Hub');
+        const folderName = this.isTrashView ? 'Trash' : (this.breadcrumbs.length > 0 ? this.breadcrumbs[this.breadcrumbs.length - 1].name : 'Eaz Drive');
 
         this.container.innerHTML = `
             <!-- Header -->
-            <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0 sticky top-0 z-10">
-                <div class="flex items-center gap-3 cursor-pointer group" onclick="AssetHub.showContextMenu(event, 'folder_options')">
-                    <h2 class="text-xl font-medium text-gray-800">${folderName}</h2>
-                    ${!this.isTrashView ? '<i class="ph ph-caret-down text-gray-400 group-hover:text-gray-900 transition-colors"></i>' : ''}
+            <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0 sticky top-0 z-10 transition-all">
+                <div class="flex items-center gap-3 font-bold text-[12px] text-gray-400 uppercase tracking-widest">
+                    <span class="hover:text-blue-600 cursor-pointer ${!this.isTrashView && !this.currentFolderId ? 'text-blue-600' : ''}" onclick="AssetHub.loadData(null)">Eaz Drive</span>
+                    ${this.breadcrumbs.map(bc => `
+                        <i class="ph ph-caret-right text-[10px] mx-1"></i>
+                        <span class="hover:text-blue-600 cursor-pointer" onclick="AssetHub.loadData('${bc.id}')">${bc.name}</span>
+                    `).join('')}
+                    ${this.isTrashView ? `
+                        <i class="ph ph-caret-right text-[10px] mx-1"></i>
+                        <span class="text-red-500">Trash</span>
+                    ` : ''}
                 </div>
                 <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-100 mr-2">
-                        <button class="p-2 rounded-lg hover:bg-white hover:shadow-sm text-gray-400 ${this.viewMode === 'grid' ? 'bg-white shadow-sm text-blue-600' : ''}" onclick="AssetHub.setView('grid')">
+                    <div class="flex items-center gap-1 bg-white p-1 rounded-xl border border-gray-200 mr-2 shadow-sm">
+                        <button class="p-2 rounded-lg hover:bg-gray-50 text-gray-400 ${this.viewMode === 'grid' ? 'bg-blue-50 text-blue-600' : ''}" onclick="AssetHub.setView('grid')">
                             <i class="ph-bold ph-grid-four text-[15px]"></i>
                         </button>
-                        <button class="p-2 rounded-lg hover:bg-white hover:shadow-sm text-gray-400 ${this.viewMode === 'list' ? 'bg-white shadow-sm text-blue-600' : ''}" onclick="AssetHub.setView('list')">
+                        <button class="p-2 rounded-lg hover:bg-gray-50 text-gray-400 ${this.viewMode === 'list' ? 'bg-blue-50 text-blue-600' : ''}" onclick="AssetHub.setView('list')">
                             <i class="ph-bold ph-list-bullets text-[15px]"></i>
                         </button>
                     </div>
                     ${!this.isTrashView ? `
                         <button onclick="AssetHub.showContextMenu(event, 'global-btn')" class="flex items-center gap-3 bg-white hover:bg-gray-50 text-gray-900 px-6 py-3 rounded-2xl shadow-sm border border-gray-200 transition-all hover:shadow-md active:scale-95 group font-bold">
                             <i class="ph ph-plus text-xl text-blue-600"></i>
-                            <span>+ New</span>
+                            <span>New</span>
                         </button>
                     ` : ''}
                 </div>
             </div>
 
             <!-- Filter Strip -->
-            <div class="px-8 py-3 flex items-center justify-between border-b border-gray-50 bg-white/50 shrink-0 overflow-x-auto scrollbar-hide">
+            <div class="px-8 py-3 flex items-center justify-between border-b border-gray-50 bg-gray-50/50 shrink-0 overflow-x-auto scrollbar-hide">
                 <div class="flex items-center gap-2">
-                    <button onclick="AssetHub.showFilterMenu(event, 'type')" class="px-4 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.type ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
+                    <button onclick="AssetHub.showFilterMenu(event, 'type')" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.type ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
                         ${this.filters.type || 'Type'} <i class="ph ph-caret-down text-[10px]"></i>
                     </button>
-                    <button onclick="AssetHub.showFilterMenu(event, 'person')" class="px-4 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2">People <i class="ph ph-caret-down text-[10px]"></i></button>
-                    <button onclick="AssetHub.showFilterMenu(event, 'modified')" class="px-4 py-1.5 rounded-full border border-gray-200 text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2">Modified <i class="ph ph-caret-down text-[10px]"></i></button>
+                    <button onclick="AssetHub.showFilterMenu(event, 'person')" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.person ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
+                        ${this.filters.person || 'People'} <i class="ph ph-caret-down text-[10px]"></i>
+                    </button>
+                    <button onclick="AssetHub.showFilterMenu(event, 'modified')" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.modified ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
+                        ${this.filters.modified || 'Modified'} <i class="ph ph-caret-down text-[10px]"></i>
+                    </button>
                 </div>
-                <div class="flex items-center gap-3 text-[12px] text-gray-400 font-bold uppercase tracking-widest">
-                    <span class="hover:text-blue-600 cursor-pointer ${!this.isTrashView && !this.currentFolderId ? 'text-blue-600' : ''}" onclick="AssetHub.loadData(null)">My Drive</span>
-                    ${this.breadcrumbs.map(bc => `
-                        <i class="ph ph-caret-right text-[10px] mx-1"></i>
-                        <span class="hover:text-blue-600 cursor-pointer" onclick="AssetHub.loadData('${bc.id}')">${bc.name}</span>
-                    `).join('')}
-                    <div class="w-[1px] h-4 bg-gray-100 mx-2"></div>
-                    <button onclick="AssetHub.loadTrash()" class="flex items-center gap-2 hover:text-red-500 transition-colors ${this.isTrashView ? 'text-red-500' : ''}">
+                <div class="flex items-center gap-3">
+                    <button onclick="AssetHub.loadTrash()" class="text-[11px] font-black uppercase tracking-widest flex items-center gap-2 hover:text-red-500 transition-colors ${this.isTrashView ? 'text-red-500' : 'text-gray-400'}">
                         <i class="ph-fill ph-trash"></i> Trash
                     </button>
                 </div>
             </div>
 
             <!-- Main Body -->
-            <div class="flex-1 overflow-y-auto p-10 bg-white" id="hub-body">
+            <div class="flex-1 overflow-y-auto p-10 bg-gray-50" id="hub-body">
                 ${this.viewMode === 'grid' ? this.renderGridView(folders, assets) : this.renderListView(folders, assets)}
             </div>
         `;
@@ -210,7 +233,7 @@ const AssetHub = {
                 <h3 class="text-[11px] font-black text-gray-300 uppercase tracking-[0.2em] mb-6">Files</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-8">
                     ${assets.map(a => this.renderFileCard(a)).join('')}
-                    ${folders.length === 0 && assets.length === 0 ? '<div class="col-span-full py-40 text-center text-gray-200 font-bold text-xl uppercase tracking-widest">The vault is currently empty</div>' : ''}
+                    ${folders.length === 0 && assets.length === 0 ? '<div class="col-span-full py-40 text-center text-gray-300 font-bold text-xl uppercase tracking-widest">The vault is currently empty</div>' : ''}
                 </div>
             </div>
         `;
@@ -222,7 +245,7 @@ const AssetHub = {
             <div class="w-full">
                 <table class="w-full text-left border-collapse">
                     <thead>
-                        <tr class="text-[11px] font-black text-gray-300 uppercase tracking-widest border-b border-gray-50">
+                        <tr class="text-[11px] font-black text-gray-300 uppercase tracking-widest border-b border-gray-100">
                             <th class="py-4 px-4 w-[50%]">Name</th>
                             <th class="py-4 px-4 w-[20%]">Modified</th>
                             <th class="py-4 px-4 w-[15%]">Size</th>
@@ -231,7 +254,7 @@ const AssetHub = {
                     </thead>
                     <tbody>
                         ${rows.map(item => `
-                            <tr ondblclick="AssetHub.${item.isFolder ? `loadData('${item._id}')` : `openItem('${item.url}', '${item.mimeType}')`}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-gray-50 border-b border-gray-50 transition-colors cursor-pointer group">
+                            <tr ondblclick="AssetHub.${item.isFolder ? `loadData('${item._id}')` : `openItem('${item.url}', '${item.mimeType}')`}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
                                 <td class="py-4 px-4 flex items-center gap-4">
                                     ${item.isFolder ? '<i class="ph ph-folder text-2xl text-gray-400"></i>' : this.getSmallIcon(item.mimeType)}
                                     <span class="font-bold text-gray-700">${item.name}</span>
@@ -239,7 +262,7 @@ const AssetHub = {
                                 <td class="py-4 px-4 text-sm text-gray-500 font-medium">${new Date(item.updatedAt).toLocaleDateString()}</td>
                                 <td class="py-4 px-4 text-sm text-gray-500 font-medium">${item.isFolder ? '—' : this.formatSize(item.size)}</td>
                                 <td class="py-4 px-4 text-right pr-6">
-                                    <button onclick="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-300 hover:text-gray-700 hover:bg-gray-100"><i class="ph ph-dots-three-vertical-bold"></i></button>
+                                    <button onclick="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-300 hover:text-gray-700 hover:bg-white transition-colors"><i class="ph ph-dots-three-vertical-bold"></i></button>
                                 </td>
                             </tr>
                         `).join('')}
@@ -303,7 +326,7 @@ const AssetHub = {
                 <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in" style="top:${y}px; left:${x > window.innerWidth - 300 ? x - 260 : x}px;">
                     <button onclick="AssetHub.promptNewFolder()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-folder-plus text-xl text-blue-500"></i> New folder</button>
                     ${this.clipboard.id ? `<button onclick="AssetHub.pasteItem()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-clipboard-text text-xl text-blue-500"></i> Paste (Ctrl+V)</button>` : ''}
-                    <div class="h-[1px] bg-gray-50 my-1"></div>
+                    <div class="h-[1px] bg-gray-100 my-1"></div>
                     <button onclick="AssetHub.triggerFileUpload(false)" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-file-arrow-up text-xl text-blue-500"></i> File upload</button>
                     <button onclick="AssetHub.triggerFileUpload(true)" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 hover:text-blue-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-folder-arrow-up text-xl text-blue-500"></i> Folder upload</button>
                 </div>
@@ -316,17 +339,16 @@ const AssetHub = {
                         <button onclick="AssetHub.restoreItem('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-arrow-counter-clockwise text-xl"></i> Restore</button>
                         <button onclick="AssetHub.deletePermanent('${id}', '${type}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash text-xl"></i> Delete Forever</button>
                     ` : `
-                        <button onclick="AssetHub.openItem('${itemData.url}', '${itemData.mimeType}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-eye text-blue-500"></i> Preview</button>
+                        <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${itemData.url}', '${itemData.mimeType}')`}" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
                         <button onclick="AssetHub.downloadItem('${itemData.url}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-download-simple text-blue-500"></i> Download</button>
                         <button onclick="AssetHub.renameItem('${id}', '${type}', '${itemData.name}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-pencil-simple text-blue-500"></i> Rename</button>
-                        <div class="h-[1px] bg-gray-50 my-1"></div>
+                        <div class="h-[1px] bg-gray-100 my-1"></div>
                         <button onclick="AssetHub.copyToClipboard('${id}', '${type}', 'copy')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-copy text-gray-400"></i> Copy</button>
-                        <button onclick="AssetHub.copyToClipboard('${id}', '${type}', 'cut')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-scissors text-gray-400"></i> Cut</button>
-                        ${type === 'folder' && this.clipboard.id ? `<button onclick="AssetHub.pasteItem('${id}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold"><i class="ph ph-clipboard-text"></i> Paste into Folder</button>` : ''}
-                        <div class="h-[1px] bg-gray-50 my-1"></div>
+                        ${this.clipboard.id ? `<button onclick="AssetHub.pasteItem('${id}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold"><i class="ph ph-clipboard-text"></i> Paste</button>` : ''}
+                        <div class="h-[1px] bg-gray-100 my-1"></div>
                         <button onclick="AssetHub.showFileInfo(${JSON.stringify(itemData).replace(/"/g, '&quot;')})" class="w-full text-left px-5 py-3 rounded-xl hover:bg-gray-50 text-gray-700 flex items-center gap-4 font-bold"><i class="ph ph-info text-gray-400"></i> File information</button>
                         <div class="h-[1px] bg-gray-100 my-1"></div>
-                        <button onclick="AssetHub.deleteItem('${id}', '${type}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold border-t border-gray-50 mt-1"><i class="ph ph-trash-simple"></i> Move to trash</button>
+                        <button onclick="AssetHub.deleteItem('${id}', '${type}')" class="w-full text-left px-5 py-3 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold mt-1"><i class="ph ph-trash-simple"></i> Move to trash</button>
                     `}
                 </div>
             `;
@@ -341,7 +363,7 @@ const AssetHub = {
         e.preventDefault(); e.stopPropagation();
         this.clearMenus();
         const rect = e.target.getBoundingClientRect();
-        const items = type === 'type' ? ['Folders', 'Images', 'Documents', 'Reset'] : (type === 'modified' ? ['Today', 'Last 7 days', 'Last 30 days', 'Reset'] : ['Admin', 'Nexora Team', 'Reset']);
+        const items = type === 'type' ? ['Folders', 'Images', 'Documents', 'Reset'] : (type === 'modified' ? ['Today', 'Last 7 days', 'Last 30 days', 'Reset'] : ['Admin', 'Nexora Team', 'Development', 'Reset']);
         
         const menuHtml = `
             <div id="filter-menu" class="fixed z-[180] bg-white rounded-xl shadow-xl border border-gray-100 p-2 w-48 animate-in fade-in transition-all" style="top:${rect.bottom + 8}px; left:${rect.left}px;">
@@ -427,7 +449,7 @@ const AssetHub = {
         const input = document.createElement('input');
         input.type = 'file';
         if (isFolder) { input.webkitdirectory = true; input.multiple = true; }
-        input.onchange = (e) => { this.handleFileUpload(e.target.files[0]); }; // Simplified to single file for first implementation
+        input.onchange = (e) => { this.handleFileUpload(e.target.files[0]); }; 
         input.click();
     },
 
@@ -444,7 +466,7 @@ const AssetHub = {
         } catch (e) { showNotification(e.message, 'error'); }
     },
 
-    copyToClipboard(id, type, action) { this.clipboard = { id, type, action }; showNotification(action.toUpperCase(), 'success'); this.render(); },
+    copyToClipboard(id, type, action) { this.clipboard = { id, type, action }; showNotification('Copied', 'success'); this.render(); },
 
     async pasteItem(targetFolderId = this.currentFolderId) {
         if (!this.clipboard.id) return;
@@ -474,7 +496,7 @@ const AssetHub = {
                         <div><h3 class="text-3xl font-black text-gray-900 truncate max-w-xs">${item.name}</h3><p class="text-[11px] font-black text-blue-500 uppercase tracking-[0.2em] mt-2">Resource Metadata</p></div>
                     </div>
                     <div class="space-y-8 border-t border-gray-100 pt-10 text-sm">
-                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Extension</span><span class="font-bold text-gray-800">${item.mimeType}</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Extension</span><span class="font-bold text-gray-800">${item.mimeType || 'Directory'}</span></div>
                         <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Disk Weight</span><span class="font-bold text-gray-800">${this.formatSize(item.size)}</span></div>
                         <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Uploaded By</span><span class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full font-black text-[10px] uppercase">Admin / Team Nexora</span></div>
                         <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Timestamp</span><span class="font-black text-gray-800 text-[11px]">${new Date(item.createdAt).toLocaleString()}</span></div>
