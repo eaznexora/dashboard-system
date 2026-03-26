@@ -25,7 +25,7 @@ const AssetHub = {
 
         // Inject Drop Overlay
         const overlayHtml = `
-            <div id="drop-overlay" class="fixed inset-0 z-[999] bg-blue-600/90 flex flex-col items-center justify-center text-white opacity-0 pointer-events-none transition-opacity duration-300 backdrop-blur-sm">
+            <div id="drop-overlay" class="fixed inset-0 z-[999] bg-blue-600/90 flex flex-col items-center justify-center text-white hidden opacity-0 pointer-events-none transition-opacity duration-300 backdrop-blur-sm">
                 <i class="ph-fill ph-cloud-arrow-up text-9xl mb-8 animate-bounce"></i>
                 <h2 class="text-4xl font-black uppercase tracking-[0.3em] text-center px-10">Drop files to upload to Eaz Drive</h2>
             </div>
@@ -51,7 +51,10 @@ const AssetHub = {
         window.addEventListener('dragenter', (e) => {
             if (this.isTrashView) return;
             e.preventDefault();
-            this.dropOverlay?.classList.remove('opacity-0', 'pointer-events-none');
+            if (e.dataTransfer.types.includes('Files')) {
+                this.dropOverlay?.classList.remove('hidden', 'opacity-0', 'pointer-events-none');
+                this.dropOverlay?.classList.add('flex', 'opacity-100');
+            }
         });
 
         window.addEventListener('dragover', (e) => {
@@ -59,14 +62,16 @@ const AssetHub = {
         });
 
         window.addEventListener('dragleave', (e) => {
-            if (e.relatedTarget === null || e.relatedTarget === undefined) {
-                this.dropOverlay?.classList.add('opacity-0', 'pointer-events-none');
+            if (!e.relatedTarget || e.relatedTarget === null) {
+                this.dropOverlay?.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+                this.dropOverlay?.classList.remove('flex', 'opacity-100');
             }
         });
 
         window.addEventListener('drop', (e) => {
             e.preventDefault();
-            this.dropOverlay?.classList.add('opacity-0', 'pointer-events-none');
+            this.dropOverlay?.classList.add('hidden', 'opacity-0', 'pointer-events-none');
+            this.dropOverlay?.classList.remove('flex', 'opacity-100');
             if (this.isTrashView) return;
             const files = e.dataTransfer.files;
             if (files.length > 0) this.handleFileUpload(files);
@@ -104,7 +109,8 @@ const AssetHub = {
         const hubBody = document.getElementById('hub-body');
         if (hubBody) {
             hubBody.addEventListener('mousedown', (e) => {
-                if (e.button !== 0 || e.target.closest('.asset-card') || e.target.closest('button')) return;
+                if (e.button !== 0 || !e.target) return;
+                if (e.target.closest('.asset-card') || e.target.closest('button')) return;
                 
                 this.isDragging = true;
                 this.startX = e.clientX;
@@ -122,6 +128,7 @@ const AssetHub = {
 
         window.addEventListener('mousemove', (e) => {
             if (!this.isDragging || !this.selectionBox) return;
+            if (isNaN(e.clientX) || isNaN(e.clientY)) return;
 
             const currentX = e.clientX;
             const currentY = e.clientY;
@@ -141,25 +148,26 @@ const AssetHub = {
             if (!this.isDragging || !this.selectionBox) return;
 
             const boxRect = this.selectionBox.getBoundingClientRect();
-            const cards = document.querySelectorAll('.asset-card');
-            
-            cards.forEach(card => {
-                const cardRect = card.getBoundingClientRect();
-                const isContained = !(
-                    cardRect.right < boxRect.left || 
-                    cardRect.left > boxRect.right || 
-                    cardRect.bottom < boxRect.top || 
-                    cardRect.top > boxRect.bottom
-                );
+            if (boxRect.width > 2 || boxRect.height > 2) {
+                const cards = document.querySelectorAll('.asset-card');
+                cards.forEach(card => {
+                    const cardRect = card.getBoundingClientRect();
+                    const isContained = !(
+                        cardRect.right < boxRect.left || 
+                        cardRect.left > boxRect.right || 
+                        cardRect.bottom < boxRect.top || 
+                        cardRect.top > boxRect.bottom
+                    );
 
-                if (isContained) {
-                    const id = card.getAttribute('data-id');
-                    if (id && !this.selectedItems.has(id)) {
-                        this.selectedItems.add(id);
-                        this.updateCardSelectionUI(card, true);
+                    if (isContained) {
+                        const id = card.getAttribute('data-id');
+                        if (id && !this.selectedItems.has(id)) {
+                            this.selectedItems.add(id);
+                            this.updateCardSelectionUI(card, true);
+                        }
                     }
-                }
-            });
+                });
+            }
 
             this.selectionBox.remove();
             this.selectionBox = null;
@@ -251,7 +259,8 @@ const AssetHub = {
 
     render(folders = this.folders, assets = this.assets) {
         if (!this.container) return;
-        const folderName = this.isTrashView ? 'Trash' : (this.breadcrumbs.length > 0 ? this.breadcrumbs[this.breadcrumbs.length - 1].name : 'Eaz Drive');
+        try {
+            const folderName = this.isTrashView ? 'Trash' : (this.breadcrumbs.length > 0 ? this.breadcrumbs[this.breadcrumbs.length - 1].name : 'Eaz Drive');
 
         this.container.innerHTML = `
             <!-- Header -->
@@ -320,13 +329,28 @@ const AssetHub = {
                 </div>
                 <button onclick="AssetHub.clearSelection()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all ml-2 text-gray-400 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
             </div>
-            </div>
 
             <!-- Main Body -->
             <div class="flex-1 overflow-y-auto p-10 bg-gray-50" id="hub-body">
                 ${this.viewMode === 'grid' ? this.renderGridView(folders, assets) : this.renderListView(folders, assets)}
             </div>
         `;
+        } catch (err) {
+            console.error('[ASSET_HUB_RENDER_CRASH]:', err);
+            this.container.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full p-20 text-center">
+                    <div class="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center text-red-500 text-4xl mb-8 shadow-inner"><i class="ph ph-warning-octagon"></i></div>
+                    <h2 class="text-3xl font-black text-gray-900 mb-4 tracking-tighter uppercase">Render Integrity Fault</h2>
+                    <p class="text-gray-400 font-bold max-w-md leading-relaxed mb-10 italic">The system encountered a structural error while building the explorer. This is usually caused by corrupted asset metadata.</p>
+                    <div class="bg-gray-100 p-6 rounded-2xl text-left font-mono text-[10px] text-gray-500 mb-10 border border-gray-200 w-full max-w-lg overflow-auto max-h-40">
+                        Error Trace: ${err.message}
+                    </div>
+                    <button onclick="AssetHub.loadData()" class="px-12 py-5 bg-blue-600 text-white rounded-2xl font-black shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center gap-4">
+                        <i class="ph ph-arrow-counter-clockwise"></i> Re-Synchronize Hub
+                    </button>
+                </div>
+            `;
+        }
     },
 
     renderGridView(folders, assets) {
@@ -365,9 +389,10 @@ const AssetHub = {
                     <tbody>
                         ${rows.map(item => {
                             const isHtml = item.name?.toLowerCase().endsWith('.html');
-                            const dblClickAction = item.isFolder ? `loadData('${item._id}')` : (isHtml ? `window.open('${item.url}', '_blank')` : `openItem('${item._id}')`);
+                            // Fix: Ensure window.open is not prefixed with AssetHub.
+                            const dblClickAction = item.isFolder ? `AssetHub.loadData('${item._id}')` : (isHtml ? `window.open('${item.url}', '_blank')` : `AssetHub.openItem('${item._id}')`);
                             return `
-                            <tr ondblclick="AssetHub.${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
+                            <tr ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
                                 <td class="py-4 px-4 flex items-center gap-4">
                                     ${item.isFolder ? '<i class="ph ph-folder text-2xl text-gray-400"></i>' : this.getSmallIcon(item.mimeType, item.name)}
                                     <span class="font-bold text-gray-700">${item.name}</span>
