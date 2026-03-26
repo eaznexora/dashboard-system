@@ -14,6 +14,10 @@ const AssetHub = {
     isTrashView: false,
     filters: { type: null, person: null, modified: null },
     selectedItems: new Set(),
+    isDragging: false,
+    selectionBox: null,
+    startX: 0,
+    startY: 0,
 
     init(user) {
         this.container = document.getElementById('asset-hub-container');
@@ -95,6 +99,75 @@ const AssetHub = {
         });
 
         window.addEventListener('click', () => this.clearMenus());
+
+        // --- MARQUEE SELECTION ---
+        const hubBody = document.getElementById('hub-body');
+        if (hubBody) {
+            hubBody.addEventListener('mousedown', (e) => {
+                if (e.button !== 0 || e.target.closest('.asset-card') || e.target.closest('button')) return;
+                
+                this.isDragging = true;
+                this.startX = e.clientX;
+                this.startY = e.clientY;
+
+                this.selectionBox = document.createElement('div');
+                this.selectionBox.className = 'fixed bg-blue-500/10 border border-blue-500/50 pointer-events-none z-[100] rounded-sm';
+                this.selectionBox.style.left = `${this.startX}px`;
+                this.selectionBox.style.top = `${this.startY}px`;
+                this.selectionBox.style.width = '0px';
+                this.selectionBox.style.height = '0px';
+                document.body.appendChild(this.selectionBox);
+            });
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (!this.isDragging || !this.selectionBox) return;
+
+            const currentX = e.clientX;
+            const currentY = e.clientY;
+
+            const width = Math.abs(currentX - this.startX);
+            const height = Math.abs(currentY - this.startY);
+            const left = Math.min(currentX, this.startX);
+            const top = Math.min(currentY, this.startY);
+
+            this.selectionBox.style.width = `${width}px`;
+            this.selectionBox.style.height = `${height}px`;
+            this.selectionBox.style.left = `${left}px`;
+            this.selectionBox.style.top = `${top}px`;
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (!this.isDragging || !this.selectionBox) return;
+
+            const boxRect = this.selectionBox.getBoundingClientRect();
+            const cards = document.querySelectorAll('.asset-card');
+            
+            let changed = false;
+            cards.forEach(card => {
+                const cardRect = card.getBoundingClientRect();
+                const isContained = !(
+                    cardRect.right < boxRect.left || 
+                    cardRect.left > boxRect.right || 
+                    cardRect.bottom < boxRect.top || 
+                    cardRect.top > boxRect.bottom
+                );
+
+                if (isContained) {
+                    const id = card.getAttribute('data-id');
+                    if (id && !this.selectedItems.has(id)) {
+                        this.selectedItems.add(id);
+                        changed = true;
+                    }
+                }
+            });
+
+            this.selectionBox.remove();
+            this.selectionBox = null;
+            this.isDragging = false;
+            
+            if (changed) this.applyFiltersAndRender();
+        });
     },
 
     async loadData(folderId = this.currentFolderId) {
@@ -229,17 +302,18 @@ const AssetHub = {
             
             <!-- Bulk Action Bar -->
             ${this.selectedItems.size > 0 ? `
-                <div class="fixed bottom-10 left-1/2 -translate-x-1/2 z-[90] bg-gray-900 text-white px-8 py-5 rounded-[2rem] shadow-2xl flex items-center gap-8 animate-in slide-in-from-bottom-10 border border-white/10 backdrop-blur-md">
-                    <div class="flex items-center gap-4 pr-6 border-r border-white/10">
-                        <span class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center font-black text-sm">${this.selectedItems.size}</span>
-                        <span class="font-black uppercase tracking-widest text-[11px]">Items selected</span>
+                <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] bg-white border border-gray-200 shadow-2xl rounded-2xl py-3 px-6 flex items-center gap-6 animate-in slide-in-from-bottom-10 transition-all">
+                    <div class="flex items-center gap-3 pr-6 border-r border-gray-100">
+                        <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg font-black text-[11px] uppercase tracking-wider">${this.selectedItems.size} Selected</span>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button onclick="AssetHub.bulkAction('copy')" class="px-5 py-3 rounded-xl hover:bg-white/10 transition-all flex items-center gap-3 font-bold text-sm"><i class="ph-fill ph-copy"></i> Copy</button>
-                        <button onclick="AssetHub.bulkAction('cut')" class="px-5 py-3 rounded-xl hover:bg-white/10 transition-all flex items-center gap-3 font-bold text-sm"><i class="ph-fill ph-scissors"></i> Move</button>
-                        <button onclick="AssetHub.bulkAction('delete')" class="px-5 py-3 rounded-xl hover:bg-red-500/20 text-red-400 font-bold text-sm flex items-center gap-3"><i class="ph-fill ph-trash"></i> Delete</button>
+                    <div class="flex items-center gap-1">
+                        <button onclick="AssetHub.bulkAction('copy')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-copy text-lg"></i> Copy</button>
+                        <button onclick="AssetHub.bulkAction('cut')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-folder-simple-dashed text-lg"></i> Move</button>
+                        <button onclick="AssetHub.bulkAction('download')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-download-simple text-lg"></i> Download</button>
+                        <div class="w-[1px] h-6 bg-gray-100 mx-2"></div>
+                        <button onclick="AssetHub.bulkAction('delete')" class="p-3 rounded-xl hover:bg-red-50 text-red-500 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-trash text-lg"></i> Delete</button>
                     </div>
-                    <button onclick="AssetHub.clearSelection()" class="w-10 h-10 rounded-full hover:bg-white/10 flex items-center justify-center transition-all ml-2"><i class="ph ph-x text-xl"></i></button>
+                    <button onclick="AssetHub.clearSelection()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all ml-2 text-gray-400 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
                 </div>
             ` : ''}
             </div>
@@ -307,10 +381,10 @@ const AssetHub = {
     renderFolderCard(f) {
         const isSelected = this.selectedItems.has(f._id);
         return `
-            <div onmousedown="if(event.button === 0) AssetHub.toggleSelection('${f._id}', event)" ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200'} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
+            <div data-id="${f._id}" onclick="AssetHub.toggleSelection('${f._id}', event)" ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200'} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
                 <i class="ph-fill ph-folder text-3xl ${isSelected ? 'text-blue-500' : 'text-gray-400'} group-hover:text-blue-500 transition-colors"></i>
                 <span class="flex-1 font-bold text-gray-700 truncate text-[14px]">${f.name}</span>
-                <button onmousedown="event.stopPropagation()" onclick="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-100 transition-colors">
+                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-100 transition-colors">
                     <i class="ph ph-dots-three-vertical-bold"></i>
                 </button>
             </div>
@@ -333,7 +407,7 @@ const AssetHub = {
         }
 
         return `
-            <div onmousedown="if(event.button === 0) AssetHub.toggleSelection('${a._id}', event)" ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xl' : 'border-gray-200'} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
+            <div data-id="${a._id}" onclick="AssetHub.toggleSelection('${a._id}', event)" ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xl' : 'border-gray-200'} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
                     ${isImg ? `<img src="${a.thumbnailUrl || a.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
                 </div>
@@ -343,7 +417,7 @@ const AssetHub = {
                         <p class="text-[13px] font-bold text-gray-800 truncate">${a.name}</p>
                         <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">${this.formatSize(a.size)}</p>
                     </div>
-                    <button onmousedown="event.stopPropagation()" onclick="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors"><i class="ph ph-dots-three-vertical-bold"></i></button>
+                    <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors"><i class="ph ph-dots-three-vertical-bold"></i></button>
                 </div>
             </div>
         `;
@@ -674,6 +748,15 @@ const AssetHub = {
                 this.clearSelection();
                 this.loadData();
             });
+            return;
+        }
+
+        if (action === 'download') {
+            for (const id of this.selectedItems) {
+                const asset = this.assets.find(a => a._id === id);
+                if (asset) this.downloadItem(asset.url, asset.name);
+            }
+            showNotification('Bulk download started', 'success');
             return;
         }
 
