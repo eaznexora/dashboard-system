@@ -236,6 +236,12 @@ const AssetHub = {
                     <button onclick="AssetHub.toggleSelectMode()" class="px-5 py-2 rounded-full border border-gray-200 text-[13px] font-black uppercase tracking-widest flex items-center gap-2 transition-all ${this.isSelectMode ? 'bg-blue-50 border-blue-200 text-blue-600' : 'hover:bg-gray-50 text-gray-500'}">
                         <i class="ph ph-check-square text-lg"></i> Select
                     </button>
+                    ${this.isSelectMode ? `
+                        <button onclick="AssetHub.selectAll()" class="px-5 py-2 rounded-full border border-gray-200 hover:bg-blue-50 text-[13px] font-black uppercase tracking-widest flex items-center gap-2 transition-all text-gray-500 ml-2">
+                            <i class="ph ph-list-checks text-lg"></i> 
+                            ${this.selectedItems.size > 0 && this.selectedItems.size === (this.folders.length + this.assets.length) ? 'Deselect All' : 'Select All'}
+                        </button>
+                    ` : ''}
                     <button onclick="AssetHub.loadTrash()" class="px-5 py-2 rounded-full border border-transparent hover:bg-red-50 text-[13px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${this.isTrashView ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'text-gray-400 hover:text-red-500'} group">
                         <i class="ph-fill ph-trash text-lg group-hover:scale-110 transition-transform"></i> 
                         <span>Trash</span>
@@ -767,6 +773,17 @@ const AssetHub = {
         this.isSelectMode = !this.isSelectMode;
         if (!this.isSelectMode) this.clearSelection();
         this.render();
+    },
+
+    selectAll() {
+        const allIds = [...this.folders.map(f => f._id), ...this.assets.map(a => a._id)];
+        if (this.selectedItems.size === allIds.length && allIds.length > 0) {
+            this.clearSelection();
+        } else {
+            allIds.forEach(id => this.selectedItems.add(id));
+            this.render();
+            this.updateBulkActionBar();
+        }
     },
 
     clearSelection() { this.selectedItems.clear(); this.isSelectMode = false; this.render(); },
