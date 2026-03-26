@@ -143,7 +143,6 @@ const AssetHub = {
             const boxRect = this.selectionBox.getBoundingClientRect();
             const cards = document.querySelectorAll('.asset-card');
             
-            let changed = false;
             cards.forEach(card => {
                 const cardRect = card.getBoundingClientRect();
                 const isContained = !(
@@ -157,7 +156,7 @@ const AssetHub = {
                     const id = card.getAttribute('data-id');
                     if (id && !this.selectedItems.has(id)) {
                         this.selectedItems.add(id);
-                        changed = true;
+                        this.updateCardSelectionUI(card, true);
                     }
                 }
             });
@@ -166,7 +165,14 @@ const AssetHub = {
             this.selectionBox = null;
             this.isDragging = false;
             
-            if (changed) this.applyFiltersAndRender();
+            this.updateBulkActionBar();
+        });
+
+        // --- BACKGROUND CLICK TO DESELECT ---
+        hubBody.addEventListener('click', (e) => {
+            if (e.target === hubBody || e.target.id === 'hub-body') {
+                this.clearSelection();
+            }
         });
     },
 
@@ -301,21 +307,19 @@ const AssetHub = {
             </div>
             
             <!-- Bulk Action Bar -->
-            ${this.selectedItems.size > 0 ? `
-                <div class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] bg-white border border-gray-200 shadow-2xl rounded-2xl py-3 px-6 flex items-center gap-6 animate-in slide-in-from-bottom-10 transition-all">
-                    <div class="flex items-center gap-3 pr-6 border-r border-gray-100">
-                        <span class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg font-black text-[11px] uppercase tracking-wider">${this.selectedItems.size} Selected</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <button onclick="AssetHub.bulkAction('copy')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-copy text-lg"></i> Copy</button>
-                        <button onclick="AssetHub.bulkAction('cut')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-folder-simple-dashed text-lg"></i> Move</button>
-                        <button onclick="AssetHub.bulkAction('download')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-download-simple text-lg"></i> Download</button>
-                        <div class="w-[1px] h-6 bg-gray-100 mx-2"></div>
-                        <button onclick="AssetHub.bulkAction('delete')" class="p-3 rounded-xl hover:bg-red-50 text-red-500 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-trash text-lg"></i> Delete</button>
-                    </div>
-                    <button onclick="AssetHub.clearSelection()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all ml-2 text-gray-400 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
+            <div id="bulk-action-bar" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-[90] bg-white border border-gray-200 shadow-2xl rounded-2xl py-3 px-6 flex items-center gap-6 transition-all duration-300 transform ${this.selectedItems.size > 0 ? '' : 'hidden translate-y-20 opacity-0'}">
+                <div class="flex items-center gap-3 pr-6 border-r border-gray-100">
+                    <span id="selection-count-badge" class="px-3 py-1 bg-blue-50 text-blue-600 rounded-lg font-black text-[11px] uppercase tracking-wider">${this.selectedItems.size} Selected</span>
                 </div>
-            ` : ''}
+                <div class="flex items-center gap-1">
+                    <button onclick="AssetHub.bulkAction('copy')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-copy text-lg"></i> Copy</button>
+                    <button onclick="AssetHub.bulkAction('cut')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-folder-simple-dashed text-lg"></i> Move</button>
+                    <button onclick="AssetHub.bulkAction('download')" class="p-3 rounded-xl hover:bg-gray-50 text-gray-600 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-download-simple text-lg"></i> Download</button>
+                    <div class="w-[1px] h-6 bg-gray-100 mx-2"></div>
+                    <button onclick="AssetHub.bulkAction('delete')" class="p-3 rounded-xl hover:bg-red-50 text-red-500 transition-all flex items-center gap-2 font-bold text-sm"><i class="ph ph-trash text-lg"></i> Delete</button>
+                </div>
+                <button onclick="AssetHub.clearSelection()" class="w-10 h-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-all ml-2 text-gray-400 hover:text-gray-900"><i class="ph ph-x text-xl"></i></button>
+            </div>
             </div>
 
             <!-- Main Body -->
@@ -380,13 +384,12 @@ const AssetHub = {
 
     renderFolderCard(f) {
         const isSelected = this.selectedItems.has(f._id);
+        const selClasses = isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200';
         return `
-            <div data-id="${f._id}" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${f._id}', 'folder')" onclick="AssetHub.toggleSelection('${f._id}', event)" ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200'} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
+            <div data-id="${f._id}" data-type="folder" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${f._id}', 'folder')" onclick="AssetHub.toggleSelection('${f._id}', event)" ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${selClasses} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
+                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-dots-three-vertical text-lg"></i></button>
                 <i class="ph-fill ph-folder text-3xl ${isSelected ? 'text-blue-500' : 'text-gray-400'} group-hover:text-blue-500 transition-colors"></i>
                 <span class="flex-1 font-bold text-gray-700 truncate text-[14px]">${f.name}</span>
-                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-100 transition-colors">
-                    <i class="ph ph-dots-three-vertical-bold"></i>
-                </button>
             </div>
         `;
     },
@@ -395,6 +398,7 @@ const AssetHub = {
         const isImg = ['image/jpeg', 'image/png', 'image/webp'].includes(a.mimeType);
         const ext = a.name.split('.').pop().toLowerCase();
         const isSelected = this.selectedItems.has(a._id);
+        const selClasses = isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xl' : 'border-gray-200';
         
         let iconHtml = '';
         if (!isImg) {
@@ -407,7 +411,8 @@ const AssetHub = {
         }
 
         return `
-            <div data-id="${a._id}" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${a._id}', 'asset')" onclick="AssetHub.toggleSelection('${a._id}', event)" ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xl' : 'border-gray-200'} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
+            <div data-id="${a._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${a._id}', 'asset')" onclick="AssetHub.toggleSelection('${a._id}', event)" ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
+                <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="absolute top-2 right-2 p-1.5 bg-white/80 rounded-md text-gray-600 hover:text-gray-900 hover:bg-white shadow-sm z-10 opacity-0 group-hover:opacity-100 transition-opacity"><i class="ph ph-dots-three-vertical text-lg"></i></button>
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
                     ${isImg ? `<img src="${a.thumbnailUrl || a.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
                 </div>
@@ -417,7 +422,6 @@ const AssetHub = {
                         <p class="text-[13px] font-bold text-gray-800 truncate">${a.name}</p>
                         <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">${this.formatSize(a.size)}</p>
                     </div>
-                    <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors"><i class="ph ph-dots-three-vertical-bold"></i></button>
                 </div>
             </div>
         `;
@@ -749,14 +753,64 @@ const AssetHub = {
 
     toggleSelection(id, e) {
         if (e) { e.preventDefault(); e.stopPropagation(); }
-        if (this.selectedItems.has(id)) this.selectedItems.delete(id);
-        else this.selectedItems.add(id);
-        this.applyFiltersAndRender();
+        const card = e?.currentTarget || document.querySelector(`.asset-card[data-id="${id}"]`);
+        
+        if (this.selectedItems.has(id)) {
+            this.selectedItems.delete(id);
+            if (card) this.updateCardSelectionUI(card, false);
+        } else {
+            this.selectedItems.add(id);
+            if (card) this.updateCardSelectionUI(card, true);
+        }
+        
+        this.updateBulkActionBar();
     },
 
     clearSelection() {
         this.selectedItems.clear();
-        this.applyFiltersAndRender();
+        document.querySelectorAll('.asset-card').forEach(card => this.updateCardSelectionUI(card, false));
+        this.updateBulkActionBar();
+    },
+
+    updateCardSelectionUI(card, isSelected) {
+        const type = card.getAttribute('data-type');
+        const icon = card.querySelector('.ph-folder');
+        
+        if (isSelected) {
+            card.classList.remove('border-gray-200');
+            card.classList.add('border-blue-500', 'ring-2', 'ring-blue-500/20');
+            if (type === 'folder') {
+                card.classList.add('bg-blue-50/10');
+                if (icon) icon.classList.replace('text-gray-400', 'text-blue-500');
+            } else {
+                card.classList.add('shadow-xl');
+            }
+        } else {
+            card.classList.add('border-gray-200');
+            card.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500/20');
+            if (type === 'folder') {
+                card.classList.remove('bg-blue-50/10');
+                if (icon) icon.classList.replace('text-blue-500', 'text-gray-400');
+            } else {
+                card.classList.remove('shadow-xl');
+            }
+        }
+    },
+
+    updateBulkActionBar() {
+        const bar = document.getElementById('bulk-action-bar');
+        const countBadge = document.getElementById('selection-count-badge');
+        
+        if (this.selectedItems.size > 0) {
+            if (countBadge) countBadge.innerText = `${this.selectedItems.size} Selected`;
+            if (bar) bar.classList.remove('hidden', 'translate-y-20', 'opacity-0');
+            // If the bar doesn't exist yet, we have to render it. But we don't want to re-render everything.
+            // Since `render()` is called on loadData, we ensure it's there but hidden.
+            if (!bar) this.render(); // Fallback to full render if DOM is out of sync
+        } else {
+            if (bar) bar.classList.add('translate-y-20', 'opacity-0');
+            setTimeout(() => { if (this.selectedItems.size === 0) bar?.classList.add('hidden'); }, 300);
+        }
     },
 
     async bulkAction(action) {
