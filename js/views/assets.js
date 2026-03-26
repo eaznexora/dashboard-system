@@ -287,13 +287,25 @@ const AssetHub = {
 
     renderFileCard(a) {
         const isImg = ['image/jpeg', 'image/png', 'image/webp'].includes(a.mimeType);
+        const ext = a.name.split('.').pop().toLowerCase();
+        
+        let iconHtml = '';
+        if (!isImg) {
+            if (ext === 'pdf') iconHtml = '<i class="ph-fill ph-file-pdf text-red-500 text-6xl"></i>';
+            else if (['xls', 'xlsx', 'csv'].includes(ext)) iconHtml = '<i class="ph-fill ph-file-xls text-green-500 text-6xl"></i>';
+            else if (['doc', 'docx'].includes(ext)) iconHtml = '<i class="ph-fill ph-file-doc text-blue-500 text-6xl"></i>';
+            else if (['js', 'html', 'css', 'json', 'py', 'php'].includes(ext)) iconHtml = '<i class="ph-fill ph-file-code text-yellow-500 text-6xl"></i>';
+            else if (ext === 'zip' || ext === 'rar' || ext === '7z') iconHtml = '<i class="ph-fill ph-file-zip text-purple-500 text-6xl"></i>';
+            else iconHtml = `<div class="w-16 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center font-black text-gray-200 uppercase">${ext}</div>`;
+        }
+
         return `
-            <div ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card flex flex-col bg-white border border-gray-200 rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative">
+            <div ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card flex flex-col bg-white border border-gray-200 rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
-                    ${isImg ? `<img src="${a.thumbnailUrl || a.url}" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : `<div class="w-16 h-20 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center font-black text-gray-200 uppercase">${a.name.split('.').pop()}</div>`}
+                    ${isImg ? `<img src="${a.thumbnailUrl || a.url}" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
                 </div>
                 <div class="p-5 flex items-center gap-4 bg-white border-t border-gray-50">
-                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">${this.getSmallIcon(a.mimeType)}</div>
+                    <div class="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">${this.getSmallIcon(a.mimeType, a.name)}</div>
                     <div class="flex-1 min-w-0">
                         <p class="text-[13px] font-bold text-gray-800 truncate">${a.name}</p>
                         <p class="text-[10px] text-gray-400 font-bold tracking-widest mt-1">${this.formatSize(a.size)}</p>
@@ -304,9 +316,14 @@ const AssetHub = {
         `;
     },
 
-    getSmallIcon(mime) {
+    getSmallIcon(mime, name) {
         if (mime?.startsWith('image/')) return '<i class="ph-fill ph-image text-blue-500 text-lg"></i>';
-        if (mime?.includes('pdf')) return '<i class="ph-fill ph-file-pdf text-red-500 text-lg"></i>';
+        const ext = name?.split('.').pop().toLowerCase();
+        if (ext === 'pdf') return '<i class="ph-fill ph-file-pdf text-red-500 text-lg"></i>';
+        if (['xls', 'xlsx', 'csv'].includes(ext)) return '<i class="ph-fill ph-file-xls text-green-500 text-lg"></i>';
+        if (['doc', 'docx'].includes(ext)) return '<i class="ph-fill ph-file-doc text-blue-500 text-lg"></i>';
+        if (['js', 'html', 'css', 'json'].includes(ext)) return '<i class="ph-fill ph-file-code text-yellow-500 text-lg"></i>';
+        if (ext === 'zip' || ext === 'rar') return '<i class="ph-fill ph-file-zip text-purple-500 text-lg"></i>';
         return '<i class="ph ph-file text-gray-400 text-lg"></i>';
     },
 
@@ -460,12 +477,6 @@ const AssetHub = {
     async handleFileUpload(files) {
         if (!files || files.length === 0) return;
 
-        const formData = new FormData();
-        Array.from(files).forEach(f => {
-            if (f.size > 0 || f.name) formData.append('file', f);
-        });
-        formData.append('parentFolder', this.currentFolderId || 'null');
-
         const toastId = 'upload-toast-' + Date.now();
         const itemCount = files.length;
         const toastHtml = `
@@ -473,71 +484,92 @@ const AssetHub = {
                 <div class="flex items-center justify-between mb-6">
                     <div class="flex items-center gap-4 min-w-0">
                         <div class="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 shadow-sm shrink-0">
-                            <i class="ph-bold ph-upload-simple text-2xl"></i>
+                            <i id="${toastId}-icon" class="ph-bold ph-upload-simple text-2xl group-hover:animate-bounce transition-all"></i>
                         </div>
                         <div class="min-w-0">
-                            <h4 id="${toastId}-title" class="font-black text-gray-900 text-[14px] truncate">Uploading ${itemCount} item${itemCount > 1 ? 's' : ''}...</h4>
-                            <p id="${toastId}-subtitle" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 truncate">${files[0].name}</p>
+                            <h4 id="${toastId}-title" class="font-black text-gray-900 text-[14px] truncate tracking-tight">Syncing ${itemCount} items...</h4>
+                            <p id="${toastId}-subtitle" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1 truncate">Initializing...</p>
                         </div>
                     </div>
                     <span id="${toastId}-percent" class="text-blue-600 font-black text-base italic">0%</span>
                 </div>
-                <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden mb-2">
-                    <div id="${toastId}-bar" class="h-full bg-blue-600 rounded-full transition-all duration-300 w-[0%]"></div>
+                <div class="h-2 w-full bg-gray-100 rounded-full overflow-hidden mb-2 shadow-inner">
+                    <div id="${toastId}-bar" class="h-full bg-blue-600 rounded-full transition-all duration-300 w-[0%] shadow-lg"></div>
                 </div>
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', toastHtml);
 
-        const xhr = new XMLHttpRequest();
-        xhr.open('POST', '/api/assets/upload', true);
-        xhr.withCredentials = true;
-
-        xhr.upload.addEventListener('progress', (e) => {
-            if (e.lengthComputable) {
-                const percent = Math.round((e.loaded / e.total) * 100);
+        const uploadSingleFile = (file, index) => {
+            return new Promise((resolve, reject) => {
+                const title = document.getElementById(`${toastId}-title`);
+                const subtitle = document.getElementById(`${toastId}-subtitle`);
                 const bar = document.getElementById(`${toastId}-bar`);
-                const text = document.getElementById(`${toastId}-percent`);
-                if (bar) bar.style.width = percent + '%';
-                if (text) text.innerText = percent + '%';
-            }
-        });
+                const percentText = document.getElementById(`${toastId}-percent`);
 
-        xhr.onload = () => {
+                if (title) title.innerText = `Uploading ${index + 1} of ${itemCount}...`;
+                if (subtitle) subtitle.innerText = file.name;
+
+                const formData = new FormData();
+                if (file.size > 0 || file.name) formData.append('file', file);
+                formData.append('parentFolder', this.currentFolderId || 'null');
+
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', '/api/assets/upload', true);
+                xhr.withCredentials = true;
+
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        if (bar) bar.style.width = percent + '%';
+                        if (percentText) percentText.innerText = percent + '%';
+                    }
+                });
+
+                xhr.onload = () => {
+                    if (xhr.status >= 200 && xhr.status < 300) resolve();
+                    else {
+                        let errMsg = 'Server rejection';
+                        try { errMsg = JSON.parse(xhr.responseText).error || errMsg; } catch(e) {}
+                        reject(errMsg);
+                    }
+                };
+                xhr.onerror = () => reject('Network link lost');
+                xhr.send(formData);
+            });
+        };
+
+        try {
+            for (let i = 0; i < itemCount; i++) {
+                await uploadSingleFile(files[i], i);
+            }
+
             const toast = document.getElementById(toastId);
             const title = document.getElementById(`${toastId}-title`);
             const bar = document.getElementById(`${toastId}-bar`);
             const iconContainer = toast?.querySelector('.bg-blue-50');
 
-            if (xhr.status >= 200 && xhr.status < 300) {
-                if(title) title.innerText = `${itemCount} upload${itemCount > 1 ? 's' : ''} complete`;
-                if(bar) bar.className = 'h-full bg-green-500 rounded-full transition-all duration-300 w-full';
-                if(iconContainer) {
-                    iconContainer.classList.replace('bg-blue-50', 'bg-green-50');
-                    iconContainer.innerHTML = '<i class="ph-bold ph-check-circle text-2xl text-green-600"></i>';
-                }
-                
-                if (window.showNotification) showNotification('Upload completed successfully', 'success');
-                
-                setTimeout(() => {
-                    toast?.classList.add('opacity-0', 'translate-x-full');
-                    setTimeout(() => {
-                        toast?.remove();
-                        this.loadData();
-                    }, 500);
-                }, 3000);
-            } else {
-                let errMsg = 'Upload failed';
-                try {
-                    const resp = JSON.parse(xhr.responseText);
-                    errMsg = resp.error || errMsg;
-                } catch(e) { /* ignore */ }
-                this.handleUploadError(toastId, errMsg);
+            if (title) title.innerText = itemCount > 1 ? `${itemCount} items synced successfully` : 'Upload complete';
+            if (bar) bar.className = 'h-full bg-green-500 rounded-full transition-all duration-300 w-full shadow-[0_0_15px_rgba(16,185,129,0.5)]';
+            if (iconContainer) {
+                iconContainer.classList.replace('bg-blue-50', 'bg-green-50');
+                iconContainer.innerHTML = '<i class="ph-bold ph-check-circle text-2xl text-green-600"></i>';
             }
-        };
+            
+            if (window.showNotification) showNotification('Vault sync completed successfully', 'success');
+            
+            setTimeout(() => {
+                toast?.classList.add('opacity-0', 'translate-x-[120%]');
+                setTimeout(() => {
+                    toast?.remove();
+                    this.loadData();
+                }, 6000);
+            }, 3000);
 
-        xhr.onerror = () => this.handleUploadError(toastId, 'Network interruption: Connection lost');
-        xhr.send(formData);
+        } catch (error) {
+            this.handleUploadError(toastId, error);
+            this.loadData();
+        }
     },
 
     handleUploadError(toastId, message) {
@@ -576,8 +608,9 @@ const AssetHub = {
         const isImg = mime?.startsWith('image/');
         const isVid = mime?.startsWith('video/');
         const isPdf = mime?.includes('pdf');
-        const isCode = ['text/plain', 'text/html', 'text/css', 'application/javascript', 'application/json'].includes(mime) || 
-                       ['.txt', '.html', '.css', '.js', '.json'].some(ext => name?.toLowerCase().endsWith(ext));
+        const ext = name?.split('.').pop().toLowerCase();
+        const isCode = ['html', 'css', 'js', 'json', 'txt', 'py', 'php', 'c', 'cpp'].includes(ext);
+        const isOffice = ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
 
         const overlayId = 'preview-overlay';
         let contentHtml = '';
@@ -585,60 +618,66 @@ const AssetHub = {
         if (isImg) {
             contentHtml = `<img src="${url}" class="max-h-[85vh] object-contain rounded-lg shadow-2xl animate-in zoom-in duration-300">`;
         } else if (isVid) {
-            contentHtml = `<video src="${url}" controls autoplay class="max-h-[85vh] rounded-lg shadow-2xl"></video>`;
+            contentHtml = `<video src="${url}" controls autoplay class="max-h-[85vh] w-full rounded-lg shadow-2xl bg-black"></video>`;
         } else if (isPdf) {
             contentHtml = `<iframe src="${url}" class="w-full h-[85vh] rounded-lg bg-white border-0 shadow-2xl"></iframe>`;
+        } else if (isOffice) {
+            const officeUrl = `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(window.location.origin + url)}`;
+            contentHtml = `<iframe src="${officeUrl}" class="w-full h-[85vh] rounded-lg bg-white border-0 shadow-2xl"></iframe>`;
         } else if (isCode) {
-            contentHtml = `<div id="code-preview" class="w-full max-w-5xl h-[85vh] bg-[#0d1117] rounded-xl p-8 overflow-auto text-left shadow-2xl border border-white/5">
-                <div class="flex items-center justify-center h-full text-blue-400 font-mono animate-pulse">Initializing source explorer...</div>
+            contentHtml = `<div id="code-preview" class="w-full max-w-5xl h-[85vh] bg-[#0d1117] rounded-xl p-10 overflow-auto text-left shadow-2xl border border-white/5 relative">
+                <div class="flex items-center justify-center h-full text-blue-400 font-mono animate-pulse uppercase tracking-[0.3em] text-[10px] font-black">Decrypting Stream...</div>
             </div>`;
             fetch(url).then(r => r.text()).then(txt => {
                 const el = document.getElementById('code-preview');
-                if (el) el.innerHTML = `<pre><code class="text-green-400 font-mono text-sm leading-relaxed">${this.escapeHtml(txt)}</code></pre>`;
+                if (el) el.innerHTML = `<pre class="bg-gray-900/50 p-6 rounded-lg overflow-auto max-h-full w-full block border border-white/5"><code class="text-green-400 font-mono text-sm leading-relaxed block text-left">${this.escapeHtml(txt)}</code></pre>`;
             }).catch(() => {
                 const el = document.getElementById('code-preview');
-                if (el) el.innerHTML = `<div class="flex items-center justify-center h-full text-red-400">Security: Failed to load stream content</div>`;
+                if (el) el.innerHTML = `<div class="flex items-center justify-center h-full text-red-500 font-black uppercase text-[10px] tracking-widest">Security: IO_STREAM_ACCESS_DENIED</div>`;
             });
         } else {
             contentHtml = `
-                <div class="bg-white rounded-[4rem] p-20 text-center max-w-md shadow-[0_50px_100px_rgba(0,0,0,0.5)] animate-in zoom-in duration-300">
-                    <div class="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-10 text-gray-200 text-6xl shadow-inner">
-                        <i class="ph ph-file-dashed"></i>
+                <div class="bg-white rounded-[4rem] p-24 text-center max-w-md shadow-2xl animate-in zoom-in duration-300">
+                    <div class="w-40 h-40 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-12 text-gray-200 text-7xl shadow-inner border border-gray-100">
+                        <i class="ph-fill ph-file-dashed"></i>
                     </div>
-                    <h3 class="text-3xl font-black text-gray-900 mb-4">No Preview</h3>
-                    <p class="text-gray-400 font-bold mb-14 leading-relaxed tracking-tight">This asset format is restricted or unsupported for live preview.</p>
-                    <div class="flex flex-col gap-4">
-                        <button onclick="AssetHub.downloadItem('${url}', '${name}')" class="w-full py-5 bg-blue-600 text-white rounded-[2rem] font-black shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-3">
+                    <h3 class="text-4xl font-black text-gray-900 mb-6 tracking-tight">No Preview</h3>
+                    <p class="text-gray-400 font-bold mb-16 leading-relaxed italic px-4">This specialized format requires local processing. Please download the resource to view its contents.</p>
+                    <div class="flex flex-col gap-6">
+                        <button onclick="AssetHub.downloadItem('${url}', '${name}')" class="w-full py-6 bg-blue-600 text-white rounded-[2rem] font-black shadow-2xl shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center gap-4 text-lg">
                             <i class="ph-bold ph-download-simple"></i> Download Resource
                         </button>
-                        <button onclick="document.getElementById('${overlayId}').remove()" class="w-full py-4 text-gray-400 font-black hover:text-gray-900 transition-colors uppercase tracking-widest text-[11px]">Dismiss</button>
+                        <button onclick="document.getElementById('${overlayId}').remove()" class="w-full py-4 text-gray-400 font-black hover:text-gray-900 transition-colors uppercase tracking-[0.2em] text-[10px]">Dismiss</button>
                     </div>
                 </div>
             `;
         }
 
         const overlayHtml = `
-            <div id="${overlayId}" class="fixed inset-0 z-[999] bg-black/90 backdrop-blur-md flex flex-col animate-in fade-in transition-all">
-                <div class="h-24 px-10 flex items-center justify-between border-b border-white/5 bg-black/40 shrink-0">
-                    <div class="flex items-center gap-6 min-w-0">
-                        <button onclick="document.getElementById('${overlayId}').remove()" class="group flex items-center gap-3 text-white/40 hover:text-white transition-all uppercase tracking-[0.2em] font-black text-[10px]">
-                            <div class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:border-white/30 transition-all"><i class="ph-bold ph-arrow-left"></i></div>
-                            <span>Back to Vault</span>
+            <div id="${overlayId}" class="fixed inset-0 z-[999] bg-black/95 backdrop-blur-xl flex flex-col animate-in fade-in transition-all">
+                <div class="h-28 px-12 flex items-center justify-between border-b border-white/5 bg-black/40 shrink-0">
+                    <div class="flex items-center gap-8 min-w-0">
+                        <button onclick="document.getElementById('${overlayId}').remove()" class="group flex items-center gap-4 text-white/30 hover:text-white transition-all uppercase tracking-[0.3em] font-black text-[9px]">
+                            <div class="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center group-hover:border-white/40 transition-all scale-90 group-hover:scale-100"><i class="ph-bold ph-arrow-left text-lg"></i></div>
+                            <span>Back to Explorer</span>
                         </button>
-                        <div class="h-8 w-[1px] bg-white/10"></div>
-                        <h4 class="text-white font-black truncate text-xl tracking-tight">${name}</h4>
+                        <div class="h-10 w-[1px] bg-white/5"></div>
+                        <div class="min-w-0">
+                            <h4 class="text-white font-black truncate text-2xl tracking-tighter uppercase mb-1">${name}</h4>
+                            <p class="text-blue-500 font-black text-[9px] uppercase tracking-[0.2em] opacity-80">${ext} resource stream</p>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <button onclick="AssetHub.downloadItem('${url}', '${name}')" class="p-4 bg-white/5 hover:bg-white/10 text-white rounded-3xl transition-all flex items-center gap-4 px-8 font-black text-[12px] uppercase tracking-widest border border-white/5 shadow-2xl">
-                            <i class="ph-bold ph-download-simple text-blue-500"></i>
+                    <div class="flex items-center gap-5">
+                        <button onclick="AssetHub.downloadItem('${url}', '${name}')" class="p-4 bg-white/5 hover:bg-white/10 text-white rounded-3xl transition-all flex items-center gap-5 px-10 font-black text-[11px] uppercase tracking-widest border border-white/5 shadow-2xl group">
+                            <i class="ph-bold ph-download-simple text-blue-500 group-hover:scale-125 transition-transform"></i>
                             <span>Secure Download</span>
                         </button>
-                        <button onclick="document.getElementById('${overlayId}').remove()" class="w-14 h-14 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white rounded-[1.5rem] transition-all flex items-center justify-center border border-red-500/20 group">
-                            <i class="ph-bold ph-x text-2xl"></i>
+                        <button onclick="document.getElementById('${overlayId}').remove()" class="w-16 h-16 bg-red-500/5 hover:bg-red-500 text-red-500 hover:text-white rounded-[1.75rem] transition-all flex items-center justify-center border border-red-500/10 group">
+                            <i class="ph-bold ph-x text-3xl group-hover:rotate-90 transition-transform"></i>
                         </button>
                     </div>
                 </div>
-                <div class="flex-1 flex items-center justify-center p-14 overflow-hidden">
+                <div class="flex-1 flex items-center justify-center p-20 overflow-hidden">
                     ${contentHtml}
                 </div>
             </div>
@@ -648,9 +687,9 @@ const AssetHub = {
 
         const escListener = (e) => {
             if (e.key === 'Escape') {
-                const modal = document.getElementById(overlayId);
-                if (modal) {
-                    modal.remove();
+                const overlay = document.getElementById(overlayId);
+                if (overlay) {
+                    overlay.remove();
                     window.removeEventListener('keydown', escListener);
                 }
             }
