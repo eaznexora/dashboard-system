@@ -251,10 +251,10 @@ const AssetHub = {
             <!-- Header -->
             <div class="px-8 py-5 border-b border-gray-100 flex items-center justify-between bg-gray-50 shrink-0 sticky top-0 z-10 transition-all">
                 <div class="flex items-center gap-3 font-bold text-[12px] text-gray-400 uppercase tracking-widest">
-                    <span class="hover:text-blue-600 cursor-pointer ${!this.isTrashView && !this.currentFolderId ? 'text-blue-600' : ''}" onclick="AssetHub.loadData(null)">Eaz Drive</span>
+                    <span ondragover="event.preventDefault(); this.classList.add('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all'); event.dataTransfer.dropEffect = 'move';" ondragleave="this.classList.remove('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all');" ondrop="AssetHub.handleBreadcrumbDrop(event, 'null')" class="hover:text-blue-600 cursor-pointer transition-all ${!this.isTrashView && !this.currentFolderId ? 'text-blue-600' : ''}" onclick="AssetHub.loadData(null)">Eaz Drive</span>
                     ${this.breadcrumbs.map(bc => `
                         <i class="ph ph-caret-right text-[10px] mx-1"></i>
-                        <span ondragenter="event.preventDefault(); this.classList.add('text-blue-500', 'scale-110')" ondragover="event.preventDefault()" ondragleave="this.classList.remove('text-blue-500', 'scale-110')" ondrop="AssetHub.handleBreadcrumbDrop('${bc.id}', event)" class="hover:text-blue-600 cursor-pointer transition-all inline-block" onclick="AssetHub.loadData('${bc.id}')">${bc.name}</span>
+                        <span ondragover="event.preventDefault(); this.classList.add('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all'); event.dataTransfer.dropEffect = 'move';" ondragleave="this.classList.remove('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all');" ondrop="AssetHub.handleBreadcrumbDrop(event, '${bc.id}')" class="hover:text-blue-600 cursor-pointer transition-all inline-block" onclick="AssetHub.loadData('${bc.id}')">${bc.name}</span>
                     `).join('')}
                     ${this.isTrashView ? `
                         <i class="ph ph-caret-right text-[10px] mx-1"></i>
@@ -381,7 +381,7 @@ const AssetHub = {
     renderFolderCard(f) {
         const isSelected = this.selectedItems.has(f._id);
         return `
-            <div data-id="${f._id}" onclick="AssetHub.toggleSelection('${f._id}', event)" ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200'} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
+            <div data-id="${f._id}" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${f._id}', 'folder')" onclick="AssetHub.toggleSelection('${f._id}', event)" ondblclick="AssetHub.loadData('${f._id}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="asset-card select-none flex items-center gap-4 bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/10' : 'border-gray-200'} rounded-xl px-5 py-4 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer group relative">
                 <i class="ph-fill ph-folder text-3xl ${isSelected ? 'text-blue-500' : 'text-gray-400'} group-hover:text-blue-500 transition-colors"></i>
                 <span class="flex-1 font-bold text-gray-700 truncate text-[14px]">${f.name}</span>
                 <button onclick="event.stopPropagation(); AssetHub.showContextMenu(event, 'item', '${f._id}', 'folder', ${JSON.stringify(f).replace(/"/g, '&quot;')})" class="p-2 rounded-lg text-gray-400 hover:text-gray-800 hover:bg-gray-100 transition-colors">
@@ -407,7 +407,7 @@ const AssetHub = {
         }
 
         return `
-            <div data-id="${a._id}" onclick="AssetHub.toggleSelection('${a._id}', event)" ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xl' : 'border-gray-200'} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
+            <div data-id="${a._id}" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${a._id}', 'asset')" onclick="AssetHub.toggleSelection('${a._id}', event)" ondblclick="AssetHub.openItem('${a.url}', '${a.mimeType}', '${a.name}')" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${a._id}', 'asset', ${JSON.stringify(a).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${isSelected ? 'border-blue-500 ring-2 ring-blue-500/20 shadow-xl' : 'border-gray-200'} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
                 <div class="h-44 bg-gray-100/50 flex items-center justify-center relative">
                     ${isImg ? `<img src="${a.thumbnailUrl || a.url}" draggable="false" class="w-full h-full object-cover transition-transform group-hover:scale-110">` : iconHtml}
                 </div>
@@ -772,24 +772,49 @@ const AssetHub = {
         }
     },
 
-    async handleBreadcrumbDrop(folderId, e) {
+    handleItemDragStart(e, id, type) {
+        if (!this.selectedItems.has(id)) {
+            this.selectedItems.clear();
+            this.selectedItems.add(id);
+            this.applyFiltersAndRender();
+        }
+        e.dataTransfer.setData('application/json', JSON.stringify(Array.from(this.selectedItems)));
+        e.dataTransfer.effectAllowed = 'move';
+    },
+
+    async handleBreadcrumbDrop(e, targetFolderId) {
         e.preventDefault();
         const bc = e.target;
-        bc.classList.remove('text-blue-500', 'scale-110');
+        bc.classList.remove('bg-blue-100', 'text-blue-700', 'px-2', 'rounded', 'transition-all');
 
-        if (this.selectedItems.size > 0) {
-            for (const id of this.selectedItems) {
-                const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
-                await fetch(`/api/assets/${id}/move`, { 
-                    method: 'PATCH', 
-                    headers: {'Content-Type': 'application/json'}, 
-                    body: JSON.stringify({ type, destinationFolder: folderId }), 
-                    credentials: 'include' 
-                });
+        if (targetFolderId === String(this.currentFolderId)) return;
+
+        let itemIds = [];
+        try {
+            itemIds = JSON.parse(e.dataTransfer.getData('application/json'));
+        } catch (err) {
+            // Fallback for files dragged from outside or legacy selection
+            itemIds = Array.from(this.selectedItems);
+        }
+
+        if (itemIds.length > 0) {
+            showNotification('Moving items...', 'info');
+            try {
+                for (const id of itemIds) {
+                    const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
+                    await fetch(`/api/assets/${id}/move`, { 
+                        method: 'PATCH', 
+                        headers: {'Content-Type': 'application/json'}, 
+                        body: JSON.stringify({ type, destinationFolder: targetFolderId === 'null' ? null : targetFolderId }), 
+                        credentials: 'include' 
+                    });
+                }
+                showNotification(`Successfully moved ${itemIds.length} items`, 'success');
+                this.clearSelection();
+                this.loadData();
+            } catch (err) {
+                showNotification('Failed to move items', 'error');
             }
-            showNotification(`Moved ${this.selectedItems.size} items`, 'success');
-            this.clearSelection();
-            this.loadData();
         }
     },
 
