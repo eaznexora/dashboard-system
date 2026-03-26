@@ -206,8 +206,9 @@ const AssetHub = {
                     </button>
                 </div>
                 <div class="flex items-center gap-3">
-                    <button onclick="AssetHub.loadTrash()" class="text-[11px] font-black uppercase tracking-widest flex items-center gap-2 hover:text-red-500 transition-colors ${this.isTrashView ? 'text-red-500' : 'text-gray-400'}">
-                        <i class="ph-fill ph-trash"></i> Trash
+                    <button onclick="AssetHub.loadTrash()" class="px-5 py-2 rounded-full border border-transparent hover:bg-red-50 text-[13px] font-black uppercase tracking-widest flex items-center gap-3 transition-all ${this.isTrashView ? 'bg-red-50 text-red-600 border-red-200 shadow-sm' : 'text-gray-400 hover:text-red-500'} group">
+                        <i class="ph-fill ph-trash text-lg group-hover:scale-110 transition-transform"></i> 
+                        <span>Trash</span>
                     </button>
                 </div>
             </div>
