@@ -15,10 +15,6 @@ const AssetHub = {
     filters: { type: null, person: null, modified: null },
     selectedItems: new Set(),
     isSelectMode: false,
-    isDragging: false,
-    selectionBox: null,
-    startX: 0,
-    startY: 0,
 
     init(user) {
         this.container = document.getElementById('asset-hub-container');
@@ -106,31 +102,7 @@ const AssetHub = {
 
         window.addEventListener('click', () => this.clearMenus());
 
-        // --- MARQUEE SELECTION REMOVED ---
-        window.addEventListener('mousemove', (e) => {
-            if (!this.isDragging || !this.selectionBox) return;
-            if (isNaN(e.clientX) || isNaN(e.clientY)) return;
-
-            const currentX = e.clientX;
-            const currentY = e.clientY;
-
-            const width = Math.abs(currentX - this.startX);
-            const height = Math.abs(currentY - this.startY);
-            const left = Math.min(currentX, this.startX);
-            const top = Math.min(currentY, this.startY);
-
-            this.selectionBox.style.width = `${width}px`;
-            this.selectionBox.style.height = `${height}px`;
-            this.selectionBox.style.left = `${left}px`;
-            this.selectionBox.style.top = `${top}px`;
-        });
-
-        window.addEventListener('mouseup', (e) => {
-            if (!this.isDragging || !this.selectionBox) return;
-            this.selectionBox.remove();
-            this.selectionBox = null;
-            this.isDragging = false;
-        });
+        window.addEventListener('click', () => this.clearMenus());
 
         // --- BACKGROUND CLICK TO DESELECT ---
         this.container.addEventListener('click', (e) => {
@@ -145,6 +117,7 @@ const AssetHub = {
             this.isTrashView = false;
             this.currentFolderId = folderId;
             this.selectedItems.clear();
+            this.isSelectMode = false;
             const res = await fetch(`/api/assets?folderId=${folderId || 'null'}`, { credentials: 'include' });
             if (!res.ok) throw new Error('Failed to synchronize data');
 
@@ -343,9 +316,7 @@ const AssetHub = {
                     </thead>
                     <tbody>
                         ${rows.map(item => {
-            const isHtml = item.name?.toLowerCase().endsWith('.html');
-            // Fix: Ensure window.open is not prefixed with AssetHub.
-            const dblClickAction = item.isFolder ? `AssetHub.loadData('${item._id}')` : (isHtml ? `window.open('${item.url}', '_blank')` : `AssetHub.openItem('${item._id}')`);
+            const dblClickAction = item.isFolder ? `AssetHub.loadData('${item._id}')` : `AssetHub.openItem('${item._id}')`;
             return `
                             <tr ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${item._id}', '${item.isFolder ? 'folder' : 'asset'}', ${JSON.stringify(item).replace(/"/g, '&quot;')})" class="hover:bg-blue-50/30 border-b border-gray-100 transition-colors cursor-pointer group">
                                 <td class="py-4 px-4 flex items-center gap-4">
@@ -388,8 +359,7 @@ const AssetHub = {
         const isSelected = this.selectedItems.has(asset._id);
         const selClasses = isSelected ? '' : 'border-gray-200';
 
-        const isHtml = asset.name.toLowerCase().endsWith('.html');
-        const dblClickAction = isHtml ? `window.open('${asset.url}', '_blank')` : `AssetHub.openItem('${asset._id}')`;
+        const dblClickAction = `AssetHub.openItem('${asset._id}')`;
 
         return `
             <div data-id="${asset._id}" data-type="asset" draggable="true" ondragstart="AssetHub.handleItemDragStart(event, '${asset._id}', 'asset')" onclick="if(AssetHub.isSelectMode) AssetHub.toggleSelection('${asset._id}', event)" ondblclick="${dblClickAction}" oncontextmenu="AssetHub.showContextMenu(event, 'item', '${asset._id}', 'asset', ${JSON.stringify(asset).replace(/"/g, '&quot;')})" class="asset-card select-none flex flex-col bg-white border ${selClasses} rounded-3xl overflow-hidden hover:shadow-2xl transition-all cursor-pointer group hover:-translate-y-1 relative text-left">
@@ -465,7 +435,7 @@ const AssetHub = {
                     menuHtml = `
                         <div id="ctx-menu" class="fixed z-[200] bg-white rounded-2xl shadow-[0_30px_100px_rgba(0,0,0,0.2)] border border-gray-100 p-2 w-64 animate-in fade-in transition-all" style="top:${safeY}px; left:${safeX}px;">
                              <button onclick="AssetHub.bulkAction('restore')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-blue-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-arrow-counter-clockwise"></i> Restore Selection</button>
-                             <button onclick="AssetHub.bulkAction('delete-permanent')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash"></i> Delete Forever</button>
+                             <button onclick="AssetHub.bulkPermanentDelete()" class="w-full text-left px-5 py-4 rounded-xl hover:bg-red-50 text-red-600 flex items-center gap-4 font-bold transition-all"><i class="ph ph-trash"></i> Delete Forever</button>
                         </div>
                     `;
                 } else {
@@ -497,7 +467,6 @@ const AssetHub = {
                             <button onclick="AssetHub.${type === 'folder' ? `loadData('${id}')` : `openItem('${id}', '${type}')`}" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-${type === 'folder' ? 'folder-open' : 'eye'} text-xl text-blue-500"></i> ${type === 'folder' ? 'Open' : 'Preview'}</button>
                             ${isHtml ? `<button onclick="window.open('${itemData.url}', '_blank'); AssetHub.hideContextMenu();" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-globe text-xl text-blue-500"></i> Open on web</button>` : ''}
                             ${type === 'asset' ? `
-                                <button onclick="AssetHub.copyToClipboard('${itemData?.url || ''}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-link text-xl text-blue-500"></i> Copy Link</button>
                                 <button onclick="AssetHub.downloadItem('${id}')" class="w-full text-left px-5 py-4 rounded-xl hover:bg-blue-50 text-gray-700 flex items-center gap-4 font-bold transition-all"><i class="ph ph-download-simple text-xl text-blue-500"></i> Download</button>
                             ` : ''}
                             <div class="h-[1px] bg-gray-100 my-1"></div>
@@ -560,6 +529,22 @@ const AssetHub = {
                 }
             } catch (e) { showNotification('Deletion failed', 'error'); }
         });
+    },
+
+    async bulkPermanentDelete() {
+        if (this.selectedItems.size === 0) return;
+        this.showConfirmModal(`Delete ${this.selectedItems.size} items forever?`, 'This action is irreversible and cannot be undone.', async () => {
+            for (const id of this.selectedItems) {
+                const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
+                try {
+                    await fetch(`/api/assets/${id}/permanent?type=${type}`, { method: 'DELETE', credentials: 'include' });
+                } catch (e) { console.error('Bulk permanent delete failed for:', id, e); }
+            }
+            showNotification('Permanent deletion completed', 'success');
+            this.clearSelection();
+            this.loadTrash();
+        });
+        this.clearMenus();
     },
 
     showConfirmModal(title, text, onConfirm) {
@@ -832,6 +817,7 @@ const AssetHub = {
         if (this.selectedItems.size === 0) return;
 
         if (action === 'delete') {
+            if (this.isTrashView) return this.bulkPermanentDelete();
             this.showConfirmModal(`Delete ${this.selectedItems.size} items?`, 'These items will be moved to the trash.', async () => {
                 for (const id of this.selectedItems) {
                     const item = this.folders.find(f => f._id === id) || this.assets.find(a => a._id === id);
