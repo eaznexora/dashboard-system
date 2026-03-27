@@ -2,6 +2,22 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const TimeLog = require('../models/TimeLog');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+// --- MULTER STORAGE FOR AVATARS (No DB Asset sync) ---
+const UPLOAD_ROOT = path.join(__dirname, '../uploads');
+if (!fs.existsSync(UPLOAD_ROOT)) fs.mkdirSync(UPLOAD_ROOT, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_ROOT),
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit for avatars
 
 // GET all employees (admin only)
 router.get('/', async (req, res) => {
@@ -147,6 +163,17 @@ router.patch('/:id/self-update', async (req, res) => {
   } catch (err) {
     console.error('[SELF_UPDATE_ERROR]:', err);
     res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
+// POST: Upload Avatar (Bypasses Asset Hub)
+router.post('/upload-avatar', upload.single('file'), (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file received' });
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ url });
+  } catch (err) {
+    res.status(500).json({ error: 'Avatar upload failed' });
   }
 });
 
