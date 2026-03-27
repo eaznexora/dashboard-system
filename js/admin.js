@@ -202,7 +202,7 @@ const AdminPanel = {
         <div style="display:flex; justify-content:space-between; align-items:center; padding-top:0.5rem;">
           <div style="display:flex; align-items:center; gap:0.6rem;">
             ${emp.isCurrentlyWorking ? `<div class="active-pulse"></div>` : `<div style="width:10px; height:10px; background:#cbd5e1; border-radius:50%;"></div>`}
-            <span style="font-size:0.75rem; font-weight:800; color:${statusColor}; letter-spacing:0.03em;">${statusText.toUpperCase()}</span>
+            <span style="font-size:0.875rem; font-weight:900; color:${statusColor}; letter-spacing:0.05em;">${statusText.toUpperCase()}</span>
           </div>
           <div style="display:flex; align-items:center; gap:1rem;">
             <button class="btn-text" 
