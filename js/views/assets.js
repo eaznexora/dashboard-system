@@ -16,6 +16,7 @@ const AssetHub = {
     selectedPeopleFilter: null,
     selectedItems: new Set(),
     isSelectMode: false,
+    showPeopleDropdown: false,
 
     init(user) {
         this.container = document.getElementById('asset-hub-container');
@@ -101,7 +102,13 @@ const AssetHub = {
             }
         });
 
-        window.addEventListener('click', () => this.clearMenus());
+        window.addEventListener('click', () => {
+            this.clearMenus();
+            if (this.showPeopleDropdown) {
+                this.showPeopleDropdown = false;
+                this.render();
+            }
+        });
         window.addEventListener('scroll', () => this.clearMenus(), true);
 
         // --- BACKGROUND CLICK TO DESELECT ---
@@ -246,18 +253,23 @@ const AssetHub = {
                         ${this.filters.type || 'Type'} <i class="ph ph-caret-down text-[10px]"></i>
                     </button>
                     <!-- PEOPLE FILTER DROPDOWN -->
-                    <div class="relative group/people">
-                        <button class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.selectedPeopleFilter ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
-                            <i class="ph ph-users text-lg"></i>
-                            ${this.selectedPeopleFilter ? uniqueUsers.get(this.selectedPeopleFilter) : 'People'}
-                            <i class="ph ph-caret-down text-[10px]"></i>
+                    <div class="relative">
+                        <button onclick="AssetHub.togglePeopleDropdown(event)" class="px-5 py-2 rounded-full border border-gray-200 hover:bg-gray-50 text-[13px] font-bold text-gray-700 flex items-center gap-2 ${this.selectedPeopleFilter ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
+                            <i class="ph ph-users"></i> ${this.selectedPeopleFilter ? uniqueUsers.get(this.selectedPeopleFilter) : 'People'} <i class="ph ph-caret-down text-gray-400"></i>
                         </button>
-                        <div class="absolute top-full left-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 opacity-0 invisible group-hover/people:opacity-100 group-hover/people:visible transition-all z-[100] transform origin-top scale-95 group-hover/people:scale-100">
-                            <button onclick="AssetHub.setPeopleFilter(null)" class="w-full text-left px-5 py-3 text-[13px] hover:bg-blue-50 transition-colors ${!this.selectedPeopleFilter ? 'text-blue-600 font-bold' : 'text-gray-600'}">All People</button>
-                            ${Array.from(uniqueUsers).map(([id, name]) => `
-                                <button onclick="AssetHub.setPeopleFilter('${id}')" class="w-full text-left px-5 py-3 text-[13px] hover:bg-blue-50 transition-colors ${this.selectedPeopleFilter === id ? 'text-blue-600 font-bold' : 'text-gray-600'}">${name}</button>
-                            `).join('')}
-                        </div>
+                        
+                        ${this.showPeopleDropdown ? `
+                            <div class="absolute top-full left-0 mt-2 w-56 bg-white border border-gray-100 shadow-xl rounded-xl z-[9999] py-2 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 transition-all">
+                                <button onclick="AssetHub.setPeopleFilter(null)" class="px-4 py-2 text-left hover:bg-blue-50 ${!this.selectedPeopleFilter ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-700'} transition-colors">
+                                    All People
+                                </button>
+                                ${Array.from(uniqueUsers).map(([id, name]) => `
+                                    <button onclick="AssetHub.setPeopleFilter('${id}')" class="px-4 py-2 text-left hover:bg-blue-50 ${this.selectedPeopleFilter === id ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-700'} transition-colors">
+                                        ${name}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
                     </div>
                 </div>
                 <div class="flex items-center gap-3">
@@ -1081,5 +1093,6 @@ const AssetHub = {
 
     async deleteItem(id, type) { this.showConfirmModal('Delete to Trash?', 'This item will be moved to the trash folder temporarily.', async () => { try { await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' }); this.loadData(); showNotification('Trashed', 'success'); } catch (e) { showNotification('Failed', 'error'); } }); },
     setView(mode) { this.viewMode = mode; this.applyFiltersAndRender(); },
-    setPeopleFilter(id) { this.selectedPeopleFilter = id; this.render(); }
+    setPeopleFilter(id) { this.selectedPeopleFilter = id; this.showPeopleDropdown = false; this.render(); },
+    togglePeopleDropdown(e) { e.stopPropagation(); this.showPeopleDropdown = !this.showPeopleDropdown; this.render(); }
 };
