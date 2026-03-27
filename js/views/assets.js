@@ -199,11 +199,17 @@ const AssetHub = {
             // BUILD UNIQUE USERS MAP
             const usersMap = new Map();
             [...this.folders, ...this.assets].forEach(item => {
-                if (item.createdBy) {
-                    const id = typeof item.createdBy === 'object' ? item.createdBy._id : item.createdBy;
-                    const name = this.getCreatorName(item.createdBy);
-                    usersMap.set(id, name);
+                const name = this.getCreatorName(item.createdBy);
+                let filterId = 'unknown';
+
+                if (name === 'ADMIN') {
+                    filterId = 'admin';
+                } else if (name !== 'UNKNOWN EMPLOYEE') {
+                    filterId = typeof item.createdBy === 'object' ? String(item.createdBy._id || item.createdBy) : String(item.createdBy);
                 }
+
+                // This guarantees absolutely no duplicates.
+                usersMap.set(filterId, name);
             });
             const uniqueUsers = Array.from(usersMap.entries());
 
@@ -211,8 +217,15 @@ const AssetHub = {
             let displayFolders = folders;
             let displayAssets = assets;
             if (this.selectedPeopleFilter) {
-                displayFolders = folders.filter(f => (f.createdBy?._id || f.createdBy) === this.selectedPeopleFilter);
-                displayAssets = assets.filter(a => (a.createdBy?._id || a.createdBy) === this.selectedPeopleFilter);
+                const pass = (item) => {
+                    const name = this.getCreatorName(item.createdBy);
+                    if (this.selectedPeopleFilter === 'admin') return name === 'ADMIN';
+                    if (this.selectedPeopleFilter === 'unknown') return name === 'UNKNOWN EMPLOYEE';
+                    const id = typeof item.createdBy === 'object' ? String(item.createdBy._id) : String(item.createdBy);
+                    return id === this.selectedPeopleFilter;
+                };
+                displayFolders = displayFolders.filter(pass);
+                displayAssets = displayAssets.filter(pass);
             }
 
             const folderName = this.isTrashView ? 'Trash' : (this.breadcrumbs.length > 0 ? this.breadcrumbs[this.breadcrumbs.length - 1].name : 'Eaz Drive');
@@ -258,7 +271,7 @@ const AssetHub = {
                     <!-- PEOPLE FILTER DROPDOWN -->
                     <div class="relative">
                         <button onclick="AssetHub.togglePeopleDropdown(event)" class="px-5 py-2 rounded-full border border-gray-200 hover:bg-gray-50 text-[13px] font-bold text-gray-700 flex items-center gap-2 ${this.selectedPeopleFilter ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
-                            <i class="ph ph-users"></i> ${this.selectedPeopleFilter ? uniqueUsers.get(this.selectedPeopleFilter) : 'People'} <i class="ph ph-caret-down text-gray-400"></i>
+                            <i class="ph ph-users"></i> ${this.selectedPeopleFilter ? (uniqueUsers.find(u => u[0] === this.selectedPeopleFilter)?.[1] || 'People') : 'People'} <i class="ph ph-caret-down text-gray-400"></i>
                         </button>
                         
                         ${this.showPeopleDropdown ? `
@@ -266,7 +279,7 @@ const AssetHub = {
                                 <button onclick="AssetHub.setPeopleFilter(null)" class="px-4 py-2 text-left hover:bg-blue-50 ${!this.selectedPeopleFilter ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-700'} transition-colors">
                                     All People
                                 </button>
-                                ${Array.from(uniqueUsers).map(([id, name]) => `
+                                ${uniqueUsers.map(([id, name]) => `
                                     <button onclick="AssetHub.setPeopleFilter('${id}')" class="px-4 py-2 text-left hover:bg-blue-50 ${this.selectedPeopleFilter === id ? 'text-blue-600 font-bold bg-blue-50/50' : 'text-gray-700'} transition-colors">
                                         ${name}
                                     </button>
@@ -1038,11 +1051,17 @@ const AssetHub = {
 
     downloadItem(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; a.click(); },
     getCreatorName(createdBy) {
-        if (!createdBy) return 'Unknown Employee';
-        const id = typeof createdBy === 'object' ? createdBy._id : createdBy;
-        if (id === '000000000000000000000000') return 'Admin';
-        if (typeof createdBy === 'object' && createdBy.name) return createdBy.name;
-        return 'Unknown Employee';
+        if (!createdBy) return 'UNKNOWN EMPLOYEE';
+        if (typeof createdBy === 'string') {
+            if (createdBy === '000000000000000000000000' || createdBy === 'admin') return 'ADMIN';
+            return 'UNKNOWN EMPLOYEE';
+        }
+        if (typeof createdBy === 'object') {
+            if (String(createdBy._id) === '000000000000000000000000' || String(createdBy._id) === 'admin') return 'ADMIN';
+            const name = createdBy.name || createdBy.fullName || createdBy.displayName || createdBy.email;
+            if (name) return name.toUpperCase();
+        }
+        return 'UNKNOWN EMPLOYEE';
     },
 
     showFileInfo(id, type) {
