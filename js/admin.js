@@ -195,12 +195,17 @@ const AdminPanel = {
             ${emp.isCurrentlyWorking ? `<div class="active-pulse"></div>` : `<div style="width:10px; height:10px; background:#cbd5e1; border-radius:50%;"></div>`}
             <span style="font-size:0.75rem; font-weight:800; color:${statusColor}; letter-spacing:0.03em;">${statusText.toUpperCase()}</span>
           </div>
-          <button class="btn-text" 
-                  style="font-size:0.75rem; font-weight:900; color:var(--accent-color); border:none; background:none; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:all 0.2s;"
-                  onmouseover="this.style.transform='translateX(3px)'" onmouseout="this.style.transform='translateX(0)'"
-                  onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
-            PERFORMANCE <i class="ph ph-arrow-right" style="font-weight:bold;"></i>
-          </button>
+          <div style="display:flex; align-items:center; gap:1rem;">
+            <button onclick="AdminPanel.openEmployeeProfile('${emp._id}')" class="text-xs font-bold text-blue-600 hover:text-blue-800 uppercase tracking-wider flex items-center gap-1" style="border:none; background:none; cursor:pointer;">
+              <i class="ph ph-user-circle" style="font-size:1.1rem;"></i> View Profile
+            </button>
+            <button class="btn-text" 
+                    style="font-size:0.75rem; font-weight:900; color:var(--accent-color); border:none; background:none; cursor:pointer; display:flex; align-items:center; gap:0.4rem; transition:all 0.2s;"
+                    onmouseover="this.style.transform='translateX(3px)'" onmouseout="this.style.transform='translateX(0)'"
+                    onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
+              PERFORMANCE <i class="ph ph-arrow-right" style="font-weight:bold;"></i>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -368,6 +373,212 @@ const AdminPanel = {
         }
       } catch (err) { toast('Deletion failed', 'error'); }
     });
+  },
+
+  getLinkIcon(url) {
+      if (!url) return 'ph-link';
+      const lower = url.toLowerCase();
+      if (lower.includes('instagram.com')) return 'ph-instagram-logo';
+      if (lower.includes('linkedin.com')) return 'ph-linkedin-logo';
+      if (lower.includes('github.com')) return 'ph-github-logo';
+      if (lower.includes('behance.net')) return 'ph-behance-logo';
+      if (lower.includes('dribbble.com')) return 'ph-dribbble-logo';
+      if (lower.includes('facebook.com')) return 'ph-facebook-logo';
+      if (lower.includes('twitter.com') || lower.includes('x.com')) return 'ph-twitter-logo';
+      return 'ph-globe';
+  },
+
+  async openEmployeeProfile(id) {
+    const emp = this.employees.find(e => e._id === id);
+    if (!emp) return;
+
+    const modalHtml = `
+      <div class="modal-overlay" id="profile-editor-modal" style="display:flex; align-items:center; justify-content:center; padding: 2rem;">
+        <div class="modal-content" style="max-width: 900px; width: 100%; height: 90vh; display: flex; flex-direction: column; overflow: hidden; padding: 0; border-radius: 1.5rem; border: none; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+          <!-- Header -->
+          <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 2rem; color: white; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid var(--accent-color);">
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+               <div style="width: 80px; height: 80px; border-radius: 50%; border: 4px solid rgba(255,255,255,0.2); overflow: hidden; background: white;">
+                 ${emp.image ? `<img src="${emp.image}" style="width:100%; height:100%; object-fit:cover;">` : `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:2rem; font-weight:800; color:#1e293b; background:#f1f5f9;">${emp.name[0]}</div>`}
+               </div>
+               <div>
+                  <h2 style="font-size: 1.75rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: 0.25rem;">${emp.name}</h2>
+                  <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <span style="font-size: 0.75rem; font-weight: 700; background: rgba(255,255,255,0.15); color: white; padding: 0.25rem 0.75rem; border-radius: 2rem; text-transform: uppercase; letter-spacing: 0.05em;">${emp.designation || 'Specialist'}</span>
+                    <span style="font-size: 0.75rem; font-weight: 600; opacity: 0.7;">ID: ${emp.employeeId || 'EP-' + id.substring(0, 6).toUpperCase()}</span>
+                  </div>
+               </div>
+            </div>
+            <button onclick="document.getElementById('profile-editor-modal').remove()" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); border: none; color: white; border-radius: 50%; cursor: pointer; font-size: 1.5rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'">
+              <i class="ph ph-x"></i>
+            </button>
+          </div>
+
+          <!-- Tabs/Body -->
+          <form id="profile-edit-form" style="flex: 1; overflow-y: auto; padding: 2.5rem; display: grid; gap: 2.5rem; background: #fff;">
+            
+            <!-- Global Fields -->
+            <section>
+              <h3 style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                <i class="ph ph-identification-card" style="font-size: 1.25rem; color: var(--accent-color);"></i> Global Profile Info
+              </h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <div class="form-group">
+                  <label>Full Name</label>
+                  <input type="text" id="pe-name" value="${emp.name}" class="form-control" style="background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                  <label>Email Address</label>
+                  <input type="email" id="pe-email" value="${emp.email}" class="form-control" style="background: #f8fafc; border: 1px solid #e2e8f0; font-weight: 600;">
+                </div>
+                <div class="form-group">
+                  <label>Phone Number</label>
+                  <input type="text" id="pe-phone" value="${emp.phone || ''}" class="form-control" placeholder="+91 0000 0000 00">
+                </div>
+                 <div class="form-group">
+                  <label>Profile Image URL</label>
+                  <input type="text" id="pe-image" value="${emp.image || ''}" class="form-control" placeholder="https://path/to/image.jpg">
+                </div>
+                <div class="form-group">
+                  <label>Department</label>
+                  <input type="text" id="pe-department" value="${emp.department || ''}" class="form-control">
+                </div>
+                <div class="form-group">
+                  <label>Designation</label>
+                  <input type="text" id="pe-designation" value="${emp.designation || ''}" class="form-control">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label>Address</label>
+                  <input type="text" id="pe-address" value="${emp.address || ''}" class="form-control">
+                </div>
+                <div class="form-group" style="grid-column: span 2;">
+                  <label>About Bio</label>
+                  <textarea id="pe-about" class="form-control" style="min-height: 120px;">${emp.about || ''}</textarea>
+                </div>
+              </div>
+            </section>
+
+            <!-- Social Links Section -->
+            <section>
+               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                 <h3 style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="ph ph-share-network" style="font-size: 1.25rem; color: #4f46e5;"></i> Social Media Profiles
+                 </h3>
+                 <button type="button" onclick="AdminPanel.addLinkRow('social')" class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.7rem; font-weight: 800; background: #eef2ff; color: #4f46e5; border: none; border-radius: 0.5rem;">
+                   <i class="ph ph-plus"></i> Add Social Link
+                 </button>
+               </div>
+               <div id="social-links-container" style="display: grid; gap: 0.75rem;">
+                 ${(emp.socialLinks || []).map(link => this.renderLinkRow('social', link)).join('')}
+               </div>
+            </section>
+
+            <!-- Project Links Section -->
+            <section>
+               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                 <h3 style="font-size: 0.9rem; font-weight: 800; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.5rem;">
+                  <i class="ph ph-rocket-launch" style="font-size: 1.25rem; color: #d946ef;"></i> Professional Portfolios
+                 </h3>
+                 <button type="button" onclick="AdminPanel.addLinkRow('project')" class="btn" style="padding: 0.4rem 0.75rem; font-size: 0.7rem; font-weight: 800; background: #fdf2f8; color: #d946ef; border: none; border-radius: 0.5rem;">
+                   <i class="ph ph-plus"></i> Add Project Link
+                 </button>
+               </div>
+               <div id="project-links-container" style="display: grid; gap: 0.75rem;">
+                 ${(emp.projectLinks || []).map(link => this.renderLinkRow('project', link)).join('')}
+               </div>
+            </section>
+          </form>
+
+          <!-- Footer -->
+          <div style="padding: 1.5rem 2.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 1rem;">
+             <button onclick="document.getElementById('profile-editor-modal').remove()" style="padding: 0.75rem 1.75rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; background: white; color: #64748b; font-weight: 700; font-size: 0.875rem; cursor: pointer;">Cancel</button>
+             <button onclick="AdminPanel.saveEmployeeProfile(event, '${id}')" style="padding: 0.75rem 2rem; border-radius: 0.75rem; border: none; background: var(--accent-color); color: white; font-weight: 800; font-size: 0.875rem; cursor: pointer; box-shadow: 0 4px 6px -1px rgba(13,110,253,0.3);">Save Changes</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  renderLinkRow(type, link = {title: '', url: ''}) {
+    const iconClass = this.getLinkIcon(link.url);
+    const color = type === 'social' ? '#4f46e5' : '#d946ef';
+    return `
+      <div class="link-row" data-type="${type}" style="display: grid; grid-template-columns: 32px 1fr 2fr 40px; gap: 1rem; align-items: center; background: #f1f5f9; padding: 0.75rem; border-radius: 1rem; transition: all 0.2s;">
+        <i class="ph ${iconClass}" style="font-size: 1.25rem; color: ${color}; opacity: 0.8;"></i>
+        <input type="text" placeholder="Title (e.g. LinkedIn)" value="${link.title || ''}" class="link-title" style="background: transparent; border: none; border-bottom: 2px solid #e2e8f0; font-size: 0.85rem; font-weight: 700; outline: none; padding: 0.25rem 0;">
+        <input type="text" placeholder="URL (https://...)" value="${link.url || ''}" class="link-url" oninput="this.parentElement.querySelector('.ph').className = 'ph ' + AdminPanel.getLinkIcon(this.value)" style="background: transparent; border: none; border-bottom: 2px solid #e2e8f0; font-size: 0.85rem; outline: none; color: #64748b; padding: 0.25rem 0;">
+        <button type="button" onclick="this.parentElement.remove()" style="background: none; border: none; color: #ef4444; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+          <i class="ph ph-trash"></i>
+        </button>
+      </div>
+    `;
+  },
+
+  addLinkRow(type) {
+    const container = document.getElementById(`${type}-links-container`);
+    const html = this.renderLinkRow(type);
+    container.insertAdjacentHTML('beforeend', html);
+  },
+
+  async saveEmployeeProfile(e, id) {
+    e.preventDefault();
+    const btn = e.target;
+    const originalText = btn.innerText;
+    btn.innerText = 'Saving...';
+    btn.disabled = true;
+
+    try {
+      // 1. COLLECT DYNAMIC LINKS
+      const socialLinks = [];
+      document.querySelectorAll('#social-links-container .link-row').forEach(row => {
+        const title = row.querySelector('.link-title').value;
+        const url = row.querySelector('.link-url').value;
+        if (title || url) socialLinks.push({ title, url });
+      });
+
+      const projectLinks = [];
+      document.querySelectorAll('#project-links-container .link-row').forEach(row => {
+        const title = row.querySelector('.link-title').value;
+        const url = row.querySelector('.link-url').value;
+        if (title || url) projectLinks.push({ title, url });
+      });
+
+      // 2. CONSTRUCT PAYLOAD
+      const payload = {
+        name: document.getElementById('pe-name').value,
+        email: document.getElementById('pe-email').value,
+        phone: document.getElementById('pe-phone').value,
+        image: document.getElementById('pe-image').value,
+        address: document.getElementById('pe-address').value,
+        about: document.getElementById('pe-about').value,
+        department: document.getElementById('pe-department').value,
+        designation: document.getElementById('pe-designation').value,
+        socialLinks,
+        projectLinks
+      };
+
+      const res = await fetch(`/api/employees/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        toast('Profile updated successfully', 'success');
+        document.getElementById('profile-editor-modal').remove();
+        this.loadEmployees();
+      } else {
+        const err = await res.json();
+        toast(err.message || 'Update failed', 'error');
+      }
+    } catch (err) {
+      console.error('[PROFILE_SAVE_ERROR]:', err);
+      toast('Failed to save changes', 'error');
+    } finally {
+      btn.innerText = originalText;
+      btn.disabled = false;
+    }
   },
 
   // --- GLOBAL TASKS MODULE ---
