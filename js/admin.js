@@ -23,7 +23,7 @@ const AdminPanel = {
             <p class="view-subtitle">${activeEmps.length} Active Members · ${inactiveEmps.length} Terminated</p>
           </div>
           <div style="display:flex; gap:0.75rem; align-items:center;">
-            <button onclick="AdminPanel.loadProfilesList()" class="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all"><i class="ph ph-users-three text-lg"></i> All Profiles</button>
+            <button onclick="AdminPanel.loadProfilesList()" class="btn btn-secondary"><i class="ph ph-users-three"></i> All Profiles</button>
             <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
           </div>
         </div>
@@ -172,9 +172,13 @@ const AdminPanel = {
             ${emp.isCurrentlyWorking ? `<div style="position:absolute; bottom:2px; right:2px; width:14px; height:14px; background:var(--success-color); border:2px solid white; border-radius:50%; box-shadow:0 0 5px rgba(16,185,129,0.5);"></div>` : ''}
           </div>
           <div style="min-width:0;">
-            <h4 style="font-weight:800; margin-bottom:0.15rem; font-size:1.15rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:var(--text-primary);">${emp.name}</h4>
             <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; opacity:0.8;">
               ${emp.designation || 'Specialist'}
+            </div>
+            <div style="margin-top:0.75rem;">
+                <button onclick="AdminPanel.loadSingleProfile('${emp._id}')" style="padding: 0.4rem 0.8rem; background: var(--accent-light); color: var(--accent-color); border: none; border-radius: 0.5rem; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;">
+                    <i class="ph ph-identification-card" style="font-size:1rem;"></i> View Full Profile
+                </button>
             </div>
           </div>
         </div>
@@ -207,13 +211,6 @@ const AdminPanel = {
               PERFORMANCE <i class="ph ph-arrow-right" style="font-weight:bold;"></i>
             </button>
           </div>
-        </div>
-        
-        <!-- Redo: View Full Profile Button -->
-        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-center">
-            <button onclick="AdminPanel.loadSingleProfile('${emp._id}')" class="w-full py-2 bg-blue-50/50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
-                <i class="ph ph-user-circle text-base"></i> View Full Profile
-            </button>
         </div>
       </div>
     `;
@@ -407,84 +404,116 @@ const AdminPanel = {
     const renderLinks = (links, type) => {
         if(!links || links.length === 0) return '';
         return links.map(l => `
-            <div class="flex items-center gap-3 mb-3 dynamic-link-row" data-type="${type}">
-                <div class="bg-gray-100 p-2.5 rounded-lg text-gray-500 flex-shrink-0"><i class="ph ${this.getLinkIcon(l.url)} text-xl"></i></div>
-                <input type="text" placeholder="Title (e.g. Instagram)" value="${l.title || ''}" class="link-title form-input w-1/3 text-sm border-gray-200 rounded-lg p-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                <input type="text" placeholder="URL (https://...)" value="${l.url || ''}" class="link-url form-input flex-1 text-sm border-gray-200 rounded-lg p-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 p-2.5 rounded-lg flex-shrink-0 transition-colors"><i class="ph ph-trash text-lg"></i></button>
+            <div class="flex items-center gap-3 mb-3 dynamic-link-row" data-type="${type}" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+                <div style="background:var(--border-color); padding:0.75rem; border-radius:0.75rem; color:var(--text-secondary); display:flex; align-items:center;"><i class="ph ${this.getLinkIcon(l.url)}" style="font-size:1.25rem;"></i></div>
+                <input type="text" placeholder="Title" value="${l.title || ''}" class="link-title form-control" style="flex:1;">
+                <input type="text" placeholder="URL" value="${l.url || ''}" class="link-url form-control" style="flex:2;">
+                <button type="button" onclick="this.parentElement.remove()" style="color:var(--danger-color); background:none; border:none; cursor:pointer; font-size:1.25rem; padding:0.5rem;"><i class="ph ph-trash"></i></button>
             </div>
         `).join('');
     };
 
     const html = `
-    <div class="fade-in max-w-6xl mx-auto pb-10">
-        <div class="flex justify-between items-center mb-6">
-            <button onclick="AdminPanel.loadEmployees()" class="text-gray-500 hover:text-blue-600 font-bold flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-50">
-                <i class="ph ph-arrow-left text-lg"></i> Back to Directory
+    <div class="fade-in" style="max-width:1100px; margin:0 auto; padding-bottom:3rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+            <button onclick="AdminPanel.loadEmployees()" class="btn btn-secondary">
+                <i class="ph ph-arrow-left"></i> Back to Directory
             </button>
-            <button type="button" onclick="document.getElementById('profile-save-btn').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold shadow-md transition-colors flex items-center gap-2">
-                <i class="ph ph-floppy-disk text-lg"></i> Save Profile
+            <button type="button" onclick="document.getElementById('profile-save-btn').click()" class="btn btn-primary">
+                <i class="ph ph-floppy-disk"></i> Save Profile
             </button>
         </div>
 
-        <form id="profile-form-${id}" onsubmit="AdminPanel.saveEmployeeProfile(event, '${id}')" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div class="lg:col-span-1 space-y-6">
-                <div class="card p-6 flex flex-col items-center text-center border border-gray-100 shadow-sm rounded-2xl bg-white">
-                    <img src="${emp.image || 'https://ui-avatars.com/api/?name='+emp.name+'&background=eff6ff&color=2563eb'}" class="w-32 h-32 rounded-full object-cover border-4 border-blue-50 shadow-sm mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">${emp.name}</h2>
-                    <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mt-2">${emp.designation || 'Employee'}</span>
-                    <p class="text-sm text-gray-500 mt-4 flex items-center justify-center gap-2"><i class="ph ph-envelope-simple"></i> ${emp.email}</p>
+        <form id="profile-form-${id}" onsubmit="AdminPanel.saveEmployeeProfile(event, '${id}')" style="display:grid; grid-template-columns: 320px 1fr; gap:2rem;">
+            <!-- Simple Sidebar -->
+            <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                <div class="card" style="text-align:center; padding:2rem;">
+                    <img src="${emp.image || 'https://ui-avatars.com/api/?name='+emp.name+'&background=eff6ff&color=2563eb'}" style="width:140px; height:140px; rounded-circle; object-fit:cover; border:6px solid var(--border-color); margin:0 auto 1.5rem; border-radius:50%;">
+                    <h2 style="font-weight:800; margin-bottom:0.5rem;">${emp.name}</h2>
+                    <span style="background:var(--accent-light); color:var(--accent-color); padding:0.4rem 1rem; border-radius:2rem; font-size:0.75rem; font-weight:800; text-transform:uppercase;">${emp.designation || 'Team Member'}</span>
+                    <p style="font-size:0.875rem; color:var(--text-secondary); margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+                       <i class="ph ph-envelope-simple"></i> ${emp.email}
+                    </p>
                 </div>
             </div>
 
-            <div class="lg:col-span-2 space-y-6">
-                <div class="card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white">
-                    <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest mb-5 flex items-center gap-2"><i class="ph ph-identification-card text-blue-500 text-lg"></i> Core Information</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Full Name</label><input type="text" name="name" value="${emp.name || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm" required></div>
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Email Address</label><input type="email" name="email" value="${emp.email || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm" required></div>
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Phone Number</label><input type="text" name="phone" value="${emp.phone || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Employee ID</label><input type="text" name="employeeId" value="${emp.employeeId || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Department</label><input type="text" name="department" value="${emp.department || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Designation</label><input type="text" name="designation" value="${emp.designation || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                    </div>
-                </div>
-
-                <div class="card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white">
-                    <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest mb-5 flex items-center gap-2"><i class="ph ph-article text-blue-500 text-lg"></i> Personal Details</h3>
-                    <div class="space-y-5">
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Home Address</label><input type="text" name="address" value="${emp.address || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">About / Bio</label><textarea name="about" rows="3" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm">${emp.about || ''}</textarea></div>
-                    </div>
-                </div>
-
-                <div class="card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white">
-                    <div class="flex justify-between items-center mb-5">
-                        <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2"><i class="ph ph-link text-blue-500 text-lg"></i> Dynamic Links</h3>
-                    </div>
-
-                    <div class="mb-6">
-                        <div class="flex justify-between items-center mb-3">
-                            <label class="block text-xs font-bold text-gray-500">SOCIAL LINKS</label>
-                            <button type="button" onclick="AdminPanel.addLinkRow(this, 'social')" class="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">+ Add Social</button>
+            <!-- Main Content -->
+            <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                <div class="card" style="padding:2rem;">
+                    <h3 style="font-weight:800; font-size:1rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1.5rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
+                        <i class="ph ph-identification-card" style="color:var(--accent-color);"></i> Core Information
+                    </h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+                        <div class="form-group">
+                            <label>Full Name</label>
+                            <input type="text" name="name" value="${emp.name || ''}" class="form-control" required>
                         </div>
-                        <div class="links-container space-y-2" data-link-type="social">
+                        <div class="form-group">
+                            <label>Email Address</label>
+                            <input type="email" name="email" value="${emp.email || ''}" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone Number</label>
+                            <input type="text" name="phone" value="${emp.phone || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Employee ID</label>
+                            <input type="text" name="employeeId" value="${emp.employeeId || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Department</label>
+                            <input type="text" name="department" value="${emp.department || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>Designation</label>
+                            <input type="text" name="designation" value="${emp.designation || ''}" class="form-control">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding:2rem;">
+                    <h3 style="font-weight:800; font-size:1rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1.5rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
+                        <i class="ph ph-article" style="color:var(--accent-color);"></i> Personal Details
+                    </h3>
+                    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+                        <div class="form-group">
+                            <label>Home Address</label>
+                            <input type="text" name="address" value="${emp.address || ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label>About / Bio</label>
+                            <textarea name="about" rows="4" class="form-control">${emp.about || ''}</textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card" style="padding:2rem;">
+                    <h3 style="font-weight:800; font-size:1rem; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:1.5rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
+                        <i class="ph ph-link" style="color:var(--accent-color);"></i> Dynamic Profiles & Links
+                    </h3>
+
+                    <div style="margin-bottom:2rem;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <label style="font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Social Links</label>
+                            <button type="button" onclick="AdminPanel.addLinkRow(this, 'social')" style="font-size:0.75rem; font-weight:700; color:var(--accent-color); background:none; border:none; cursor:pointer;">+ ADD SOCIAL</button>
+                        </div>
+                        <div class="links-container" data-link-type="social">
                             ${renderLinks(emp.socialLinks, 'social')}
                         </div>
                     </div>
 
                     <div>
-                        <div class="flex justify-between items-center mb-3">
-                            <label class="block text-xs font-bold text-gray-500">PROJECT LINKS</label>
-                            <button type="button" onclick="AdminPanel.addLinkRow(this, 'project')" class="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">+ Add Project</button>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                            <label style="font-size:0.7rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase;">Project Links</label>
+                            <button type="button" onclick="AdminPanel.addLinkRow(this, 'project')" style="font-size:0.75rem; font-weight:700; color:var(--accent-color); background:none; border:none; cursor:pointer;">+ ADD PROJECT</button>
                         </div>
-                        <div class="links-container space-y-2" data-link-type="project">
+                        <div class="links-container" data-link-type="project">
                             ${renderLinks(emp.projectLinks, 'project')}
                         </div>
                     </div>
                 </div>
             </div>
-            <button type="submit" id="profile-save-btn" class="hidden"></button>
+            <button type="submit" id="profile-save-btn" style="display:none;"></button>
         </form>
     </div>
     `;
@@ -494,11 +523,11 @@ const AdminPanel = {
   addLinkRow(btn, type) {
       const container = btn.parentElement.nextElementSibling;
       const html = `
-          <div class="flex items-center gap-3 mb-3 dynamic-link-row" data-type="${type}">
-              <div class="bg-gray-100 p-2.5 rounded-lg text-gray-500 flex-shrink-0"><i class="ph ph-link text-xl"></i></div>
-              <input type="text" placeholder="Title (e.g. Instagram)" class="link-title form-input w-1/3 text-sm border-gray-200 rounded-lg p-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-              <input type="text" placeholder="URL (https://...)" class="link-url form-input flex-1 text-sm border-gray-200 rounded-lg p-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
-              <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 p-2.5 rounded-lg flex-shrink-0 transition-colors"><i class="ph ph-trash text-lg"></i></button>
+          <div class="flex items-center gap-3 mb-3 dynamic-link-row" data-type="${type}" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+              <div style="background:var(--border-color); padding:0.75rem; border-radius:0.75rem; color:var(--text-secondary); display:flex; align-items:center;"><i class="ph ph-link" style="font-size:1.25rem;"></i></div>
+              <input type="text" placeholder="Title" class="link-title form-control" style="flex:1;">
+              <input type="text" placeholder="URL" class="link-url form-control" style="flex:2;">
+              <button type="button" onclick="this.parentElement.remove()" style="color:var(--danger-color); background:none; border:none; cursor:pointer; font-size:1.25rem; padding:0.5rem;"><i class="ph ph-trash"></i></button>
           </div>
       `;
       container.insertAdjacentHTML('beforeend', html);
