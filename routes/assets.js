@@ -8,6 +8,13 @@ const jwt = require('jsonwebtoken');
 const Folder = require('../models/Folder');
 const Asset = require('../models/Asset');
 
+let UserModel;
+try { UserModel = require('../models/User'); } catch(e) {}
+if (!UserModel) {
+    try { UserModel = require('../models/Employee'); } catch(e) {}
+}
+const userModelName = UserModel ? UserModel.modelName : null;
+
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_eaz_123';
 
 // --- DIRECTORY GUARANTEE ---
@@ -62,16 +69,16 @@ router.get('/', async (req, res) => {
   try {
     const parentFolder = (req.query.folderId === 'null' || !req.query.folderId) ? null : req.query.folderId;
 
-    let modelName = 'User';
-    if (mongoose.models && mongoose.models.Employee) modelName = 'Employee';
+    const creatorPopulate = { 
+        path: 'createdBy', 
+        select: 'name fullName displayName email firstName', 
+        strictPopulate: false 
+    };
+    if (userModelName) creatorPopulate.model = userModelName;
 
     const [folders, assets] = await Promise.all([
-      Folder.find({ parentFolder, isTrashed: false })
-        .populate({ path: 'createdBy', select: 'name fullName displayName email', model: modelName, strictPopulate: false })
-        .sort({ name: 1 }),
-      Asset.find({ parentFolder, isTrashed: false })
-        .populate({ path: 'createdBy', select: 'name fullName displayName email', model: modelName, strictPopulate: false })
-        .sort({ createdAt: -1 })
+      Folder.find({ parentFolder, isTrashed: false }).populate(creatorPopulate).sort({ name: 1 }),
+      Asset.find({ parentFolder, isTrashed: false }).populate(creatorPopulate).sort({ createdAt: -1 })
     ]);
 
     let breadcrumbs = [];
@@ -94,16 +101,16 @@ router.get('/', async (req, res) => {
  */
 router.get('/trash', async (req, res) => {
   try {
-    let modelName = 'User';
-    if (mongoose.models && mongoose.models.Employee) modelName = 'Employee';
+    const creatorPopulate = { 
+        path: 'createdBy', 
+        select: 'name fullName displayName email firstName', 
+        strictPopulate: false 
+    };
+    if (userModelName) creatorPopulate.model = userModelName;
 
     const [folders, assets] = await Promise.all([
-      Folder.find({ isTrashed: true })
-        .populate({ path: 'createdBy', select: 'name fullName displayName email', model: modelName, strictPopulate: false })
-        .sort({ name: 1 }),
-      Asset.find({ isTrashed: true })
-        .populate({ path: 'createdBy', select: 'name fullName displayName email', model: modelName, strictPopulate: false })
-        .sort({ updatedAt: -1 })
+      Folder.find({ isTrashed: true }).populate(creatorPopulate).sort({ name: 1 }),
+      Asset.find({ isTrashed: true }).populate(creatorPopulate).sort({ updatedAt: -1 })
     ]);
     res.json({ folders, assets });
   } catch (err) {
