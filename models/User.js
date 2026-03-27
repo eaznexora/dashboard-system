@@ -16,7 +16,10 @@ const UserSchema = new mongoose.Schema({
   address: { type: String, default: '' },
   about: { type: String, default: '' },
   employeeId: { type: String, default: '' },
-  joiningDate: { type: Date, default: Date.now },
+  joiningDate: { type: Date, default: null },
+  age: { type: Number, default: null },
+  birthDate: { type: Date, default: null },
+  experience: { type: String, enum: ['Fresher (Entry)', 'Intermediate (Mid)', 'Professional (Senior)', 'Expert (Advanced)', 'Strategic / Executive (Top Tier)'], default: 'Fresher (Entry)' },
   socialLinks: [{ title: String, url: String }],
   projectLinks: [{ title: String, url: String }]
 }, { timestamps: true });

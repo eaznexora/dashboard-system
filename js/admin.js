@@ -497,15 +497,15 @@ const AdminPanel = {
                 </div>
             </div>
 
-            <!-- Main Professional Content [2x2 Grid of Cards] -->
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2.5rem; align-items: start;">
-                <div class="card" style="padding:2.5rem;">
+            <!-- Main Professional Content [Sectioned Grid] -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2.5rem; align-items: stretch;">
+                
+                <!-- Section 1: Core Identity -->
+                <div class="card" style="padding:2.5rem; display:flex; flex-direction:column; justify-content:space-between;">
                     <h3 style="font-weight:900; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:2rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
-                        <i class="ph ph-identification-card" style="color:var(--accent-color); font-size:1.5rem;"></i> Core Information
+                        <i class="ph ph-identification-card" style="color:var(--accent-color); font-size:1.5rem;"></i> Core Identity
                     </h3>
-                    
-                    <!-- 2x2 Professional Grid Construction -->
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; margin-bottom:2.5rem; padding-bottom:2.5rem; border-bottom:1px solid var(--border-color);">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
                         <div class="form-group">
                             <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Full Name</label>
                             <input type="text" name="name" value="${emp.name || ''}" class="form-control" placeholder="Employee Name" required>
@@ -523,35 +523,67 @@ const AdminPanel = {
                             <input type="text" name="employeeId" value="${emp.employeeId || ''}" class="form-control" placeholder="EAZ-000">
                         </div>
                     </div>
+                </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem;">
+                <!-- Section 2: Professional Profile -->
+                <div class="card" style="padding:2.5rem; display:flex; flex-direction:column; justify-content:space-between;">
+                    <h3 style="font-weight:900; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:2rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
+                        <i class="ph ph-briefcase" style="color:var(--accent-color); font-size:1.5rem;"></i> Work profile
+                    </h3>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+                        <div class="form-group">
+                            <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Joining Date</label>
+                            <input type="date" name="joiningDate" value="${emp.joiningDate ? new Date(emp.joiningDate).toISOString().split('T')[0] : ''}" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Experience Level</label>
+                            <select name="experience" class="form-control" style="appearance: none; background: white url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%3E%3Cpath%20d%3D%22M7%2010L12%2015L17%2010%22%20stroke%3D%22%2364748B%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22/%3E%3C/svg%3E') no-repeat right 0.75rem center; padding-right: 2.5rem;">
+                                <option value="Fresher (Entry)" ${emp.experience==='Fresher (Entry)'?'selected':''}>Fresher (Entry)</option>
+                                <option value="Intermediate (Mid)" ${emp.experience==='Intermediate (Mid)'?'selected':''}>Intermediate (Mid)</option>
+                                <option value="Professional (Senior)" ${emp.experience==='Professional (Senior)'?'selected':''}>Professional (Senior)</option>
+                                <option value="Expert (Advanced)" ${emp.experience==='Expert (Advanced)'?'selected':''}>Expert (Advanced)</option>
+                                <option value="Strategic / Executive (Top Tier)" ${emp.experience==='Strategic / Executive (Top Tier)'?'selected':''}>Strategic / Executive (Top Tier)</option>
+                            </select>
+                        </div>
                         <div class="form-group">
                             <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Department</label>
-                            <input type="text" name="department" value="${emp.department || ''}" class="form-control" placeholder="Select Department">
+                            <input type="text" name="department" value="${emp.department || ''}" class="form-control" placeholder="e.g. Creative">
                         </div>
                         <div class="form-group">
                             <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Designation</label>
-                            <input type="text" name="designation" value="${emp.designation || ''}" class="form-control" placeholder="Senior Specialist">
+                            <input type="text" name="designation" value="${emp.designation || ''}" class="form-control" placeholder="e.g. Art Director">
                         </div>
                     </div>
                 </div>
 
-                <div class="card" style="padding:2.5rem;">
+                <!-- Section 3: Personal Details -->
+                <div class="card" style="padding:2.5rem; grid-column: span 2;">
                     <h3 style="font-weight:900; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:2rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
-                        <i class="ph ph-article" style="color:var(--accent-color); font-size:1.5rem;"></i> Personal Details
+                        <i class="ph ph-user-circle" style="color:var(--accent-color); font-size:1.5rem;"></i> Personal & Background
                     </h3>
-                    <div style="display:flex; flex-direction:column; gap:2rem;">
-                        <div class="form-group">
-                            <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Home Address</label>
-                            <input type="text" name="address" value="${emp.address || ''}" class="form-control" placeholder="123 Creative St, Design City">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2.5rem; margin-bottom:2.5rem; padding-bottom:2.5rem; border-bottom:1px solid var(--border-color);">
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem;">
+                            <div class="form-group">
+                                <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Birth Date</label>
+                                <input type="date" name="birthDate" value="${emp.birthDate ? new Date(emp.birthDate).toISOString().split('T')[0] : ''}" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Age</label>
+                                <input type="number" name="age" value="${emp.age || ''}" class="form-control" placeholder="e.g. 24">
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Home Address</label>
+                                <input type="text" name="address" value="${emp.address || ''}" class="form-control" placeholder="123 Creative St, Design City">
+                            </div>
                         </div>
                         <div class="form-group">
                             <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">About / Bio</label>
-                            <textarea name="about" rows="4" class="form-control" placeholder="Short biography about the team member...">${emp.about || ''}</textarea>
+                            <textarea name="about" rows="5" class="form-control" placeholder="Short biography about the team member...">${emp.about || ''}</textarea>
                         </div>
                     </div>
                 </div>
 
+                <!-- Section 4: Dynamic Links -->
                 <div class="card" style="padding:2.5rem; grid-column: span 2;">
                     <h3 style="font-weight:900; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:2rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
                         <i class="ph ph-link" style="color:var(--accent-color); font-size:1.5rem;"></i> Dynamic Profiles & Links
