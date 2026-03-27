@@ -69,3 +69,18 @@
 @media (max-width: 600px) {
   .kanban-grid { grid-template-columns: 1fr; }
 }
+
+/* Workspace Layout Responsiveness */
+.workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .workspace-layout {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
