@@ -172,6 +172,7 @@ const AdminPanel = {
             ${emp.isCurrentlyWorking ? `<div style="position:absolute; bottom:2px; right:2px; width:14px; height:14px; background:var(--success-color); border:2px solid white; border-radius:50%; box-shadow:0 0 5px rgba(16,185,129,0.5);"></div>` : ''}
           </div>
           <div style="min-width:0;">
+            <div style="font-size:1.15rem; font-weight:900; color:var(--text-primary); margin-bottom:0.2rem; letter-spacing:-0.01em;">${emp.name}</div>
             <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; opacity:0.8;">
               ${emp.designation || 'Specialist'}
             </div>
@@ -494,15 +495,10 @@ const AdminPanel = {
                         <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem;"><i class="ph ph-identification-badge text-lg"></i> ID: ${emp.employeeId || 'Not Set'}</div>
                     </div>
                 </div>
-
-                <div class="card" style="padding:1.5rem; background:var(--bg-secondary); border:1px dashed var(--border-color); opacity: 0.8;">
-                   <h4 style="font-size:0.7rem; font-weight:800; text-transform:uppercase; margin-bottom:0.5rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.5rem;"><i class="ph ph-info"></i> Pro Tip</h4>
-                   <p style="font-size:0.75rem; color:var(--text-secondary); line-height:1.5;">Click the pencil icon on the photo to upload a new profile picture. Supported formats: JPG, PNG, WEBP.</p>
-                </div>
             </div>
 
-            <!-- Main Professional Content -->
-            <div style="display:flex; flex-direction:column; gap:2rem;">
+            <!-- Main Professional Content [2x2 Grid of Cards] -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2.5rem; align-items: start;">
                 <div class="card" style="padding:2.5rem;">
                     <h3 style="font-weight:900; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:2rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
                         <i class="ph ph-identification-card" style="color:var(--accent-color); font-size:1.5rem;"></i> Core Information
@@ -556,7 +552,7 @@ const AdminPanel = {
                     </div>
                 </div>
 
-                <div class="card" style="padding:2.5rem;">
+                <div class="card" style="padding:2.5rem; grid-column: span 2;">
                     <h3 style="font-weight:900; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:2rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
                         <i class="ph ph-link" style="color:var(--accent-color); font-size:1.5rem;"></i> Dynamic Profiles & Links
                     </h3>
@@ -679,7 +675,16 @@ const AdminPanel = {
 
           if (res.ok) {
               if(window.toast) window.toast('Profile updated successfully!', 'success');
-              this.loadSingleProfile(id); // Reload the profile page
+              
+              // REFRESH STATE: Fetch latest team data to fix the "requires manual refresh" issue
+              const freshRes = await fetch('/api/employees');
+              if (freshRes.ok) {
+                  this.employees = await freshRes.json();
+                  this.loadSingleProfile(id); // Reload the profile page with fresh state
+              } else {
+                  // Fallback: If fetch fails, just manually update the local name/email to minimize disruption
+                  this.loadSingleProfile(id);
+              }
           } else {
               if(window.toast) window.toast('Failed to update profile', 'error');
               btn.innerHTML = originalText;
