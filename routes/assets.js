@@ -63,25 +63,48 @@ const upload = multer({
 router.get('/', async (req, res) => {
   try {
     const parentFolder = (req.query.folderId === 'null' || !req.query.folderId) ? null : req.query.folderId;
+    const mongoose = require('mongoose');
 
-    // 1. RAW FETCH (Guaranteed to succeed, prevents 500 error & white screen)
-    let folders = await Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 });
-    let assets = await Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 });
+    // 1. USE .lean() TO BYPASS MONGOOSE STRICT MODE
+    let folders = await Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 }).lean();
+    let assets = await Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 }).lean();
 
-    // 2. SAFE MANUAL POPULATION
+    // 2. NATIVE DATABASE LOOKUP
     try {
-        const mongoose = require('mongoose');
-        let User;
-        try { User = mongoose.model('User'); } catch(e) {}
-        if (!User) { try { User = require('../models/User'); } catch(e) {} }
-        if (!User) { try { User = require('../models/Employee'); } catch(e) {} }
+      const creatorIds = [...new Set([
+        ...folders.map(f => String(f.createdBy)),
+        ...assets.map(a => String(a.createdBy))
+      ])].filter(id => id && id !== '000000000000000000000000' && id !== 'undefined');
 
-        if (User) {
-            folders = await User.populate(folders, { path: 'createdBy', select: 'name fullName displayName email firstName', strictPopulate: false });
-            assets = await User.populate(assets, { path: 'createdBy', select: 'name fullName displayName email firstName', strictPopulate: false });
-        }
-    } catch (popErr) {
-        console.log('[Safe Populate Warning]:', popErr.message);
+      const objectIds = creatorIds.reduce((acc, id) => {
+        try { acc.push(new mongoose.Types.ObjectId(id)); } catch(e) {}
+        return acc;
+      }, []);
+
+      const db = mongoose.connection.db;
+      let users = [];
+      if (objectIds.length > 0 && db) {
+        users = await db.collection('users').find({ _id: { $in: objectIds } }).toArray();
+        if (users.length === 0) users = await db.collection('employees').find({ _id: { $in: objectIds } }).toArray();
+      }
+
+      const userMap = {};
+      users.forEach(u => {
+        userMap[String(u._id)] = { _id: String(u._id), name: u.name || u.fullName || u.email || 'Employee' };
+      });
+
+      const mapCreator = (item) => {
+        const idStr = String(item.createdBy);
+        if (idStr === '000000000000000000000000') item.createdBy = { _id: idStr, name: 'Admin' };
+        else if (userMap[idStr]) item.createdBy = userMap[idStr];
+        else item.createdBy = { _id: idStr, name: 'Unknown Employee' };
+        return item;
+      };
+
+      folders = folders.map(mapCreator);
+      assets = assets.map(mapCreator);
+    } catch (nativePopErr) {
+      console.error('[Native Populate Error]:', nativePopErr);
     }
 
     let breadcrumbs = [];
@@ -95,7 +118,6 @@ router.get('/', async (req, res) => {
 
     res.json({ folders, assets, breadcrumbs });
   } catch (err) {
-    console.error('[GET_ASSETS_ERROR]:', err);
     res.status(500).json({ error: 'Query failed: ' + err.message });
   }
 });
@@ -105,27 +127,49 @@ router.get('/', async (req, res) => {
  */
 router.get('/trash', async (req, res) => {
   try {
-    let folders = await Folder.find({ isTrashed: true }).sort({ name: 1 });
-    let assets = await Asset.find({ isTrashed: true }).sort({ updatedAt: -1 });
+    const mongoose = require('mongoose');
+    let folders = await Folder.find({ isTrashed: true }).sort({ name: 1 }).lean();
+    let assets = await Asset.find({ isTrashed: true }).sort({ updatedAt: -1 }).lean();
 
     try {
-        const mongoose = require('mongoose');
-        let User;
-        try { User = mongoose.model('User'); } catch(e) {}
-        if (!User) { try { User = require('../models/User'); } catch(e) {} }
-        if (!User) { try { User = require('../models/Employee'); } catch(e) {} }
+      const creatorIds = [...new Set([
+        ...folders.map(f => String(f.createdBy)),
+        ...assets.map(a => String(a.createdBy))
+      ])].filter(id => id && id !== '000000000000000000000000' && id !== 'undefined');
 
-        if (User) {
-            folders = await User.populate(folders, { path: 'createdBy', select: 'name fullName displayName email firstName', strictPopulate: false });
-            assets = await User.populate(assets, { path: 'createdBy', select: 'name fullName displayName email firstName', strictPopulate: false });
-        }
-    } catch (popErr) {
-        console.log('[Safe Populate Warning]:', popErr.message);
+      const objectIds = creatorIds.reduce((acc, id) => {
+        try { acc.push(new mongoose.Types.ObjectId(id)); } catch(e) {}
+        return acc;
+      }, []);
+
+      const db = mongoose.connection.db;
+      let users = [];
+      if (objectIds.length > 0 && db) {
+        users = await db.collection('users').find({ _id: { $in: objectIds } }).toArray();
+        if (users.length === 0) users = await db.collection('employees').find({ _id: { $in: objectIds } }).toArray();
+      }
+
+      const userMap = {};
+      users.forEach(u => {
+        userMap[String(u._id)] = { _id: String(u._id), name: u.name || u.fullName || u.email || 'Employee' };
+      });
+
+      const mapCreator = (item) => {
+        const idStr = String(item.createdBy);
+        if (idStr === '000000000000000000000000') item.createdBy = { _id: idStr, name: 'Admin' };
+        else if (userMap[idStr]) item.createdBy = userMap[idStr];
+        else item.createdBy = { _id: idStr, name: 'Unknown Employee' };
+        return item;
+      };
+
+      folders = folders.map(mapCreator);
+      assets = assets.map(mapCreator);
+    } catch (nativePopErr) {
+      console.error('[Native Populate Error]:', nativePopErr);
     }
 
     res.json({ folders, assets });
   } catch (err) {
-    console.error('[GET_TRASH_ERROR]:', err);
     res.status(500).json({ error: 'Failed to fetch trash: ' + err.message });
   }
 });
