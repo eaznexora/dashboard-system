@@ -142,8 +142,8 @@ const AdminPanel = {
   },
 
   renderEmployeeCard(emp) {
-    const statusColor = emp.isCurrentlyWorking ? 'var(--success-color)' : 'var(--text-secondary)';
-    const statusText = emp.isCurrentlyWorking ? 'Working Now' : 'Offline';
+    const statusText = emp.isCurrentlyWorking ? 'Active Now' : 'Currently Idle';
+    const statusColor = emp.isCurrentlyWorking ? 'var(--accent-color)' : 'var(--text-secondary)';
     
     // Professional gradients for initial placeholders
     const gradients = [
@@ -164,7 +164,7 @@ const AdminPanel = {
         </div>
         
         <!-- Header: Identity -->
-        <div style="display:flex; gap:1.25rem; align-items:center; margin-bottom:1.5rem; cursor:pointer;" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
+        <div style="display:flex; gap:1.25rem; align-items:center; margin-bottom:1.5rem;" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
           <div class="avatar-wrapper" style="position:relative; flex-shrink:0;">
             <div class="avatar" style="width:64px; height:64px; border-radius:50%; font-size:1.5rem; overflow:hidden; border:3px solid ${emp.isCurrentlyWorking ? 'var(--success-color)' : 'white'}; background:${userGradient}; color:white; display:flex; align-items:center; justify-content:center; font-weight:800; box-shadow:var(--shadow-sm);">
               ${emp.image ? `<img src="${emp.image}" style="width:100%; height:100%; object-fit:cover;" alt="">` : (emp.name ? emp.name[0].toUpperCase() : '?')}
@@ -176,13 +176,12 @@ const AdminPanel = {
             <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; opacity:0.8;">
               ${emp.designation || 'Specialist'}
             </div>
+            <div style="margin-top:0.75rem;">
+                <button onclick="event.stopPropagation(); AdminPanel.loadSingleProfile('${emp._id}')" style="padding: 0.4rem 0.8rem; background: var(--accent-light); color: var(--accent-color); border: none; border-radius: 0.5rem; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.03em; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; transition: all 0.2s;">
+                    <i class="ph ph-identification-card" style="font-size:1rem;"></i> View Full Profile
+                </button>
+            </div>
           </div>
-        </div>
-
-        <div style="margin-top:-0.5rem; margin-bottom:1.5rem;">
-            <button onclick="AdminPanel.loadSingleProfile('${emp._id}')" style="padding: 0.5rem 1rem; width:100%; background: #eff6ff; color: #2563eb; border: 1px solid #dbeafe; border-radius: 0.75rem; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;">
-                <i class="ph ph-identification-card" style="font-size:1.1rem;"></i> View Full Profile
-            </button>
         </div>
 
         <!-- Metric Grid -->
@@ -512,6 +511,30 @@ const AdminPanel = {
                                 </div>
                             </div>
                             <div>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Phone Number</label>
+                                <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-phone" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.phone || '—'}
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Age</label>
+                                <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-calendar" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.age || '—'} years old
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Department</label>
+                                <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-buildings" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.department || 'General'}
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Experience Tier</label>
+                                <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-briefcase" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.experience || 'Fresher (Entry)'}
+                                </div>
+                            </div>
+                            <div>
                                 <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Internal ID</label>
                                 <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="ph ph-identification-badge" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.employeeId || 'NOT ASSIGNED'}
@@ -631,6 +654,7 @@ const AdminPanel = {
     </div>
     `;
     document.getElementById('dashboard-content').innerHTML = html;
+    if (window.initCustomSelects) window.initCustomSelects();
   },
 
   triggerProfileUpload() {
@@ -656,9 +680,10 @@ const AdminPanel = {
         });
         const data = await res.json();
         if (data.url) {
-            document.getElementById('profile-avatar-preview').src = data.url;
+            const preview = document.getElementById('profile-avatar-preview');
+            preview.src = `${data.url}?t=${Date.now()}`;
             document.getElementById('profile-image-value').value = data.url;
-            toast('Profile picture updated locally');
+            toast('Profile picture uploaded! Click Save to finish.');
         } else {
             toast('Upload failed', 'error');
         }
