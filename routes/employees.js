@@ -145,16 +145,36 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
-// PATCH: Employee Self-Service (Update Profile Image & Links ONLY)
+// GET: Fetch Single Profile (Excludes password)
+router.get('/profile/:id', async (req, res) => {
+  try {
+    const employee = await User.findById(req.params.id).select('-password');
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    res.json(employee);
+  } catch (err) {
+    console.error('[PROFILE_FETCH_ERROR]:', err);
+    res.status(500).json({ message: 'Failed to fetch profile' });
+  }
+});
+
+// PATCH: Employee Self-Service (Whitelisted Profile Update)
 router.patch('/:id/self-update', async (req, res) => {
   try {
-    const { image, socialLinks, projectLinks } = req.body;
-    const employee = await User.findById(req.params.id);
+    const { 
+      image, phone, age, birthDate, address, 
+      about, socialLinks, projectLinks 
+    } = req.body;
 
+    const employee = await User.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    // STRICT WHITELIST UPDATE - Prevents privilege escalation
+    // STRICT WHITELIST UPDATE - Manual mapping avoids Object.assign() risks
     if (image !== undefined) employee.image = image;
+    if (phone !== undefined) employee.phone = phone;
+    if (age !== undefined) employee.age = age;
+    if (birthDate !== undefined) employee.birthDate = birthDate;
+    if (address !== undefined) employee.address = address;
+    if (about !== undefined) employee.about = about;
     if (socialLinks !== undefined) employee.socialLinks = socialLinks;
     if (projectLinks !== undefined) employee.projectLinks = projectLinks;
 

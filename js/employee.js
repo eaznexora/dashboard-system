@@ -234,5 +234,288 @@ const EmployeePortal = {
         document.getElementById('issue-desc').value = '';
       }
     } catch(err) { toast('Submission failed', 'error'); }
+  },
+
+  // --- PROFILE MANAGEMENT ---
+  async loadMyProfile() {
+    const container = document.getElementById('dashboard-content');
+    if (!container) return;
+
+    try {
+      const res = await fetch(`/api/employees/profile/${this.user.id}`);
+      const emp = await res.json();
+      if (!emp) return toast('Failed to load profile', 'error');
+
+      const profileImg = emp.image || 'https://lh3.googleusercontent.com/a/default-user=s256-c';
+
+      const renderLinks = (links, type) => {
+        if(!links || links.length === 0) return '';
+        return links.map(l => `
+            <div class="dynamic-link-row" data-type="${type}" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem; background:var(--bg-color); padding:0.75rem; border-radius:1rem; border: 1px solid var(--border-color);">
+                <div style="background:white; padding:0.6rem; border-radius:0.75rem; color:var(--text-secondary); display:flex; align-items:center; border:1px solid var(--border-color);"><i class="ph ${this.getLinkIcon(l.url)}" style="font-size:1.15rem;"></i></div>
+                <input type="text" placeholder="Title" value="${l.title || ''}" class="link-title form-control" style="flex:1;">
+                <input type="text" placeholder="URL" value="${l.url || ''}" class="link-url form-control" style="flex:2;">
+                <button type="button" onclick="this.parentElement.remove()" style="color:var(--danger-color); background:none; border:none; cursor:pointer; font-size:1.25rem; padding:0.5rem;"><i class="ph ph-trash"></i></button>
+            </div>
+        `).join('');
+      };
+
+      const html = `
+      <div class="fade-in" style="max-width: 1400px; margin: 0 auto; padding: 0 0 5rem;">
+          <!-- Page Header -->
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+              <div>
+                <h2 style="font-weight:900; font-size:1.5rem; color:var(--text-primary);">My Profile</h2>
+                <p style="font-size:0.875rem; color:var(--text-secondary);">Manage your personal information and links</p>
+              </div>
+              <button type="button" onclick="EmployeePortal.saveMyProfile(event)" class="btn btn-primary" style="font-weight: 800; padding: 0.75rem 1.75rem;">
+                  <i class="ph ph-floppy-disk"></i> Save Changes
+              </button>
+          </div>
+
+          <form id="my-profile-form" onsubmit="EmployeePortal.saveMyProfile(event)" style="display: grid; grid-template-columns: repeat(12, 1fr); gap: 2rem; align-items: start;">
+              
+              <!-- Left Column: Quick Info (4 Columns) -->
+              <div style="grid-column: span 4;">
+                  <div class="card" style="position: sticky; top: 90px; padding: 2.5rem 1.5rem; text-align: center;">
+                      <div style="position: relative; width: 140px; height: 140px; margin: 0 auto 1.5rem;">
+                          <img id="profile-avatar-preview" 
+                               src="${profileImg}" 
+                               onclick="EmployeePortal.viewFullImage('${profileImg}')"
+                               style="width: 100%; height: 100%; object-fit: cover; border: 4px solid var(--accent-light); border-radius: 50%; box-shadow: var(--shadow-md); cursor: zoom-in;">
+                          <button type="button" onclick="EmployeePortal.triggerProfileUpload()" style="position: absolute; bottom: 5px; right: 5px; width: 36px; height: 36px; background: var(--accent-color); color: white; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
+                              <i class="ph ph-camera" style="font-size: 1.1rem;"></i>
+                          </button>
+                          <input type="file" id="profile-upload-input" accept="image/*" style="display: none;" onchange="EmployeePortal.handleImageUpload()">
+                          <input type="hidden" name="image" id="profile-image-value" value="${emp.image || ''}">
+                      </div>
+
+                      <h2 style="font-weight: 800; margin-bottom: 0.25rem; font-size: 1.25rem;">${emp.name}</h2>
+                      <div style="color: var(--accent-color); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; margin-bottom: 1.5rem;">
+                          ${emp.designation || 'Team Member'}
+                      </div>
+                      
+                      <div style="padding-top: 1.5rem; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 1rem; text-align: left;">
+                          <div>
+                              <label style="display: block; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.25rem;">Work Email</label>
+                              <div style="font-size: 0.875rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                                  <i class="ph ph-envelope" style="color: var(--accent-color);"></i> ${emp.email}
+                              </div>
+                          </div>
+                          <div>
+                              <label style="display: block; font-size: 10px; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; margin-bottom: 0.25rem;">Department</label>
+                              <div style="font-size: 0.875rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                                  <i class="ph ph-buildings" style="color: var(--accent-color);"></i> ${emp.department || 'General'}
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </div>
+
+              <!-- Right Column (8 Columns) -->
+              <div style="grid-column: span 8; display: flex; flex-direction: column; gap: 1.5rem;">
+                  
+                  <!-- Card 1: Core Identity (LOCKED) -->
+                  <div class="card">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                          <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; display: flex; align-items: center; gap: 0.5rem;">
+                              <i class="ph ph-shield-check" style="color: var(--accent-color);"></i> Core Identity & Work
+                          </div>
+                          <span style="font-size: 10px; font-weight: 800; background: #f1f5f9; color: #64748b; padding: 0.25rem 0.6rem; border-radius: 4px;">LOCKED BY ADMIN</span>
+                      </div>
+                      
+                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+                          <div class="form-group">
+                              <label>Full Name</label>
+                              <input type="text" value="${emp.name}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                          </div>
+                          <div class="form-group">
+                              <label>Work Email</label>
+                              <input type="email" value="${emp.email}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                          </div>
+                          <div class="form-group">
+                              <label>Phone Number (Editable)</label>
+                              <input type="text" name="phone" id="self-phone" value="${emp.phone || ''}" class="form-control" placeholder="+91 00000 00000">
+                          </div>
+                          <div class="form-group">
+                              <label>Employee ID</label>
+                              <input type="text" value="${emp.employeeId || '—'}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                          </div>
+                      </div>
+                  </div>
+
+                  <!-- Card 2: Personal & Background -->
+                  <div class="card">
+                      <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                          <i class="ph ph-user-circle" style="color: var(--accent-color);"></i> Personal & Background
+                      </div>
+                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+                          <div class="form-group">
+                              <label>Birth Date</label>
+                              <input type="date" name="birthDate" id="self-birthDate" value="${emp.birthDate ? new Date(emp.birthDate).toISOString().split('T')[0] : ''}" class="form-control">
+                          </div>
+                          <div class="form-group">
+                              <label>Age</label>
+                              <input type="number" name="age" id="self-age" value="${emp.age || ''}" class="form-control" placeholder="Years">
+                          </div>
+                      </div>
+                      <div class="form-group">
+                          <label>Full Address</label>
+                          <textarea name="address" id="self-address" class="form-control" placeholder="Street, City, Country" style="min-height: 80px;">${emp.address || ''}</textarea>
+                      </div>
+                      <div class="form-group" style="margin-bottom:0;">
+                          <label>About / Bio</label>
+                          <textarea name="about" id="self-about" class="form-control" placeholder="Short professional summary..." style="min-height: 120px;">${emp.about || ''}</textarea>
+                      </div>
+                  </div>
+
+                  <!-- Card 3: Ecosystem Links -->
+                  <div class="card">
+                      <div style="font-size: 12px; font-weight: 800; color: var(--text-primary); text-transform: uppercase; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                          <i class="ph ph-link-simple" style="color: var(--accent-color);"></i> Ecosystem Links
+                      </div>
+                      
+                      <!-- Social Links -->
+                      <div style="margin-bottom: 2rem;">
+                          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); margin-bottom: 1rem;">
+                              SOCIAL PROFILES
+                              <button type="button" onclick="EmployeePortal.addLinkRow('social')" class="btn-text" style="font-size: 10px; color: var(--accent-color); font-weight: 800;">+ ADD PROFILE</button>
+                          </label>
+                          <div id="self-social-links-container">
+                              ${renderLinks(emp.socialLinks, 'social')}
+                          </div>
+                      </div>
+
+                      <!-- Project Links -->
+                      <div>
+                          <label style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 800; color: var(--text-secondary); margin-bottom: 1rem;">
+                              PROJECT & PORTFOLIO
+                              <button type="button" onclick="EmployeePortal.addLinkRow('project')" class="btn-text" style="font-size: 10px; color: var(--accent-color); font-weight: 800;">+ ADD PROJECT</button>
+                          </label>
+                          <div id="self-project-links-container">
+                              ${renderLinks(emp.projectLinks, 'project')}
+                          </div>
+                      </div>
+                  </div>
+              </div>
+          </form>
+      </div>
+      `;
+      container.innerHTML = html;
+      window.initCustomSelects();
+    } catch (err) {
+      console.error(err);
+      toast('Failed to load profile details', 'error');
+    }
+  },
+
+  async saveMyProfile(e) {
+    if (e) e.preventDefault();
+    
+    try {
+      const payload = {
+        image: document.getElementById('profile-image-value').value,
+        phone: document.getElementById('self-phone').value,
+        age: document.getElementById('self-age').value,
+        birthDate: document.getElementById('self-birthDate').value,
+        address: document.getElementById('self-address').value,
+        about: document.getElementById('self-about').value,
+        socialLinks: [],
+        projectLinks: []
+      };
+
+      // Collect Social Links
+      document.querySelectorAll('.dynamic-link-row[data-type="social"]').forEach(row => {
+        const title = row.querySelector('.link-title').value;
+        const url = row.querySelector('.link-url').value;
+        if (title || url) payload.socialLinks.push({ title, url });
+      });
+
+      // Collect Project Links
+      document.querySelectorAll('.dynamic-link-row[data-type="project"]').forEach(row => {
+        const title = row.querySelector('.link-title').value;
+        const url = row.querySelector('.link-url').value;
+        if (title || url) payload.projectLinks.push({ title, url });
+      });
+
+      const res = await fetch(`/api/employees/${this.user.id}/self-update`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        toast('Profile updated successfully!', 'success');
+        this.loadMyProfile(); // Reload to refresh Sidebar and UI
+      } else {
+        const data = await res.json();
+        toast(data.message || 'Update failed', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      toast('Failed to save profile', 'error');
+    }
+  },
+
+  // --- UTILITIES ---
+  getLinkIcon(url) {
+    if (!url) return 'ph-link';
+    const lower = url.toLowerCase();
+    if (lower.includes('instagram.com')) return 'ph-instagram-logo';
+    if (lower.includes('linkedin.com')) return 'ph-linkedin-logo';
+    if (lower.includes('github.com')) return 'ph-github-logo';
+    if (lower.includes('behance.net')) return 'ph-behance-logo';
+    if (lower.includes('dribbble.com')) return 'ph-dribbble-logo';
+    if (lower.includes('facebook.com')) return 'ph-facebook-logo';
+    return 'ph-globe';
+  },
+
+  triggerProfileUpload() {
+    document.getElementById('profile-upload-input').click();
+  },
+
+  async handleImageUpload() {
+    const fileInput = document.getElementById('profile-upload-input');
+    if (!fileInput.files || !fileInput.files[0]) return;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+      const res = await fetch('/api/employees/upload-avatar', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.url) {
+        document.getElementById('profile-avatar-preview').src = data.url + '?t=' + Date.now();
+        document.getElementById('profile-image-value').value = data.url;
+        toast('Photo uploaded. Save profile to apply.', 'success');
+      }
+    } catch (err) {
+      toast('Upload failed', 'error');
+    }
+  },
+
+  addLinkRow(type) {
+    const container = document.getElementById(`self-${type}-links-container`);
+    const html = `
+      <div class="dynamic-link-row" data-type="${type}" style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem; background:var(--bg-color); padding:0.75rem; border-radius:1rem; border: 1px solid var(--border-color);">
+          <div style="background:white; padding:0.6rem; border-radius:0.75rem; color:var(--text-secondary); display:flex; align-items:center; border:1px solid var(--border-color);"><i class="ph ph-link" style="font-size:1.15rem;"></i></div>
+          <input type="text" placeholder="Title" class="link-title form-control" style="flex:1;">
+          <input type="text" placeholder="URL" class="link-url form-control" style="flex:2;" oninput="this.previousElementSibling.previousElementSibling.innerHTML = '<i class=\\'ph ' + EmployeePortal.getLinkIcon(this.value) + '\\' style=\\'font-size:1.15rem;\\'></i>'">
+          <button type="button" onclick="this.parentElement.remove()" style="color:var(--danger-color); background:none; border:none; cursor:pointer; font-size:1.25rem; padding:0.5rem;"><i class="ph ph-trash"></i></button>
+      </div>
+    `;
+    container.insertAdjacentHTML('beforeend', html);
+  },
+
+  viewFullImage(url) {
+    const modalHtml = `
+      <div class="modal-overlay" id="image-modal" onclick="this.remove()" style="z-index: 10000; background: rgba(0,0,0,0.9); display: flex; align-items: center; justify-content: center; cursor: zoom-out;">
+          <img src="${url}" style="max-width: 90%; max-height: 90%; border-radius: 1rem; box-shadow: 0 0 50px rgba(0,0,0,0.5); object-fit: contain;">
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
   }
 };

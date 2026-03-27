@@ -14,6 +14,7 @@ const PHO_ICONS = {
 const NAV_ITEMS = [
   // User Personal Workspace
   { id: 'employee', name: 'My Workspace', href: 'employee.html', icon: '<i class="ph ph-desktop"></i>', employeeOnly: true },
+  { id: 'profile', name: 'My Profile', href: '#', icon: '<i class="ph ph-user-circle"></i>', employeeOnly: true, onclick: 'EmployeePortal.loadMyProfile()' },
 
   // Analytics Dashboards (Admin Only)
   { id: 'marketing', name: 'Marketing', href: 'marketing.html', icon: '<i class="ph ph-trend-up"></i>', adminOnly: true },
@@ -46,7 +47,9 @@ function renderSidebar(activeId) {
       return true;
     })
     .map(item => `
-      <a href="${item.href}" class="nav-item ${item.id === activeId ? 'active' : ''}">
+      <a href="${item.href}" 
+         class="nav-item ${item.id === activeId ? 'active' : ''}"
+         ${item.onclick ? `onclick="${item.onclick}; return false;"` : ''}>
         ${item.icon}
         <span>${item.name}</span>
       </a>
