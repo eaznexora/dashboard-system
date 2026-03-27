@@ -23,7 +23,7 @@ const AdminPanel = {
             <p class="view-subtitle">${activeEmps.length} Active Members · ${inactiveEmps.length} Terminated</p>
           </div>
           <div style="display:flex; gap:0.75rem; align-items:center;">
-            <button onclick="AdminPanel.loadProfilesList()" class="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all"><i class="ph ph-users-three text-lg"></i> All Profiles</button>
+            <button onclick="AdminPanel.loadProfilesList()" class="btn btn-secondary"><i class="ph ph-users-three"></i> All Profiles</button>
             <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
           </div>
         </div>
@@ -142,7 +142,7 @@ const AdminPanel = {
   },
 
   renderEmployeeCard(emp) {
-    const statusText = emp.isCurrentlyWorking ? 'Active Now' : 'Currently Idle';
+    const statusText = emp.isCurrentlyWorking ? 'Working Now' : 'Offline';
     const statusColor = emp.isCurrentlyWorking ? 'var(--accent-color)' : 'var(--text-secondary)';
     
     // Professional gradients for initial placeholders
@@ -167,7 +167,7 @@ const AdminPanel = {
         <div style="display:flex; gap:1.25rem; align-items:center; margin-bottom:1.5rem;" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
           <div class="avatar-wrapper" style="position:relative; flex-shrink:0;">
             <div class="avatar" style="width:64px; height:64px; border-radius:50%; font-size:1.5rem; overflow:hidden; border:3px solid ${emp.isCurrentlyWorking ? 'var(--success-color)' : 'white'}; background:${userGradient}; color:white; display:flex; align-items:center; justify-content:center; font-weight:800; box-shadow:var(--shadow-sm);">
-              ${emp.image ? `<img src="${emp.image}" style="width:100%; height:100%; object-fit:cover;" alt="">` : (emp.name ? emp.name[0].toUpperCase() : '?')}
+              <img src="${emp.image || 'https://lh3.googleusercontent.com/a/default-user=s256-c'}" style="width:100%; height:100%; object-fit:cover;" alt="">
             </div>
             ${emp.isCurrentlyWorking ? `<div style="position:absolute; bottom:2px; right:2px; width:14px; height:14px; background:var(--success-color); border:2px solid white; border-radius:50%; box-shadow:0 0 5px rgba(16,185,129,0.5);"></div>` : ''}
           </div>
