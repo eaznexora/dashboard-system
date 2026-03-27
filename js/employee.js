@@ -114,8 +114,8 @@ const EmployeePortal = {
   renderTaskCard(t) {
     return `
       <div class="kanban-card" draggable="true" ondragstart="event.dataTransfer.setData('taskId', '${t._id}')" onclick="EmployeePortal.viewTaskDetails('${t._id}')">
-        <div style="font-size:0.7rem; font-weight:800; color:var(--accent-color); margin-bottom:0.5rem; text-transform:uppercase;">${t.project?.name || 'GENERAL'}</div>
-        <div style="font-weight:600; font-size:0.875rem; margin-bottom:0.75rem; line-height:1.4;">${t.title}</div>
+        <div style="font-size:0.6rem; font-weight:800; color:var(--accent-color); margin-bottom:0.4rem; text-transform:uppercase;">${t.project?.name || 'GENERAL'}</div>
+        <div style="font-weight:600; font-size:0.8rem; margin-bottom:0.6rem; line-height:1.4;">${t.title}</div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <span style="font-size:0.65rem; font-weight:700; color:${t.priority==='high'?'var(--danger-color)':'var(--text-secondary)'}; background:#f8fafc; padding:0.1rem 0.4rem; border-radius:4px;">
             ${t.priority.toUpperCase()}
