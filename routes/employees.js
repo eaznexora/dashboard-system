@@ -129,4 +129,25 @@ router.delete('/:id', async (req, res) => {
     }
 });
 
+// PATCH: Employee Self-Service (Update Profile Image & Links ONLY)
+router.patch('/:id/self-update', async (req, res) => {
+  try {
+    const { image, socialLinks, projectLinks } = req.body;
+    const employee = await User.findById(req.params.id);
+
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    // STRICT WHITELIST UPDATE - Prevents privilege escalation
+    if (image !== undefined) employee.image = image;
+    if (socialLinks !== undefined) employee.socialLinks = socialLinks;
+    if (projectLinks !== undefined) employee.projectLinks = projectLinks;
+
+    await employee.save();
+    res.json({ message: 'Profile updated successfully', employee });
+  } catch (err) {
+    console.error('[SELF_UPDATE_ERROR]:', err);
+    res.status(500).json({ message: 'Failed to update profile' });
+  }
+});
+
 module.exports = router;

@@ -12,7 +12,13 @@ const UserSchema = new mongoose.Schema({
   phone: { type: String, default: '' },
   skills: [{ type: String }],
   hourlyRate: { type: Number, default: 0 },
-  isActive: { type: Boolean, default: true }
+  isActive: { type: Boolean, default: true },
+  address: { type: String, default: '' },
+  about: { type: String, default: '' },
+  employeeId: { type: String, default: '' },
+  joiningDate: { type: Date, default: Date.now },
+  socialLinks: [{ title: String, url: String }],
+  projectLinks: [{ title: String, url: String }]
 }, { timestamps: true });
 
 module.exports = mongoose.model('User', UserSchema);
