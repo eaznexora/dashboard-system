@@ -247,7 +247,7 @@ const AssetHub = {
             </div>
 
             <!-- Filter Strip -->
-            <div class="px-8 py-3 flex items-center justify-between border-b border-gray-50 bg-gray-50/50 shrink-0 overflow-x-auto scrollbar-hide">
+            <div class="px-8 py-3 flex items-center justify-between border-b border-gray-50 bg-gray-50/50 shrink-0 overflow-visible flex-wrap gap-y-4">
                 <div class="flex items-center gap-2">
                     <button onclick="AssetHub.showFilterMenu(event, 'type')" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white shadow-sm text-gray-600 font-medium text-[13px] hover:bg-gray-50 flex items-center gap-2 ${this.filters.type ? 'border-blue-500 bg-blue-50 text-blue-600' : ''}">
                         ${this.filters.type || 'Type'} <i class="ph ph-caret-down text-[10px]"></i>
