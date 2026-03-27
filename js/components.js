@@ -82,6 +82,9 @@ function renderHeader(title) {
   const userRole = user ? user.role : 'Viewer';
   const isAdmin = userRole === 'ADMIN';
 
+  const userImg = user && user.image ? user.image : 'https://lh3.googleusercontent.com/a/default-user=s256-c';
+  const profileAction = user && user.role === 'EMPLOYEE' ? 'onclick="EmployeePortal.loadMyProfile()"' : '';
+
   return `
     <header class="top-header">
       <div class="header-left" style="display:flex; align-items:center; gap: 1rem;">
@@ -94,8 +97,10 @@ function renderHeader(title) {
         <span id="user-status-badge" style="font-size:0.8rem; color: ${isAdmin ? '#fff' : 'var(--text-secondary)'}; background: ${isAdmin ? 'var(--success-color)' : 'var(--bg-color)'}; padding: 0.25rem 0.75rem; border-radius: 2rem; font-weight:600; white-space: nowrap; display: flex; align-items: center; gap: 0.25rem;">
           <i class="ph ${isAdmin ? 'ph-shield-check' : 'ph-user'}"></i> ${userRole}
         </span>
-        <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary);">${userName}</div>
-        <div class="avatar"><i class="ph ph-user"></i></div>
+        <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary); cursor:pointer;" ${profileAction}>${userName}</div>
+        <div class="avatar" style="cursor:pointer; overflow:hidden;" ${profileAction}>
+           <img src="${userImg}" style="width:100%; height:100%; object-fit:cover;">
+        </div>
       </div>
     </header>
   `;
