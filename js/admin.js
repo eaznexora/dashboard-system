@@ -143,7 +143,7 @@ const AdminPanel = {
 
   renderEmployeeCard(emp) {
     const statusText = emp.isCurrentlyWorking ? 'Working Now' : 'Offline';
-    const statusColor = emp.isCurrentlyWorking ? 'var(--accent-color)' : 'var(--text-secondary)';
+    const statusColor = emp.isCurrentlyWorking ? 'var(--success-color)' : 'var(--text-secondary)';
     
     // Professional gradients for initial placeholders
     const gradients = [
