@@ -394,13 +394,13 @@ const AdminPanel = {
 
   loadProfilesList() {
     const container = document.getElementById('dashboard-content');
-    const emps = this.employees;
+    const emps = this.employees.filter(e => e.isActive); // Filter out inactive (fired) employees
     
     let html = `
       <div class="view-header">
         <div>
           <h2 class="view-title">Team Directory</h2>
-          <p class="view-subtitle">Detailed Management of ${emps.length} Total Profiles</p>
+          <p class="view-subtitle">Active Management of ${emps.length} Team Profiles</p>
         </div>
         <div style="display:flex; gap:0.75rem;">
           <button onclick="AdminPanel.loadEmployees()" class="btn btn-secondary"><i class="ph ph-squares-four"></i> Grid View</button>
@@ -476,21 +476,28 @@ const AdminPanel = {
             <div style="display:flex; flex-direction:column; gap:2rem;">
                 <div class="card" style="text-align:center; padding:2.5rem 1.5rem; position:relative; overflow:hidden;">
                     <div style="position:absolute; top:0; left:0; right:0; height:80px; background:linear-gradient(45deg, var(--accent-color), var(--accent-light)); opacity:0.1;"></div>
-                    <img src="${emp.image || 'https://ui-avatars.com/api/?name='+emp.name+'&background=eff6ff&color=2563eb'}" style="width:140px; height:140px; object-fit:cover; border:6px solid white; margin:0 auto 1.5rem; border-radius:50%; box-shadow: var(--shadow-md); position:relative; z-index:1;">
+                    
+                    <div style="position:relative; width:140px; height:140px; margin:0 auto 1.5rem; z-index:1;">
+                        <img id="profile-avatar-preview" src="${emp.image || 'https://ui-avatars.com/api/?name='+emp.name+'&background=eff6ff&color=2563eb'}" style="width:100%; height:100%; object-fit:cover; border:6px solid white; border-radius:50%; box-shadow: var(--shadow-md);">
+                        <button type="button" onclick="AdminPanel.triggerProfileUpload()" style="position:absolute; bottom:5px; right:5px; width:36px; height:36px; background:var(--accent-color); color:white; border:none; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,0.2); transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                            <i class="ph ph-pencil-simple" style="font-size:1.25rem;"></i>
+                        </button>
+                        <input type="file" id="profile-upload-input" accept="image/*" style="display:none;" onchange="AdminPanel.handleImageUpload('${id}')">
+                        <input type="hidden" name="image" id="profile-image-value" value="${emp.image || ''}">
+                    </div>
+
                     <h2 style="font-weight:900; margin-bottom:0.4rem; font-size:1.35rem; color:var(--text-primary);">${emp.name}</h2>
                     <span style="background:var(--accent-light); color:var(--accent-color); padding:0.4rem 1.25rem; border-radius:2rem; font-size:0.7rem; font-weight:800; text-transform:uppercase; letter-spacing:0.04em;">${emp.designation || 'Team Member'}</span>
+                    
                     <div style="margin-top:2rem; padding-top:1.5rem; border-top:1px solid var(--border-color); font-size:0.8rem; color:var(--text-secondary); font-weight:600;">
                         <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem; margin-bottom:0.75rem;"><i class="ph ph-envelope-simple text-lg"></i> ${emp.email}</div>
                         <div style="display:flex; align-items:center; justify-content:center; gap:0.5rem;"><i class="ph ph-identification-badge text-lg"></i> ID: ${emp.employeeId || 'Not Set'}</div>
                     </div>
                 </div>
 
-                <div class="card" style="padding:1.5rem; background:var(--bg-secondary); border:1px dashed var(--border-color);">
-                   <h4 style="font-size:0.7rem; font-weight:800; text-transform:uppercase; margin-bottom:1rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.5rem;"><i class="ph ph-image"></i> Profile Photo</h4>
-                   <div class="form-group">
-                      <input type="text" name="image" value="${emp.image || ''}" class="form-control" placeholder="Photo URL (e.g. google.com/image.jpg)" style="font-size:0.75rem; background:white;">
-                      <p style="font-size:0.65rem; color:var(--text-secondary); margin-top:0.4rem;">Paste a direct URL to update the profile image.</p>
-                   </div>
+                <div class="card" style="padding:1.5rem; background:var(--bg-secondary); border:1px dashed var(--border-color); opacity: 0.8;">
+                   <h4 style="font-size:0.7rem; font-weight:800; text-transform:uppercase; margin-bottom:0.5rem; color:var(--text-secondary); display:flex; align-items:center; gap:0.5rem;"><i class="ph ph-info"></i> Pro Tip</h4>
+                   <p style="font-size:0.75rem; color:var(--text-secondary); line-height:1.5;">Click the pencil icon on the photo to upload a new profile picture. Supported formats: JPG, PNG, WEBP.</p>
                 </div>
             </div>
 
@@ -500,7 +507,9 @@ const AdminPanel = {
                     <h3 style="font-weight:900; font-size:0.9rem; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:2rem; color:var(--text-primary); display:flex; align-items:center; gap:0.75rem;">
                         <i class="ph ph-identification-card" style="color:var(--accent-color); font-size:1.5rem;"></i> Core Information
                     </h3>
-                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem;">
+                    
+                    <!-- 2x2 Professional Grid Construction -->
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem; margin-bottom:2.5rem; padding-bottom:2.5rem; border-bottom:1px solid var(--border-color);">
                         <div class="form-group">
                             <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Full Name</label>
                             <input type="text" name="name" value="${emp.name || ''}" class="form-control" placeholder="Employee Name" required>
@@ -517,6 +526,9 @@ const AdminPanel = {
                             <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Employee ID</label>
                             <input type="text" name="employeeId" value="${emp.employeeId || ''}" class="form-control" placeholder="EAZ-000">
                         </div>
+                    </div>
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:2rem;">
                         <div class="form-group">
                             <label style="font-weight:800; text-transform:uppercase; font-size:0.7rem; color:var(--text-secondary); letter-spacing:0.05em; margin-bottom:0.6rem; display:block;">Department</label>
                             <input type="text" name="department" value="${emp.department || ''}" class="form-control" placeholder="Select Department">
@@ -575,6 +587,45 @@ const AdminPanel = {
     </div>
     `;
     document.getElementById('dashboard-content').innerHTML = html;
+  },
+
+  triggerProfileUpload() {
+      document.getElementById('profile-upload-input').click();
+  },
+
+  async handleImageUpload(id) {
+      const input = document.getElementById('profile-upload-input');
+      const file = input.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+          return toast('Please select a valid image file', 'warning');
+      }
+
+      try {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const res = await fetch('/api/assets/upload', {
+              method: 'POST',
+              body: formData
+          });
+
+          if (res.ok) {
+              const data = await res.json();
+              const imageUrl = data[0].url;
+              
+              // Update UI and hidden field
+              document.getElementById('profile-avatar-preview').src = imageUrl;
+              document.getElementById('profile-image-value').value = imageUrl;
+              toast('Profile picture uploaded!', 'success');
+          } else {
+              toast('Upload failed', 'error');
+          }
+      } catch (err) {
+          console.error(err);
+          toast('Error during upload', 'error');
+      }
   },
 
   addLinkRow(btn, type) {
