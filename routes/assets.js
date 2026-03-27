@@ -1,4 +1,5 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
@@ -36,6 +37,14 @@ const getCreatorId = (user) => {
     return (id && id.length === 24) ? id : '000000000000000000000000'; // 24-zeros represents the Admin
 };
 
+// --- MODEL RESOLVER ---
+const getUserModelName = () => {
+    if (mongoose.models.User) return 'User';
+    if (mongoose.models.Employee) return 'Employee';
+    if (mongoose.models.Account) return 'Account';
+    return 'User'; // Fallback
+};
+
 // --- BULLETPROOF MULTER CONFIG ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -60,9 +69,14 @@ router.get('/', async (req, res) => {
   try {
     const parentFolder = (req.query.folderId === 'null' || !req.query.folderId) ? null : req.query.folderId;
 
+    const modelName = getUserModelName();
     const [folders, assets] = await Promise.all([
-      Folder.find({ parentFolder, isTrashed: false }).populate('createdBy', 'name').sort({ name: 1 }),
-      Asset.find({ parentFolder, isTrashed: false }).populate('createdBy', 'name').sort({ createdAt: -1 })
+      Folder.find({ parentFolder, isTrashed: false })
+        .populate({ path: 'createdBy', select: 'name fullName displayName email firstName', model: modelName })
+        .sort({ name: 1 }),
+      Asset.find({ parentFolder, isTrashed: false })
+        .populate({ path: 'createdBy', select: 'name fullName displayName email firstName', model: modelName })
+        .sort({ createdAt: -1 })
     ]);
 
     let breadcrumbs = [];
@@ -85,9 +99,14 @@ router.get('/', async (req, res) => {
  */
 router.get('/trash', async (req, res) => {
   try {
+    const modelName = getUserModelName();
     const [folders, assets] = await Promise.all([
-      Folder.find({ isTrashed: true }).populate('createdBy', 'name').sort({ name: 1 }),
-      Asset.find({ isTrashed: true }).populate('createdBy', 'name').sort({ updatedAt: -1 })
+      Folder.find({ isTrashed: true })
+        .populate({ path: 'createdBy', select: 'name fullName displayName email firstName', model: modelName })
+        .sort({ name: 1 }),
+      Asset.find({ isTrashed: true })
+        .populate({ path: 'createdBy', select: 'name fullName displayName email firstName', model: modelName })
+        .sort({ updatedAt: -1 })
     ]);
     res.json({ folders, assets });
   } catch (err) {
