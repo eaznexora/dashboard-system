@@ -8,12 +8,7 @@ const jwt = require('jsonwebtoken');
 const Folder = require('../models/Folder');
 const Asset = require('../models/Asset');
 
-let UserModel;
-try { UserModel = require('../models/User'); } catch(e) {}
-if (!UserModel) {
-    try { UserModel = require('../models/Employee'); } catch(e) {}
-}
-const userModelName = UserModel ? UserModel.modelName : null;
+
 
 const JWT_SECRET = process.env.NEXTAUTH_SECRET || 'fallback_secret_eaz_123';
 
@@ -69,17 +64,25 @@ router.get('/', async (req, res) => {
   try {
     const parentFolder = (req.query.folderId === 'null' || !req.query.folderId) ? null : req.query.folderId;
 
-    const creatorPopulate = { 
-        path: 'createdBy', 
-        select: 'name fullName displayName email firstName', 
-        strictPopulate: false 
-    };
-    if (userModelName) creatorPopulate.model = userModelName;
+    // 1. RAW FETCH (Guaranteed to succeed, prevents 500 error & white screen)
+    let folders = await Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 });
+    let assets = await Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 });
 
-    const [folders, assets] = await Promise.all([
-      Folder.find({ parentFolder, isTrashed: false }).populate(creatorPopulate).sort({ name: 1 }),
-      Asset.find({ parentFolder, isTrashed: false }).populate(creatorPopulate).sort({ createdAt: -1 })
-    ]);
+    // 2. SAFE MANUAL POPULATION
+    try {
+        const mongoose = require('mongoose');
+        let User;
+        try { User = mongoose.model('User'); } catch(e) {}
+        if (!User) { try { User = require('../models/User'); } catch(e) {} }
+        if (!User) { try { User = require('../models/Employee'); } catch(e) {} }
+
+        if (User) {
+            folders = await User.populate(folders, { path: 'createdBy', select: 'name fullName displayName email firstName', strictPopulate: false });
+            assets = await User.populate(assets, { path: 'createdBy', select: 'name fullName displayName email firstName', strictPopulate: false });
+        }
+    } catch (popErr) {
+        console.log('[Safe Populate Warning]:', popErr.message);
+    }
 
     let breadcrumbs = [];
     if (parentFolder) {
@@ -92,6 +95,7 @@ router.get('/', async (req, res) => {
 
     res.json({ folders, assets, breadcrumbs });
   } catch (err) {
+    console.error('[GET_ASSETS_ERROR]:', err);
     res.status(500).json({ error: 'Query failed: ' + err.message });
   }
 });
@@ -101,19 +105,27 @@ router.get('/', async (req, res) => {
  */
 router.get('/trash', async (req, res) => {
   try {
-    const creatorPopulate = { 
-        path: 'createdBy', 
-        select: 'name fullName displayName email firstName', 
-        strictPopulate: false 
-    };
-    if (userModelName) creatorPopulate.model = userModelName;
+    let folders = await Folder.find({ isTrashed: true }).sort({ name: 1 });
+    let assets = await Asset.find({ isTrashed: true }).sort({ updatedAt: -1 });
 
-    const [folders, assets] = await Promise.all([
-      Folder.find({ isTrashed: true }).populate(creatorPopulate).sort({ name: 1 }),
-      Asset.find({ isTrashed: true }).populate(creatorPopulate).sort({ updatedAt: -1 })
-    ]);
+    try {
+        const mongoose = require('mongoose');
+        let User;
+        try { User = mongoose.model('User'); } catch(e) {}
+        if (!User) { try { User = require('../models/User'); } catch(e) {} }
+        if (!User) { try { User = require('../models/Employee'); } catch(e) {} }
+
+        if (User) {
+            folders = await User.populate(folders, { path: 'createdBy', select: 'name fullName displayName email firstName', strictPopulate: false });
+            assets = await User.populate(assets, { path: 'createdBy', select: 'name fullName displayName email firstName', strictPopulate: false });
+        }
+    } catch (popErr) {
+        console.log('[Safe Populate Warning]:', popErr.message);
+    }
+
     res.json({ folders, assets });
   } catch (err) {
+    console.error('[GET_TRASH_ERROR]:', err);
     res.status(500).json({ error: 'Failed to fetch trash: ' + err.message });
   }
 });
