@@ -22,7 +22,10 @@ const AdminPanel = {
             <h2 class="view-title">Team Management</h2>
             <p class="view-subtitle">${activeEmps.length} Active Members · ${inactiveEmps.length} Terminated</p>
           </div>
-          <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
+          <div style="display:flex; gap:0.75rem; align-items:center;">
+            <button onclick="AdminPanel.loadProfilesList()" class="bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all"><i class="ph ph-users-three text-lg"></i> All Profiles</button>
+            <button class="btn btn-primary" onclick="AdminPanel.showAddEmployee()"><i class="ph ph-user-plus"></i> Add Member</button>
+          </div>
         </div>
         
         <h3 style="font-size:0.875rem; font-weight:700; color:var(--text-secondary); margin-bottom:1rem; text-transform:uppercase; letter-spacing:0.05em;">Active Team</h3>
@@ -173,11 +176,6 @@ const AdminPanel = {
             <div style="font-size:0.7rem; color:var(--text-secondary); font-weight:700; text-transform:uppercase; letter-spacing:0.05em; opacity:0.8;">
               ${emp.designation || 'Specialist'}
             </div>
-            <div class="mt-2">
-                <button onclick="AdminPanel.openEmployeeProfile('${emp._id}')" class="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-[11px] font-extrabold uppercase tracking-wider hover:bg-blue-100 flex items-center gap-1 transition-colors w-max">
-                    <i class="ph ph-identification-card text-sm"></i> View Full Profile
-                </button>
-            </div>
           </div>
         </div>
 
@@ -209,6 +207,13 @@ const AdminPanel = {
               PERFORMANCE <i class="ph ph-arrow-right" style="font-weight:bold;"></i>
             </button>
           </div>
+        </div>
+        
+        <!-- Redo: View Full Profile Button -->
+        <div class="mt-4 pt-4 border-t border-gray-100 flex justify-center">
+            <button onclick="AdminPanel.loadSingleProfile('${emp._id}')" class="w-full py-2 bg-blue-50/50 hover:bg-blue-100 text-blue-600 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-colors">
+                <i class="ph ph-user-circle text-base"></i> View Full Profile
+            </button>
         </div>
       </div>
     `;
@@ -385,157 +390,168 @@ const AdminPanel = {
       if (lower.includes('linkedin.com')) return 'ph-linkedin-logo';
       if (lower.includes('github.com')) return 'ph-github-logo';
       if (lower.includes('behance.net')) return 'ph-behance-logo';
-      if (lower.includes('facebook.com')) return 'ph-facebook-logo';
       if (lower.includes('dribbble.com')) return 'ph-dribbble-logo';
+      if (lower.includes('facebook.com')) return 'ph-facebook-logo';
       return 'ph-globe';
   },
 
-  openEmployeeProfile(id) {
+  loadProfilesList() {
+      // Just re-use the main employee grid for now, but ensure the title updates
+      this.loadEmployees();
+  },
+
+  loadSingleProfile(id) {
     const emp = this.employees.find(e => e._id === id);
     if (!emp) return;
-
-    const modalId = 'profile-modal-' + id;
-    // Remove if exists
-    if(document.getElementById(modalId)) document.getElementById(modalId).remove();
 
     const renderLinks = (links, type) => {
         if(!links || links.length === 0) return '';
         return links.map(l => `
-            <div class="flex items-center gap-2 mb-2 dynamic-link-row" data-type="${type}">
-                <div class="bg-gray-100 p-2 rounded text-gray-500"><i class="ph ${this.getLinkIcon(l.url)} text-lg"></i></div>
-                <input type="text" placeholder="Title" value="${l.title || ''}" class="link-title form-input flex-1 text-sm border-gray-200 rounded p-2">
-                <input type="text" placeholder="URL" value="${l.url || ''}" class="link-url form-input flex-2 text-sm border-gray-200 rounded p-2" style="flex: 2;">
-                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 p-2 rounded"><i class="ph ph-trash"></i></button>
+            <div class="flex items-center gap-3 mb-3 dynamic-link-row" data-type="${type}">
+                <div class="bg-gray-100 p-2.5 rounded-lg text-gray-500 flex-shrink-0"><i class="ph ${this.getLinkIcon(l.url)} text-xl"></i></div>
+                <input type="text" placeholder="Title (e.g. Instagram)" value="${l.title || ''}" class="link-title form-input w-1/3 text-sm border-gray-200 rounded-lg p-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <input type="text" placeholder="URL (https://...)" value="${l.url || ''}" class="link-url form-input flex-1 text-sm border-gray-200 rounded-lg p-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 p-2.5 rounded-lg flex-shrink-0 transition-colors"><i class="ph ph-trash text-lg"></i></button>
             </div>
         `).join('');
     };
 
-    const modalHtml = `
-    <div id="${modalId}" class="fixed inset-0 z-[9999] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                <div class="flex items-center gap-3">
-                    <img src="${emp.image || 'https://ui-avatars.com/api/?name='+emp.name}" class="w-12 h-12 rounded-full object-cover">
-                    <div>
-                        <h2 class="text-xl font-bold text-gray-800">${emp.name}'s Profile</h2>
-                        <p class="text-xs font-bold text-gray-500 uppercase tracking-wider">${emp.designation || 'Employee'}</p>
-                    </div>
+    const html = `
+    <div class="fade-in max-w-6xl mx-auto pb-10">
+        <div class="flex justify-between items-center mb-6">
+            <button onclick="AdminPanel.loadEmployees()" class="text-gray-500 hover:text-blue-600 font-bold flex items-center gap-2 transition-colors px-3 py-1.5 rounded-lg hover:bg-blue-50">
+                <i class="ph ph-arrow-left text-lg"></i> Back to Directory
+            </button>
+            <button type="button" onclick="document.getElementById('profile-save-btn').click()" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-bold shadow-md transition-colors flex items-center gap-2">
+                <i class="ph ph-floppy-disk text-lg"></i> Save Profile
+            </button>
+        </div>
+
+        <form id="profile-form-${id}" onsubmit="AdminPanel.saveEmployeeProfile(event, '${id}')" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div class="lg:col-span-1 space-y-6">
+                <div class="card p-6 flex flex-col items-center text-center border border-gray-100 shadow-sm rounded-2xl bg-white">
+                    <img src="${emp.image || 'https://ui-avatars.com/api/?name='+emp.name+'&background=eff6ff&color=2563eb'}" class="w-32 h-32 rounded-full object-cover border-4 border-blue-50 shadow-sm mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">${emp.name}</h2>
+                    <span class="bg-blue-50 text-blue-600 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mt-2">${emp.designation || 'Employee'}</span>
+                    <p class="text-sm text-gray-500 mt-4 flex items-center justify-center gap-2"><i class="ph ph-envelope-simple"></i> ${emp.email}</p>
                 </div>
-                <button onclick="document.getElementById('${modalId}').remove()" class="text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full p-2 transition-colors"><i class="ph ph-x text-xl"></i></button>
             </div>
 
-            <form id="form-${modalId}" onsubmit="AdminPanel.saveEmployeeProfile(event, '${id}', '${modalId}')" class="p-6 overflow-y-auto flex-1 custom-scrollbar">
-                <h3 class="text-xs font-black text-blue-600 uppercase tracking-widest mb-4">Core Information</h3>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Full Name</label><input type="text" name="name" value="${emp.name || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm" required></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Email Address</label><input type="email" name="email" value="${emp.email || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm" required></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Phone Number</label><input type="text" name="phone" value="${emp.phone || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Employee ID</label><input type="text" name="employeeId" value="${emp.employeeId || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Department</label><input type="text" name="department" value="${emp.department || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Designation</label><input type="text" name="designation" value="${emp.designation || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
+            <div class="lg:col-span-2 space-y-6">
+                <div class="card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white">
+                    <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest mb-5 flex items-center gap-2"><i class="ph ph-identification-card text-blue-500 text-lg"></i> Core Information</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Full Name</label><input type="text" name="name" value="${emp.name || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm" required></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Email Address</label><input type="email" name="email" value="${emp.email || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm" required></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Phone Number</label><input type="text" name="phone" value="${emp.phone || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Employee ID</label><input type="text" name="employeeId" value="${emp.employeeId || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Department</label><input type="text" name="department" value="${emp.department || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Designation</label><input type="text" name="designation" value="${emp.designation || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
+                    </div>
                 </div>
 
-                <h3 class="text-xs font-black text-blue-600 uppercase tracking-widest mb-4">Additional Details</h3>
-                <div class="grid grid-cols-1 gap-4 mb-8">
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">Address</label><input type="text" name="address" value="${emp.address || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
-                    <div><label class="block text-xs font-bold text-gray-500 mb-1">About / Bio</label><textarea name="about" rows="3" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm">${emp.about || ''}</textarea></div>
+                <div class="card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white">
+                    <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest mb-5 flex items-center gap-2"><i class="ph ph-article text-blue-500 text-lg"></i> Personal Details</h3>
+                    <div class="space-y-5">
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">Home Address</label><input type="text" name="address" value="${emp.address || ''}" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm"></div>
+                        <div><label class="block text-xs font-bold text-gray-500 mb-1.5">About / Bio</label><textarea name="about" rows="3" class="w-full border border-gray-200 rounded-lg p-2.5 text-sm">${emp.about || ''}</textarea></div>
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-4">
-                    <div>
+                <div class="card p-6 border border-gray-100 shadow-sm rounded-2xl bg-white">
+                    <div class="flex justify-between items-center mb-5">
+                        <h3 class="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2"><i class="ph ph-link text-blue-500 text-lg"></i> Dynamic Links</h3>
+                    </div>
+
+                    <div class="mb-6">
                         <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-xs font-black text-blue-600 uppercase tracking-widest">Social Links</h3>
-                            <button type="button" onclick="AdminPanel.addLinkRow(this, 'social')" class="text-xs font-bold bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-gray-700">+ Add Link</button>
+                            <label class="block text-xs font-bold text-gray-500">SOCIAL LINKS</label>
+                            <button type="button" onclick="AdminPanel.addLinkRow(this, 'social')" class="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">+ Add Social</button>
                         </div>
-                        <div class="links-container" data-link-type="social">
+                        <div class="links-container space-y-2" data-link-type="social">
                             ${renderLinks(emp.socialLinks, 'social')}
                         </div>
                     </div>
 
                     <div>
                         <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-xs font-black text-blue-600 uppercase tracking-widest">Project Links</h3>
-                            <button type="button" onclick="AdminPanel.addLinkRow(this, 'project')" class="text-xs font-bold bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded text-gray-700">+ Add Project</button>
+                            <label class="block text-xs font-bold text-gray-500">PROJECT LINKS</label>
+                            <button type="button" onclick="AdminPanel.addLinkRow(this, 'project')" class="text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">+ Add Project</button>
                         </div>
-                        <div class="links-container" data-link-type="project">
+                        <div class="links-container space-y-2" data-link-type="project">
                             ${renderLinks(emp.projectLinks, 'project')}
                         </div>
                     </div>
                 </div>
-            </form>
-
-            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-                <button onclick="document.getElementById('${modalId}').remove()" class="px-5 py-2.5 rounded-lg text-sm font-bold text-gray-600 hover:bg-gray-200 transition-colors">Cancel</button>
-                <button type="submit" form="form-${modalId}" class="px-5 py-2.5 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-colors flex items-center gap-2"><i class="ph ph-floppy-disk"></i> Save Profile</button>
             </div>
-        </div>
+            <button type="submit" id="profile-save-btn" class="hidden"></button>
+        </form>
     </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    document.getElementById('dashboard-content').innerHTML = html;
   },
 
   addLinkRow(btn, type) {
-    const container = btn.parentElement.nextElementSibling;
-    const html = `
-        <div class="flex items-center gap-2 mb-2 dynamic-link-row" data-type="${type}">
-            <div class="bg-gray-100 p-2 rounded text-gray-500"><i class="ph ph-link text-lg"></i></div>
-            <input type="text" placeholder="Title" class="link-title form-input flex-1 text-sm border-gray-200 rounded p-2">
-            <input type="text" placeholder="URL" class="link-url form-input flex-2 text-sm border-gray-200 rounded p-2" style="flex: 2;">
-            <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 p-2 rounded"><i class="ph ph-trash"></i></button>
-        </div>
-    `;
-    container.insertAdjacentHTML('beforeend', html);
+      const container = btn.parentElement.nextElementSibling;
+      const html = `
+          <div class="flex items-center gap-3 mb-3 dynamic-link-row" data-type="${type}">
+              <div class="bg-gray-100 p-2.5 rounded-lg text-gray-500 flex-shrink-0"><i class="ph ph-link text-xl"></i></div>
+              <input type="text" placeholder="Title (e.g. Instagram)" class="link-title form-input w-1/3 text-sm border-gray-200 rounded-lg p-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              <input type="text" placeholder="URL (https://...)" class="link-url form-input flex-1 text-sm border-gray-200 rounded-lg p-2.5 focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+              <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:bg-red-50 p-2.5 rounded-lg flex-shrink-0 transition-colors"><i class="ph ph-trash text-lg"></i></button>
+          </div>
+      `;
+      container.insertAdjacentHTML('beforeend', html);
   },
 
-  async saveEmployeeProfile(e, id, modalId) {
-    e.preventDefault();
-    const form = e.target;
-    const formData = new FormData(form);
-    const payload = Object.fromEntries(formData.entries());
+  async saveEmployeeProfile(e, id) {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const payload = Object.fromEntries(formData.entries());
 
-    // Extract Links
-    const socialLinks = [];
-    form.querySelectorAll('.dynamic-link-row[data-type="social"]').forEach(row => {
-        const title = row.querySelector('.link-title').value.trim();
-        const url = row.querySelector('.link-url').value.trim();
-        if(title || url) socialLinks.push({ title, url });
-    });
+      // Extract Links
+      const socialLinks = [];
+      form.querySelectorAll('.dynamic-link-row[data-type="social"]').forEach(row => {
+          const title = row.querySelector('.link-title').value.trim();
+          const url = row.querySelector('.link-url').value.trim();
+          if(title || url) socialLinks.push({ title, url });
+      });
 
-    const projectLinks = [];
-    form.querySelectorAll('.dynamic-link-row[data-type="project"]').forEach(row => {
-        const title = row.querySelector('.link-title').value.trim();
-        const url = row.querySelector('.link-url').value.trim();
-        if(title || url) projectLinks.push({ title, url });
-    });
+      const projectLinks = [];
+      form.querySelectorAll('.dynamic-link-row[data-type="project"]').forEach(row => {
+          const title = row.querySelector('.link-title').value.trim();
+          const url = row.querySelector('.link-url').value.trim();
+          if(title || url) projectLinks.push({ title, url });
+      });
 
-    payload.socialLinks = socialLinks;
-    payload.projectLinks = projectLinks;
+      payload.socialLinks = socialLinks;
+      payload.projectLinks = projectLinks;
 
-    try {
-        const btn = form.parentElement.querySelector('button[type="submit"]');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Saving...';
-        btn.disabled = true;
+      try {
+          const btn = document.querySelector('button[onclick*="profile-save-btn"]');
+          const originalText = btn.innerHTML;
+          btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Saving...';
+          btn.disabled = true;
 
-        const res = await fetch(`/api/employees/${id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+          const res = await fetch(`/api/employees/${id}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+          });
 
-        if (res.ok) {
-            document.getElementById(modalId).remove();
-            if(window.toast) window.toast('Profile updated successfully!', 'success');
-            this.loadEmployees(); // Refresh cards
-        } else {
-            if(window.toast) window.toast('Failed to update profile', 'error');
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    } catch (err) {
-        console.error(err);
-        if(window.toast) window.toast('An error occurred', 'error');
-    }
+          if (res.ok) {
+              if(window.toast) window.toast('Profile updated successfully!', 'success');
+              this.loadSingleProfile(id); // Reload the profile page
+          } else {
+              if(window.toast) window.toast('Failed to update profile', 'error');
+              btn.innerHTML = originalText;
+              btn.disabled = false;
+          }
+      } catch (err) {
+          console.error(err);
+          if(window.toast) window.toast('An error occurred', 'error');
+      }
   },
 
   // --- GLOBAL TASKS MODULE ---
