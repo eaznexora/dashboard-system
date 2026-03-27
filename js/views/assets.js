@@ -197,12 +197,15 @@ const AssetHub = {
         if (!this.container) return;
         try {
             // BUILD UNIQUE USERS MAP
-            const uniqueUsers = new Map();
+            const usersMap = new Map();
             [...this.folders, ...this.assets].forEach(item => {
-                if (item.createdBy && typeof item.createdBy === 'object' && item.createdBy._id) {
-                    uniqueUsers.set(item.createdBy._id, item.createdBy.name);
+                if (item.createdBy) {
+                    const id = typeof item.createdBy === 'object' ? item.createdBy._id : item.createdBy;
+                    const name = this.getCreatorName(item.createdBy);
+                    usersMap.set(id, name);
                 }
             });
+            const uniqueUsers = Array.from(usersMap.entries());
 
             // APPLY PEOPLE FILTER
             let displayFolders = folders;
@@ -1034,12 +1037,19 @@ const AssetHub = {
     },
 
     downloadItem(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; a.click(); },
+    getCreatorName(createdBy) {
+        if (!createdBy) return 'Unknown Employee';
+        const id = typeof createdBy === 'object' ? createdBy._id : createdBy;
+        if (id === '000000000000000000000000') return 'Admin';
+        if (typeof createdBy === 'object' && createdBy.name) return createdBy.name;
+        return 'Unknown Employee';
+    },
 
     showFileInfo(id, type) {
         const item = type === 'folder' ? this.folders.find(f => f._id === id) : this.assets.find(a => a._id === id);
         if (!item) return;
 
-        const uploadedBy = typeof item.createdBy === 'object' && item.createdBy ? item.createdBy.name : 'Unknown Employee';
+        const uploaderName = this.getCreatorName(item.createdBy);
         const html = `
             <div id="info-modal" class="fixed inset-0 z-[400] bg-black/40 backdrop-blur-md flex items-center justify-center animate-in fade-in transition-all">
                 <div class="bg-white rounded-[3rem] shadow-2xl w-full max-w-lg p-14 relative">
@@ -1056,7 +1066,7 @@ const AssetHub = {
                     <div class="space-y-8 border-t border-gray-100 pt-10 text-sm">
                         <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Type</span><span class="font-bold text-gray-800">${type === 'folder' ? 'Folder' : (item.mimeType || 'Unknown')}</span></div>
                         <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Size</span><span class="font-bold text-gray-800">${this.formatSize(item.size)}</span></div>
-                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Uploaded By</span><span class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full font-black text-[10px] uppercase">${uploadedBy}</span></div>
+                        <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Uploaded By</span><span class="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full font-black text-[10px] uppercase">${uploaderName}</span></div>
                         <div class="flex justify-between items-center"><span class="text-gray-300 font-bold uppercase tracking-widest text-[10px]">Timestamp</span><span class="font-black text-gray-800 text-[11px]">${new Date(item.createdAt).toLocaleString()}</span></div>
                     </div>
                 </div>

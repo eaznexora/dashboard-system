@@ -29,6 +29,13 @@ const protect = (req, res, next) => {
 
 router.use(protect);
 
+// --- CREATOR ID RESOLUTION ---
+const getCreatorId = (user) => {
+    if (!user) return '000000000000000000000000';
+    const id = String(user._id || user.id);
+    return (id && id.length === 24) ? id : '000000000000000000000000'; // 24-zeros represents the Admin
+};
+
 // --- BULLETPROOF MULTER CONFIG ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -54,8 +61,8 @@ router.get('/', async (req, res) => {
     const parentFolder = (req.query.folderId === 'null' || !req.query.folderId) ? null : req.query.folderId;
 
     const [folders, assets] = await Promise.all([
-      Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 }).populate('createdBy', 'name'),
-      Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 }).populate('createdBy', 'name')
+      Folder.find({ parentFolder, isTrashed: false }).populate('createdBy', 'name').sort({ name: 1 }),
+      Asset.find({ parentFolder, isTrashed: false }).populate('createdBy', 'name').sort({ createdAt: -1 })
     ]);
 
     let breadcrumbs = [];
@@ -79,8 +86,8 @@ router.get('/', async (req, res) => {
 router.get('/trash', async (req, res) => {
   try {
     const [folders, assets] = await Promise.all([
-      Folder.find({ isTrashed: true }).sort({ name: 1 }).populate('createdBy', 'name'),
-      Asset.find({ isTrashed: true }).sort({ updatedAt: -1 }).populate('createdBy', 'name')
+      Folder.find({ isTrashed: true }).populate('createdBy', 'name').sort({ name: 1 }),
+      Asset.find({ isTrashed: true }).populate('createdBy', 'name').sort({ updatedAt: -1 })
     ]);
     res.json({ folders, assets });
   } catch (err) {
@@ -99,7 +106,7 @@ router.post('/folders', async (req, res) => {
     const folder = new Folder({
       name,
       parentFolder: (parentFolder === 'null' || !parentFolder) ? null : parentFolder,
-      createdBy: String(req.user.id)
+      createdBy: getCreatorId(req.user)
     });
 
     await folder.save();
@@ -133,7 +140,7 @@ router.post('/upload', upload.array('file', 1000), async (req, res) => {
           url: `/uploads/${file.filename}`,
           thumbnailUrl: null,
           parentFolder: (parentFolder === 'null' || !parentFolder) ? null : parentFolder,
-          createdBy: String(req.user.id)
+          createdBy: getCreatorId(req.user)
         });
 
         await asset.save();
@@ -205,7 +212,7 @@ router.post('/:id/duplicate', async (req, res) => {
       const clone = new Folder({
         name: original.name + ' - Copy',
         parentFolder: targetFolder,
-        createdBy: String(req.user.id)
+        createdBy: getCreatorId(req.user)
       });
       await clone.save();
     } else {
@@ -218,7 +225,7 @@ router.post('/:id/duplicate', async (req, res) => {
         url: original.url,
         thumbnailUrl: original.thumbnailUrl,
         parentFolder: targetFolder,
-        createdBy: String(req.user.id)
+        createdBy: getCreatorId(req.user)
       });
       await clone.save();
     }
