@@ -485,21 +485,22 @@ const EmployeePortal = {
       });
 
       if (res.ok) {
-        toast('Profile updated successfully!', 'success');
-        
-        // SYNC LOCAL STORAGE FOR HEADER REAL-TIME UPDATE
-        const updatedUser = { ...this.user, image: payload.image, phone: payload.phone };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        // Global Sync Logic
+        const updatedUser = { ...this.user, image: payload.image };
         this.user = updatedUser;
-
-        // Force Header Re-render (Shared components logic)
-        const headerTitle = document.querySelector('.page-title')?.innerText || 'Employee Portal';
+        localStorage.setItem('eaz_user_override', JSON.stringify(updatedUser));
+        
+        // Refresh Header instantly
+        const headerTitle = document.querySelector('.page-title')?.innerText || 'My Profile';
         const headerContainer = document.querySelector('.top-header');
         if (headerContainer && typeof renderHeader === 'function') {
-           headerContainer.outerHTML = renderHeader(headerTitle);
+           const tempDiv = document.createElement('div');
+           tempDiv.innerHTML = renderHeader(headerTitle);
+           headerContainer.replaceWith(tempDiv.firstElementChild);
         }
 
-        this.loadMyProfile(); // Reload to refresh Sidebar and UI
+        toast('Profile updated successfully!', 'success');
+        this.loadMyProfile(); // Reload form state
       } else {
         const data = await res.json();
         toast(data.message || 'Update failed', 'error');

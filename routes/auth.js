@@ -56,7 +56,7 @@ router.post('/login', async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ message: 'Incorrect password provided.' });
 
-    const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user._id, role: user.role, name: user.name, email: user.email, image: user.image }, JWT_SECRET, { expiresIn: '7d' });
     setAuthCookie(res, token);
 
     res.status(200).json({ message: 'Logged in successfully', role: user.role });
