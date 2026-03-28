@@ -231,60 +231,118 @@ window.initCustomSelects = function() {
   selects.forEach(select => {
     select.classList.add('custom-select-processed');
     select.style.display = 'none';
+    const isMulti = select.hasAttribute('multiple');
+    const hasSearch = select.getAttribute('data-search') === 'true';
     
     // Create container
     const container = document.createElement('div');
-    container.className = 'custom-select-container';
+    container.className = `custom-select-container ${isMulti ? 'multi-select' : ''}`;
     select.parentNode.insertBefore(container, select);
     container.appendChild(select);
     
     // Create trigger
     const trigger = document.createElement('div');
     trigger.className = 'custom-select-trigger';
-    const selectedOption = select.options[select.selectedIndex];
-    trigger.innerHTML = `<span>${selectedOption ? selectedOption.text : 'Select...'}</span> <i class="ph ph-caret-down"></i>`;
+    
+    const updateTriggerText = () => {
+      if (isMulti) {
+        const selected = Array.from(select.selectedOptions);
+        trigger.innerHTML = `<span>${selected.length > 0 ? `${selected.length} Selected` : 'Select Team...'}</span> <i class="ph ph-caret-down"></i>`;
+      } else {
+        const selectedOption = select.options[select.selectedIndex];
+        trigger.innerHTML = `<span>${selectedOption ? selectedOption.text : 'Select...'}</span> <i class="ph ph-caret-down"></i>`;
+      }
+    };
+    updateTriggerText();
     container.appendChild(trigger);
     
     // Create options list
     const optionsList = document.createElement('div');
     optionsList.className = 'custom-select-options';
     
-    Array.from(select.options).forEach((option, index) => {
-      const customOption = document.createElement('div');
-      customOption.className = `custom-option ${index === select.selectedIndex ? 'selected' : ''}`;
-      customOption.innerText = option.text;
-      customOption.dataset.value = option.value;
-      
-      customOption.onclick = (e) => {
-        e.stopPropagation();
-        select.selectedIndex = index;
-        trigger.querySelector('span').innerText = option.text;
-        
-        // Update selection UI
-        container.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
-        customOption.classList.add('selected');
-        
-        // Close dropdown
-        container.classList.remove('open');
-        
-        // Trigger native change event
-        select.dispatchEvent(new Event('change'));
+    // Add Search if requested
+    if (hasSearch) {
+      const searchBox = document.createElement('div');
+      searchBox.className = 'select-search-container';
+      searchBox.style.padding = '0.5rem';
+      searchBox.style.borderBottom = '1px solid var(--border-color)';
+      searchBox.innerHTML = `
+        <input type="text" placeholder="Search..." class="form-control" style="font-size:0.8rem; padding:0.4rem 0.6rem; height:auto; border-radius:8px;">
+      `;
+      const searchInput = searchBox.querySelector('input');
+      searchInput.onclick = (e) => e.stopPropagation();
+      searchInput.oninput = (e) => {
+        const q = e.target.value.toLowerCase();
+        optionsList.querySelectorAll('.custom-option').forEach(opt => {
+          const text = opt.innerText.toLowerCase();
+          opt.style.display = text.includes(q) ? 'flex' : 'none';
+        });
       };
-      
-      optionsList.appendChild(customOption);
-    });
+      optionsList.appendChild(searchBox);
+    }
+
+    const renderOptions = () => {
+      // Clear existing options except search bar
+      const searchBox = optionsList.querySelector('.select-search-container');
+      optionsList.innerHTML = '';
+      if (searchBox) optionsList.appendChild(searchBox);
+
+      Array.from(select.options).forEach((option, index) => {
+        const customOption = document.createElement('div');
+        customOption.className = `custom-option ${option.selected ? 'selected' : ''}`;
+        customOption.style.display = 'flex';
+        customOption.style.alignItems = 'center';
+        customOption.style.gap = '0.75rem';
+        
+        if (isMulti) {
+          customOption.innerHTML = `
+            <input type="checkbox" ${option.selected ? 'checked' : ''} style="pointer-events:none; accent-color:var(--accent-color);">
+            <span>${option.text.toUpperCase()}</span>
+          `;
+        } else {
+          customOption.innerText = option.text.toUpperCase();
+        }
+
+        customOption.onclick = (e) => {
+          e.stopPropagation();
+          if (isMulti) {
+            option.selected = !option.selected;
+            customOption.classList.toggle('selected');
+            const cb = customOption.querySelector('input');
+            if (cb) cb.checked = option.selected;
+            updateTriggerText();
+          } else {
+            select.selectedIndex = index;
+            updateTriggerText();
+            container.querySelectorAll('.custom-option').forEach(opt => opt.classList.remove('selected'));
+            customOption.classList.add('selected');
+            container.classList.remove('open');
+          }
+          select.dispatchEvent(new Event('change'));
+        };
+        optionsList.appendChild(customOption);
+      });
+    };
     
+    renderOptions();
     container.appendChild(optionsList);
     
     // Toggle on click
     trigger.onclick = (e) => {
       e.stopPropagation();
-      // Close all other open selects
       document.querySelectorAll('.custom-select-container.open').forEach(openSelect => {
         if (openSelect !== container) openSelect.classList.remove('open');
       });
       container.classList.toggle('open');
+      
+      // If opening, focus search
+      if (container.classList.contains('open') && hasSearch) {
+        setTimeout(() => optionsList.querySelector('input')?.focus(), 50);
+      }
     };
+
+    // Re-render when original select changes via JS
+    select.addEventListener('rerender', () => renderOptions());
   });
 };
 

@@ -1117,47 +1117,34 @@ const AdminPanel = {
 
           <!-- RIGHT COLUMN: Personnel Selection -->
           <div style="display:grid; gap:1.5rem;">
-            <!-- Lead Manager Selection -->
+          <!-- RIGHT COLUMN: Personnel Selection -->
+          <div style="display:grid; gap:1.5rem;">
+            <!-- Lead Manager Selection (Restored Dropdown UI) -->
              <div class="form-group">
-                <label style="display:flex; justify-content:space-between; align-items:center;">
-                  <span>Lead Manager (Search & Select)</span>
-                  <input type="text" placeholder="Search..." oninput="AdminPanel.filterEmployees(this.value, 'np-lead-list')" style="font-size:0.75rem; padding:0.3rem 0.6rem; border-radius:8px; border:1px solid var(--border-color); outline:none; max-width:150px;">
-                </label>
-                <div id="np-lead-list" class="form-control" style="height:140px; overflow-y:auto; padding:0.5rem; display:block; background:#fff; margin-top:0.5rem;">
-                    ${emps.filter(e => e.isActive).map(e => {
-                        const isSelected = p && p.lead?._id === e._id;
-                        return `
-                          <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.75rem; padding:0.4rem; cursor:pointer; font-size:0.875rem; border-radius:6px; transition:all 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                            <input type="radio" name="np-lead" value="${e._id}" ${isSelected ? 'checked' : ''} style="accent-color:var(--accent-color);">
-                            <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
-                          </label>
-                        `;
-                    }).join('')}
-                </div>
+                <label>Lead Manager</label>
+                <select id="np-lead" class="form-control" data-search="true">
+                  <option value="">-- No Lead Manager --</option>
+                  ${emps.filter(e => e.isActive).map(e => `
+                    <option value="${e._id}" ${p && p.lead?._id === e._id ? 'selected' : ''}>${e.name.toUpperCase()}</option>
+                  `).join('')}
+                </select>
              </div>
 
-             <!-- Team Member Selection -->
+             <!-- Team Member Selection (Premium Multi-Select Dropdown) -->
              <div class="form-group">
-                <label style="display:flex; justify-content:space-between; align-items:center;">
-                  <span>Assign Team Members</span>
-                  <input type="text" placeholder="Search team..." oninput="AdminPanel.filterEmployees(this.value, 'np-emps-list')" style="font-size:0.75rem; padding:0.3rem 0.6rem; border-radius:8px; border:1px solid var(--border-color); outline:none; max-width:150px;">
-                </label>
-                <div id="np-emps-list" class="form-control" style="height:190px; overflow-y:auto; padding:0.5rem; display:block; background:#fff; margin-top:0.5rem;">
+                <label>Assign Team Members</label>
+                <select id="np-assigned" class="form-control" multiple data-search="true">
                    ${emps.filter(e => e.isActive).map(e => {
                       const isAssigned = p && (p.assignedEmployees || []).includes(e._id);
-                      return `
-                        <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.75rem; padding:0.4rem; cursor:pointer; font-size:0.875rem; border-radius:6px; transition:all 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
-                          <input type="checkbox" name="np-assigned" value="${e._id}" ${isAssigned ? 'checked' : ''} style="accent-color:var(--accent-color);">
-                          <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
-                        </label>
-                      `;
+                      return `<option value="${e._id}" ${isAssigned ? 'selected' : ''}>${e.name.toUpperCase()}</option>`;
                    }).join('')}
-                </div>
+                </select>
              </div>
 
-             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1.25rem; font-size:1rem; font-weight:700; border-radius:12px; margin-top:1rem;" onclick="id ? AdminPanel.handleUpdateProject('${id}') : AdminPanel.handleSaveProject()">
+             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1.25rem; font-size:1rem; font-weight:700; border-radius:12px; margin-top:2.5rem;" onclick="id ? AdminPanel.handleUpdateProject('${id}') : AdminPanel.handleSaveProject()">
                 <i class="ph ph-rocket-launch" style="margin-right:0.5rem;"></i> ${id ? 'Update Project Details' : 'Launch New Project'}
              </button>
+          </div>
           </div>
         </div>
       </div>
@@ -1167,11 +1154,9 @@ const AdminPanel = {
   },
 
   async handleSaveProject() {
-    const assignedCheckboxes = document.querySelectorAll('input[name="np-assigned"]:checked');
-    const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
-
-    const leadRadio = document.querySelector('input[name="np-lead"]:checked');
-    const leadId = leadRadio ? leadRadio.value : undefined;
+    const assignedSelect = document.getElementById('np-assigned');
+    const assignedIds = Array.from(assignedSelect.selectedOptions).map(opt => opt.value);
+    const leadId = document.getElementById('np-lead').value || undefined;
 
     const body = {
       name: document.getElementById('np-name').value,
@@ -1199,11 +1184,9 @@ const AdminPanel = {
   },
 
   async handleUpdateProject(id) {
-    const assignedCheckboxes = document.querySelectorAll('input[name="np-assigned"]:checked');
-    const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
-
-    const leadRadio = document.querySelector('input[name="np-lead"]:checked');
-    const leadId = leadRadio ? leadRadio.value : undefined;
+    const assignedSelect = document.getElementById('np-assigned');
+    const assignedIds = Array.from(assignedSelect.selectedOptions).map(opt => opt.value);
+    const leadId = document.getElementById('np-lead').value || undefined;
 
     const body = {
       name: document.getElementById('np-name').value,
