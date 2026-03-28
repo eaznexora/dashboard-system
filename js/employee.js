@@ -550,7 +550,20 @@ const EmployeePortal = {
       if (data.url) {
         document.getElementById('profile-avatar-preview').src = data.url + '?t=' + Date.now();
         document.getElementById('profile-image-value').value = data.url;
-        toast('Photo uploaded. Save profile to apply.', 'success');
+        
+        // SYNC LOCAL STATE FOR INSTANT FEEDBACK
+        const updatedUser = { ...this.user, image: data.url };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        this.user = updatedUser;
+
+        // Refresh Header
+        const headerTitle = document.querySelector('.page-title')?.innerText || 'Employee Portal';
+        const headerContainer = document.querySelector('.top-header');
+        if (headerContainer && typeof renderHeader === 'function') {
+           headerContainer.outerHTML = renderHeader(headerTitle);
+        }
+
+        toast('Photo uploaded. Save profile to apply changes permanently.', 'success');
       }
     } catch (err) {
       toast('Upload failed', 'error');

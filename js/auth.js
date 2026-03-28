@@ -6,6 +6,16 @@ function getCurrentUser() {
   if (!token) return null;
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
+    
+    // Support real-time Local Storage Overrides for SPA Reactivity
+    const localOverride = localStorage.getItem('user');
+    if (localOverride) {
+      const localSess = JSON.parse(localOverride);
+      // Merge reactive properties only if the IDs match
+      if (localSess.id === payload.id) {
+        return { ...payload, ...localSess };
+      }
+    }
     return payload;
   } catch(e) {
     return null;
