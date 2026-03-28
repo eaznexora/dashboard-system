@@ -1405,29 +1405,37 @@ const AdminPanel = {
             </div>
           </div>
 
-          <!-- Team Workload Matrix (Newly Added Section) -->
-          <div class="card" style="padding:1.5rem;">
-             <h4 style="font-weight:700; margin-bottom:1.25rem; font-size:0.875rem;">Team Workload</h4>
-             <div style="display:grid; gap:1rem;">
+          <!-- Team Workload Card (Synced with Health Card UI) -->
+          <div class="card" style="padding:1.5rem; border-left:5px solid ${p.color || 'var(--accent-color)'}; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow)'" onclick="AdminPanel.showProjectTaskMatrix('${id}')">
+             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+                <h4 style="font-weight:700; font-size:0.875rem;">Project Health Matrix</h4>
+                <i class="ph ph-activity" style="color:var(--accent-color); font-size:1.2rem;"></i>
+             </div>
+             
+             <div style="display:grid; gap:0.875rem;">
                 ${(p.assignedEmployees || []).length === 0 ? '<p style="font-size:0.75rem; color:var(--text-secondary);">No team members explicitly assigned.</p>' : 
-                  p.assignedEmployees.map(id => {
-                    const emp = emps.find(e => e._id === id);
-                    const empTasks = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === id);
-                    const pending = empTasks.filter(t => t.status==='pending').length;
-                    const active = empTasks.filter(t => t.status==='in progress').length;
-                    const done = empTasks.filter(t => t.status==='completed').length;
+                  p.assignedEmployees.map(empId => {
+                    const emp = emps.find(e => e._id === empId);
+                    // Match tasks robustly (handles space or hyphen in status)
+                    const empTasks = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === empId);
+                    const pending = empTasks.filter(t => t.status.toLowerCase().includes('pending')).length;
+                    const active = empTasks.filter(t => t.status.toLowerCase().includes('progress')).length;
+                    const done = empTasks.filter(t => t.status.toLowerCase().includes('complete')).length;
                     
                     return `
-                      <div style="padding-bottom:1rem; border-bottom:1px solid #f8fafc; last-child:border-none;">
-                         <div style="font-size:0.8rem; font-weight:800; margin-bottom:0.4rem; color:var(--text-primary);">${emp?.name || 'Unknown'}</div>
-                         <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
-                            <span style="font-size:0.6rem; font-weight:800; padding:0.15rem 0.4rem; border-radius:4px; background:#fee2e2; color:#b91c1c;">${pending}P</span>
-                            <span style="font-size:0.6rem; font-weight:800; padding:0.15rem 0.4rem; border-radius:4px; background:#fef3c7; color:#92400e;">${active}W</span>
-                            <span style="font-size:0.6rem; font-weight:800; padding:0.15rem 0.4rem; border-radius:4px; background:#dcfce7; color:#15803d;">${done}D</span>
+                      <div style="display:flex; justify-content:space-between; align-items:center;">
+                         <span style="font-size:0.8rem; font-weight:700; color:var(--text-primary);">${emp?.name || 'Unknown'}</span>
+                         <div style="display:flex; gap:0.35rem;">
+                            <span title="Pending" style="font-size:0.65rem; font-weight:900; color:#b91c1c; background:#fee2e2; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%;">${pending}</span>
+                            <span title="In Progress" style="font-size:0.65rem; font-weight:900; color:#92400e; background:#fef3c7; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%;">${active}</span>
+                            <span title="Completed" style="font-size:0.65rem; font-weight:900; color:#15803d; background:#dcfce7; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%;">${done}</span>
                          </div>
                       </div>
                     `;
                   }).join('')}
+             </div>
+             <div style="margin-top:1.25rem; pt:1rem; border-top:1px solid #f1f5f9; text-align:center;">
+                <span style="font-size:0.7rem; font-weight:800; color:var(--accent-color); text-transform:uppercase; letter-spacing:0.05em;">View Full Health Matrix <i class="ph ph-arrow-square-out"></i></span>
              </div>
           </div>
 
