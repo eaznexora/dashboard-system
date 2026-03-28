@@ -1068,11 +1068,11 @@ const AdminPanel = {
       <div class="card" style="padding:2.5rem; max-width:1050px; margin:0 auto; border-radius:16px;">
         <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:2rem;">
           
-          <!-- LEFT COLUMN: Basic Details -->
+          <!-- LEFT COLUMN: Primary Info -->
           <div style="display:grid; gap:1.5rem;">
             <div class="form-group">
-               <label>Project Name</label>
-               <input type="text" id="np-name" class="form-control" value="${p ? p.name : ''}" placeholder="e.g. Q4 Growth Strategy">
+                <label>Project Name</label>
+                <input type="text" id="np-name" class="form-control" value="${p ? p.name : ''}" placeholder="Enter Project Name">
             </div>
 
             <div class="form-group">
@@ -1082,10 +1082,18 @@ const AdminPanel = {
                 </select>
             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+            <div class="form-group">
+               <label>Project Objective / Description</label>
+               <textarea id="np-desc" class="form-control" style="min-height:220px; border-radius:12px;">${p ? p.description : ''}</textarea>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Metadata & Personnel -->
+          <div style="display:grid; gap:1.5rem; align-content:start;">
+             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                 <div class="form-group">
                     <label>Budget (₹)</label>
-                    <input type="number" id="np-budget" class="form-control" value="${p ? p.budget : ''}" placeholder="Budget">
+                    <input type="number" id="np-budget" class="form-control" value="${p ? p.budget : ''}" placeholder="0.00">
                 </div>
                 <div class="form-group">
                     <label>Status</label>
@@ -1096,9 +1104,9 @@ const AdminPanel = {
                       <option value="archived" ${p && p.status === 'archived' ? 'selected' : ''}>ARCHIVED</option>
                     </select>
                 </div>
-            </div>
+             </div>
 
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
+             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                 <div class="form-group">
                     <label>Start Date</label>
                     <input type="date" id="np-start" class="form-control" value="${p && p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
@@ -1107,17 +1115,8 @@ const AdminPanel = {
                     <label>End Date</label>
                     <input type="date" id="np-end" class="form-control" value="${p && p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
                 </div>
-            </div>
+             </div>
 
-            <div class="form-group">
-               <label>Project Objective / Description</label>
-               <textarea id="np-desc" class="form-control" style="min-height:100px; border-radius:12px;">${p ? p.description : ''}</textarea>
-            </div>
-          </div>
-
-          <!-- RIGHT COLUMN: Personnel Selection -->
-          <div style="display:grid; gap:1.25rem;">
-            <!-- Lead Manager Selection (Restored Dropdown UI) -->
              <div class="form-group">
                 <label>Lead Manager</label>
                 <select id="np-lead" class="form-control" data-search="true">
@@ -1128,7 +1127,6 @@ const AdminPanel = {
                 </select>
              </div>
 
-             <!-- Team Member Selection (Premium Multi-Select Dropdown) -->
              <div class="form-group">
                 <label>Assign Team Members</label>
                 <select id="np-assigned" class="form-control" multiple data-search="true">
@@ -1138,7 +1136,6 @@ const AdminPanel = {
                    }).join('')}
                 </select>
              </div>
-
           </div>
         </div>
 
