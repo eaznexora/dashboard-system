@@ -1049,7 +1049,35 @@ const AssetHub = {
         return div.innerHTML;
     },
 
-    downloadItem(url, name) { const a = document.createElement('a'); a.href = url; a.download = name; a.click(); },
+    downloadItem(idOrUrl, name) {
+        let finalUrl = idOrUrl;
+        let finalName = name;
+
+        // ID-based lookup if only one argument is provided (as in the context menu)
+        if (!name) {
+            const asset = this.assets.find(a => a._id === idOrUrl);
+            if (asset) {
+                finalUrl = asset.url;
+                finalName = asset.name;
+            }
+        }
+
+        if (!finalUrl) {
+            if (window.showNotification) showNotification('Download link not found', 'error');
+            return;
+        }
+
+        const a = document.createElement('a');
+        a.href = finalUrl;
+        a.download = finalName || 'download';
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(finalUrl); // Clean up if it was a blob
+        }, 100);
+    },
     getCreatorName(createdBy) {
         if (!createdBy) return 'UNKNOWN EMPLOYEE';
         if (typeof createdBy === 'string') {
