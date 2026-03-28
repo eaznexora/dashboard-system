@@ -1343,6 +1343,9 @@ const AdminPanel = {
     const tasksRes = await fetch(`/api/tasks?project=${id}`);
     const tasks = await tasksRes.json();
 
+    const empsRes = await fetch('/api/employees');
+    const emps = await empsRes.json();
+
     const container = document.getElementById('dashboard-content');
     container.innerHTML = `
       <div class="view-header">
@@ -1382,9 +1385,10 @@ const AdminPanel = {
               `).join('')}
           </div>
         </div>
+        
         <div style="display:grid; gap:1.5rem; align-content:start;">
-          <div class="card">
-            <h4 style="font-weight:700; margin-bottom:1rem; font-size:0.875rem;">Project Details</h4>
+          <div class="card" style="padding:1.5rem;">
+            <h4 style="font-weight:700; margin-bottom:1.25rem; font-size:0.875rem;">Project Details</h4>
             <div style="display:grid; gap:1.25rem;">
               <div>
                 <label style="display:block; font-size:0.65rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.25rem;">Client</label>
@@ -1400,13 +1404,41 @@ const AdminPanel = {
                </div>
             </div>
           </div>
-          <div class="card" style="background:var(--accent-color); color:#fff; border:none;">
+
+          <!-- Team Workload Matrix (Newly Added Section) -->
+          <div class="card" style="padding:1.5rem;">
+             <h4 style="font-weight:700; margin-bottom:1.25rem; font-size:0.875rem;">Team Workload</h4>
+             <div style="display:grid; gap:1rem;">
+                ${(p.assignedEmployees || []).length === 0 ? '<p style="font-size:0.75rem; color:var(--text-secondary);">No team members explicitly assigned.</p>' : 
+                  p.assignedEmployees.map(id => {
+                    const emp = emps.find(e => e._id === id);
+                    const empTasks = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === id);
+                    const pending = empTasks.filter(t => t.status==='pending').length;
+                    const active = empTasks.filter(t => t.status==='in progress').length;
+                    const done = empTasks.filter(t => t.status==='completed').length;
+                    
+                    return `
+                      <div style="padding-bottom:1rem; border-bottom:1px solid #f8fafc; last-child:border-none;">
+                         <div style="font-size:0.8rem; font-weight:800; margin-bottom:0.4rem; color:var(--text-primary);">${emp?.name || 'Unknown'}</div>
+                         <div style="display:flex; gap:0.4rem; flex-wrap:wrap;">
+                            <span style="font-size:0.6rem; font-weight:800; padding:0.15rem 0.4rem; border-radius:4px; background:#fee2e2; color:#b91c1c;">${pending}P</span>
+                            <span style="font-size:0.6rem; font-weight:800; padding:0.15rem 0.4rem; border-radius:4px; background:#fef3c7; color:#92400e;">${active}W</span>
+                            <span style="font-size:0.6rem; font-weight:800; padding:0.15rem 0.4rem; border-radius:4px; background:#dcfce7; color:#15803d;">${done}D</span>
+                         </div>
+                      </div>
+                    `;
+                  }).join('')}
+             </div>
+          </div>
+
+          <div class="card" style="background:var(--accent-color); color:#fff; border:none; padding:1.5rem;">
              <h4 style="font-weight:700; margin-bottom:0.5rem; font-size:0.875rem;">Quick Report</h4>
-             <p style="font-size:0.75rem; opacity:0.9; line-height:1.4;">This project is currently tracking well with ${tasks.filter(t => t.status === 'completed').length}/${tasks.length} tasks completed.</p>
+             <p style="font-size:0.75rem; opacity:0.9; line-height:1.4;">Project tracking at ${tasks.filter(t => t.status === 'completed').length}/${tasks.length} tasks completed.</p>
           </div>
         </div>
       </div>
     `;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     window.initCustomSelects();
   },
 
