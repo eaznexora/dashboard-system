@@ -109,19 +109,29 @@ const AdminPanel = {
     `;
   },
 
-  async showProjectTaskMatrix(projectId) {
+  async showProjectTaskMatrix(projectId, tasksArr = null) {
     const p = this.projects.find(x => x._id === projectId);
     const assignedIds = p.assignedEmployees || [];
+    
+    // Choose tasks source: passed-in live data OR global this.tasks
+    const tasksToScan = tasksArr || this.tasks || [];
+
     const matrixData = assignedIds.map(id => {
        const emp = this.employees.find(e => e._id === id);
-       const empTasks = this.tasks.filter(t => t.project === projectId && t.assignedTo?._id === id);
+       // Robust Filtering: handle both string IDs and populated objects
+       const empTasks = tasksToScan.filter(t => {
+          const pId = (t.project?._id || t.project);
+          const aId = (t.assignedTo?._id || t.assignedTo);
+          return pId === projectId && aId === id;
+       });
+
        return {
          empName: emp?.name || 'Unknown',
          total: empTasks.length,
-         pending: empTasks.filter(t => t.status === 'pending').length,
-         progress: empTasks.filter(t => t.status === 'in progress').length,
-         review: empTasks.filter(t => t.status === 'in review').length,
-         done: empTasks.filter(t => t.status === 'completed').length
+         pending: empTasks.filter(t => t.status.toLowerCase().includes('pending')).length,
+         progress: empTasks.filter(t => t.status.toLowerCase().includes('progress')).length,
+         review: empTasks.filter(t => t.status.toLowerCase().includes('review')).length,
+         done: empTasks.filter(t => t.status.toLowerCase().includes('complete')).length
        };
     });
 
@@ -130,7 +140,7 @@ const AdminPanel = {
         <div class="modal-content" style="max-width:750px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
             <div>
-              <h3 style="font-weight:900; font-size:1.5rem; color:var(--text-primary); text-transform:uppercase; letter-spacing:-0.01em;">${p.name} Health Matrix</h3>
+              <h3 style="font-weight:900; font-size:1.5rem; color:var(--text-primary); text-transform:uppercase; letter-spacing:-0.02em;">${p.name.toUpperCase()} HEALTH MATRIX</h3>
               <p style="font-size:0.875rem; color:var(--text-secondary);">Live workload distribution for all assigned team members</p>
             </div>
             <button onclick="document.getElementById('project-health-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
@@ -139,16 +149,16 @@ const AdminPanel = {
           <div style="display:grid; gap:1.5rem;">
              ${matrixData.length === 0 ? '<p style="padding:4rem; text-align:center; color:var(--text-secondary);">No team members explicitly assigned to this project.</p>' : 
                matrixData.map(d => `
-                 <div style="background:#f8fafc; border-radius:12px; padding:1.25rem; border:1px solid #f1f5f9;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-                       <span style="font-weight:800; font-size:1rem; color:var(--text-primary);">${d.empName.toUpperCase()}</span>
-                       <span style="font-size:0.75rem; font-weight:900; color:var(--accent-color); letter-spacing:0.05em;">TOTAL LOAD: ${d.total} TASKS</span>
+                 <div style="background:#f8fafc; border-radius:16px; padding:1.5rem; border:1px solid #f1f5f9;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+                       <span style="font-weight:800; font-size:1.1rem; color:var(--text-primary); letter-spacing:-0.01em;">${d.empName.toUpperCase()}</span>
+                       <span style="font-size:0.75rem; font-weight:900; color:var(--accent-color); letter-spacing:0.05em; background:var(--accent-light); padding:0.3rem 0.75rem; border-radius:10px;">TOTAL LOAD: ${d.total} TASKS</span>
                     </div>
-                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                       <span style="font-size:0.65rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:4px; background:#fee2e2; color:#b91c1c;">PENDING: ${d.pending}</span>
-                       <span style="font-size:0.65rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:4px; background:#fef3c7; color:#92400e;">IN PROGRESS: ${d.progress}</span>
-                       <span style="font-size:0.65rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:4px; background:#dbeafe; color:#1d4ed8;">IN REVIEW: ${d.review}</span>
-                       <span style="font-size:0.65rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:4px; background:#dcfce7; color:#15803d;">COMPLETED: ${d.done}</span>
+                    <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+                       <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#fee2e2; color:#b91c1c; min-width:110px; text-align:center;">PENDING: ${d.pending}</span>
+                       <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#fef3c7; color:#92400e; min-width:110px; text-align:center;">IN PROGRESS: ${d.progress}</span>
+                       <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#dbeafe; color:#1d4ed8; min-width:110px; text-align:center;">IN REVIEW: ${d.review}</span>
+                       <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#dcfce7; color:#15803d; min-width:110px; text-align:center;">COMPLETED: ${d.done}</span>
                     </div>
                  </div>
                `).join('')}
@@ -1338,13 +1348,16 @@ const AdminPanel = {
   async viewProjectDetails(id) {
     const projRes = await fetch('/api/projects');
     const projs = await projRes.json();
+    this.projects = projs;
     const p = projs.find(x => x._id === id);
 
     const tasksRes = await fetch(`/api/tasks?project=${id}`);
     const tasks = await tasksRes.json();
+    this.tasks = tasks;
 
     const empsRes = await fetch('/api/employees');
     const emps = await empsRes.json();
+    this.employees = emps;
 
     const container = document.getElementById('dashboard-content');
     container.innerHTML = `
@@ -1405,38 +1418,18 @@ const AdminPanel = {
             </div>
           </div>
 
-          <!-- Team Workload Card (Synced with Health Card UI) -->
-          <div class="card" style="padding:1.5rem; border-left:5px solid ${p.color || 'var(--accent-color)'}; cursor:pointer; transition:all 0.3s;" onmouseover="this.style.transform='translateY(-3px)'; this.style.boxShadow='var(--shadow-lg)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='var(--shadow)'" onclick="AdminPanel.showProjectTaskMatrix('${id}')">
-             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-                <h4 style="font-weight:700; font-size:0.875rem;">Project Health Matrix</h4>
-                <i class="ph ph-activity" style="color:var(--accent-color); font-size:1.2rem;"></i>
-             </div>
-             
-             <div style="display:grid; gap:0.875rem;">
-                ${(p.assignedEmployees || []).length === 0 ? '<p style="font-size:0.75rem; color:var(--text-secondary);">No team members explicitly assigned.</p>' : 
-                  p.assignedEmployees.map(empId => {
-                    const emp = emps.find(e => e._id === empId);
-                    // Match tasks robustly (handles space or hyphen in status)
-                    const empTasks = tasks.filter(t => (t.assignedTo?._id || t.assignedTo) === empId);
-                    const pending = empTasks.filter(t => t.status.toLowerCase().includes('pending')).length;
-                    const active = empTasks.filter(t => t.status.toLowerCase().includes('progress')).length;
-                    const done = empTasks.filter(t => t.status.toLowerCase().includes('complete')).length;
-                    
-                    return `
-                      <div style="display:flex; justify-content:space-between; align-items:center;">
-                         <span style="font-size:0.8rem; font-weight:700; color:var(--text-primary);">${emp?.name || 'Unknown'}</span>
-                         <div style="display:flex; gap:0.35rem;">
-                            <span title="Pending" style="font-size:0.65rem; font-weight:900; color:#b91c1c; background:#fee2e2; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%;">${pending}</span>
-                            <span title="In Progress" style="font-size:0.65rem; font-weight:900; color:#92400e; background:#fef3c7; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%;">${active}</span>
-                            <span title="Completed" style="font-size:0.65rem; font-weight:900; color:#15803d; background:#dcfce7; width:22px; height:22px; display:flex; align-items:center; justify-content:center; border-radius:50%;">${done}</span>
-                         </div>
-                      </div>
-                    `;
-                  }).join('')}
-             </div>
-             <div style="margin-top:1.25rem; pt:1rem; border-top:1px solid #f1f5f9; text-align:center;">
-                <span style="font-size:0.7rem; font-weight:800; color:var(--accent-color); text-transform:uppercase; letter-spacing:0.05em;">View Full Health Matrix <i class="ph ph-arrow-square-out"></i></span>
-             </div>
+          <!-- Project Health Card (Synced with Dashboard UI) -->
+          <div class="card" style="padding:1.5rem; border-left:4px solid ${p.color || 'var(--accent-color)'}; cursor:pointer; transition:transform 0.2s; position:relative; overflow:hidden;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'" onclick="AdminPanel.showProjectTaskMatrix('${p._id}', AdminPanel.tasks)">
+            <div style="font-size:0.65rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem; letter-spacing:0.05em;">Project Health Card</div>
+            <h4 style="font-weight:800; font-size:1.1rem; margin-bottom:0.75rem; color:var(--text-primary);">${p.name}</h4>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="font-size:0.8rem; font-weight:600; color:var(--text-secondary);">
+                 <i class="ph ph-user-focus"></i> ${p.lead?.name || 'Unassigned'}
+              </div>
+              <div style="font-size:0.75rem; font-weight:800; background:var(--accent-light); color:var(--accent-color); padding:0.2rem 0.6rem; border-radius:6px;">
+                 ${(p.assignedEmployees || []).length} STAFFED
+              </div>
+            </div>
           </div>
 
           <div class="card" style="background:var(--accent-color); color:#fff; border:none; padding:1.5rem;">
