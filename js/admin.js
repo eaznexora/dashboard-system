@@ -1507,6 +1507,10 @@ const AdminPanel = {
               <input type="text" id="ec-name" value="${c.contactName}" class="form-control">
             </div>
             <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="ec-email" value="${c.email || ''}" class="form-control">
+            </div>
+            <div class="form-group">
                <label>Status</label>
                <select id="ec-status" class="form-control">
                  <option value="lead" ${c.status==='lead'?'selected':''}>Lead</option>
@@ -1534,6 +1538,7 @@ const AdminPanel = {
     const body = {
       company: document.getElementById('ec-company').value,
       contactName: document.getElementById('ec-name').value,
+      email: document.getElementById('ec-email').value,
       status: document.getElementById('ec-status').value
     };
     try {
