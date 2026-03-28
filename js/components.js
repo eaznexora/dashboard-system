@@ -102,8 +102,8 @@ function renderHeader(title) {
           <i class="ph ${isAdmin ? 'ph-shield-check' : 'ph-user'}"></i> ${userRole}
         </span>
         <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary); cursor:pointer;" onclick="window.location.href='${profileUrl}'">${userName}</div>
-        <div class="avatar" style="cursor:pointer; overflow:hidden;" onclick="window.location.href='${profileUrl}'">
-           <img src="${userImg}" style="width:100%; height:100%; object-fit:cover;">
+        <div class="avatar" style="cursor:pointer; ${isAdmin ? 'border-radius:0; background:none;' : 'overflow:hidden;'}" onclick="window.location.href='${profileUrl}'">
+           <img src="${userImg}" style="width:100%; height:100%; ${isAdmin ? 'object-fit:contain;' : 'object-fit:cover;'}">
         </div>
       </div>
     </header>

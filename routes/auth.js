@@ -24,7 +24,7 @@ function setAuthCookie(res, token) {
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    
+
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(409).json({ message: 'Email already registered.' });
 
@@ -70,28 +70,28 @@ router.post('/login', async (req, res) => {
 router.post('/google', async (req, res) => {
   try {
     const { credential } = req.body;
-    
+
     if (!credential) {
       return res.status(400).json({ message: 'No credential received from Google' });
     }
 
     // Log for debugging on VPS
     console.log('[GOOGLE_AUTH] Verifying token with CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.substring(0, 25) + '...' : 'MISSING!');
-    
+
     // Explicitly verify the token signature sent from the Browser via Google Cloud instances
     const ticket = await client.verifyIdToken({
-        idToken: credential,
-        audience: process.env.GOOGLE_CLIENT_ID,
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
-    
+
     const payload = ticket.getPayload();
     const { email, name, picture } = payload;
 
     let user = await User.findOne({ email });
-    
+
     if (!user) {
-        const dummyPassword = await bcrypt.hash(Math.random().toString(36).slice(-8), 12);
-        user = await User.create({ name, email, image: picture, password: dummyPassword, role: 'EMPLOYEE' });
+      const dummyPassword = await bcrypt.hash(Math.random().toString(36).slice(-8), 12);
+      user = await User.create({ name, email, image: picture, password: dummyPassword, role: 'EMPLOYEE' });
     }
 
     // Block deactivated employees
@@ -131,7 +131,7 @@ router.post('/admin-login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid admin credentials.' });
     }
 
-    const token = jwt.sign({ id: 'admin', role: 'ADMIN', name: 'EazNexora Admin', email: 'admin@eaznexora.com' }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: 'admin', role: 'ADMIN', name: 'Eaz Nexora', email: 'admin@eaznexora.com' }, JWT_SECRET, { expiresIn: '7d' });
     setAuthCookie(res, token);
 
     res.status(200).json({ message: 'Admin authenticated', role: 'ADMIN' });
