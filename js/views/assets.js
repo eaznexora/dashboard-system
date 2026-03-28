@@ -597,13 +597,19 @@ const AssetHub = {
     async bulkPermanentDelete() {
         if (this.selectedItems.size === 0) return;
         this.showConfirmModal(`Delete ${this.selectedItems.size} items forever?`, 'This action is irreversible and cannot be undone.', async () => {
-            for (const id of this.selectedItems) {
+            const toastId = showNotification(`Deleting ${this.selectedItems.size} items permanently...`, 'info', true);
+            const ids = Array.from(this.selectedItems);
+
+            const results = await Promise.allSettled(ids.map(async id => {
                 const type = this.folders.find(f => f._id === id) ? 'folder' : 'asset';
-                try {
-                    await fetch(`/api/assets/${id}/permanent?type=${type}`, { method: 'DELETE', credentials: 'include' });
-                } catch (e) { console.error('Bulk permanent delete failed for:', id, e); }
-            }
-            showNotification('Permanent deletion completed', 'success');
+                const res = await fetch(`/api/assets/${id}/permanent?type=${type}`, { method: 'DELETE', credentials: 'include' });
+                if (!res.ok) throw new Error(`Permanent delete ${id} failed`);
+                return id;
+            }));
+
+            const successCount = results.filter(r => r.status === 'fulfilled').length;
+            if (successCount > 0) showNotification(`${successCount} items permanently deleted`, 'success');
+            
             this.clearSelection();
             this.loadTrash();
         });
@@ -887,26 +893,60 @@ const AssetHub = {
     async bulkAction(action) {
         if (this.selectedItems.size === 0) return;
 
+        // 1. BULK DELETE (Move to trash)
         if (action === 'delete') {
             if (this.isTrashView) return this.bulkPermanentDelete();
+            
             this.showConfirmModal(`Delete ${this.selectedItems.size} items?`, 'These items will be moved to the trash.', async () => {
-                showNotification('Deleting items...', 'info');
-                try {
-                    for (const id of this.selectedItems) {
-                        const isFolder = this.folders.some(f => f._id === id);
-                        const type = isFolder ? 'folder' : 'asset';
-                        await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' });
-                    }
-                    showNotification('Items moved to trash', 'success');
-                    this.clearSelection();
-                } catch (err) {
-                    showNotification('Some items failed to delete', 'error');
-                }
+                const toastId = showNotification(`Deleting ${this.selectedItems.size} items...`, 'info', true);
+                const ids = Array.from(this.selectedItems);
+                
+                // Parallelized deletion for speed and resilience
+                const results = await Promise.allSettled(ids.map(async id => {
+                    const isFolder = this.folders.some(f => f._id === id);
+                    const type = isFolder ? 'folder' : 'asset';
+                    const res = await fetch(`/api/assets/${id}/trash?type=${type}`, { method: 'PATCH', credentials: 'include' });
+                    if (!res.ok) throw new Error(`ID ${id} failed`);
+                    return id;
+                }));
+
+                const successCount = results.filter(r => r.status === 'fulfilled').length;
+                const failCount = results.length - successCount;
+
+                if (failCount === 0) showNotification(`${successCount} items moved to trash`, 'success');
+                else showNotification(`${successCount} trashed, ${failCount} failed.`, 'warning');
+
+                this.clearSelection();
+                this.loadData();
             });
             this.clearMenus();
             return;
         }
 
+        // 2. BULK RESTORE (From trash)
+        if (action === 'restore') {
+            const toastId = showNotification(`Restoring ${this.selectedItems.size} items...`, 'info', true);
+            const ids = Array.from(this.selectedItems);
+
+            const results = await Promise.allSettled(ids.map(async id => {
+                const isFolder = this.folders.some(f => f._id === id);
+                const type = isFolder ? 'folder' : 'asset';
+                const res = await fetch(`/api/assets/${id}/restore?type=${type}`, { method: 'PATCH', credentials: 'include' });
+                if (!res.ok) throw new Error(`Restore ${id} failed`);
+                return id;
+            }));
+
+            const successCount = results.filter(r => r.status === 'fulfilled').length;
+            if (successCount > 0) showNotification(`${successCount} items restored`, 'success');
+            
+            this.clearSelection();
+            if (this.isTrashView) this.loadTrash();
+            else this.loadData();
+            this.clearMenus();
+            return;
+        }
+
+        // 3. BULK DOWNLOAD
         if (action === 'download') {
             for (const id of this.selectedItems) {
                 const asset = this.assets.find(a => a._id === id);
@@ -917,6 +957,7 @@ const AssetHub = {
             return;
         }
 
+        // 4. BULK CLIPBOARD (Copy/Cut)
         if (action === 'copy' || action === 'cut') {
             const items = Array.from(this.selectedItems).map(id => ({
                 id,
