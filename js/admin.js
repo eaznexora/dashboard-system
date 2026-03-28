@@ -1507,18 +1507,20 @@ const AdminPanel = {
               <input type="text" id="ec-name" value="${c.contactName}" class="form-control">
             </div>
             <div class="form-group">
-              <label>Status</label>
-              <select id="ec-status" class="form-control">
-                <option value="lead" ${c.status==='lead'?'selected':''}>Lead</option>
-                <option value="not started" ${c.status==='not started'?'selected':''}>Not Started</option>
-                <option value="in progress" ${c.status==='in progress'?'selected':''}>In Progress</option>
-                <option value="active" ${c.status==='active'?'selected':''}>Active</option>
-                <option value="completed" ${c.status==='completed'?'selected':''}>Completed</option>
-                <option value="inactive" ${c.status==='inactive'?'selected':''}>Inactive</option>
-                <option value="churned" ${c.status==='churned'?'selected':''}>Churned</option>
-              </select>
+               <label>Status</label>
+               <select id="ec-status" class="form-control">
+                 <option value="lead" ${c.status==='lead'?'selected':''}>Lead</option>
+                 <option value="not started" ${c.status==='not started'?'selected':''}>Not Started</option>
+                 <option value="in progress" ${c.status==='in progress'?'selected':''}>In Progress</option>
+                 <option value="active" ${c.status==='active'?'selected':''}>Active</option>
+                 <option value="completed" ${c.status==='completed'?'selected':''}>Completed</option>
+                 <option value="inactive" ${c.status==='inactive'?'selected':''}>Inactive</option>
+                 <option value="churned" ${c.status==='churned'?'selected':''}>Churned</option>
+               </select>
             </div>
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateClient()">Save Changes</button>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1.25rem; font-size:1rem; font-weight:700; border-radius:12px; margin-top:0.5rem;" onclick="AdminPanel.updateClient()">
+               <i class="ph ph-floppy-disk" style="margin-right:0.5rem;"></i> Save Changes
+            </button>
           </div>
         </div>
       </div>
@@ -1573,7 +1575,11 @@ const AdminPanel = {
               <select id="c-status" class="form-control">
                 <option value="lead">Lead</option>
                 <option value="not started">Not Started</option>
+                <option value="in progress">In Progress</option>
                 <option value="active">Active</option>
+                <option value="completed">Completed</option>
+                <option value="inactive">Inactive</option>
+                <option value="churned">Churned</option>
               </select>
             </div>
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1.25rem; font-size:1rem; font-weight:700; border-radius:12px; margin-top:0.5rem;" onclick="AdminPanel.saveClient()">
