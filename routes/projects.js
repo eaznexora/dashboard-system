@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Project = require('../models/Project');
+const Folder = require('../models/Folder');
 
 // GET all projects
 router.get('/', async (req, res) => {
@@ -21,6 +22,21 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const project = await Project.create(req.body);
+
+    // AUTO-CREATE PROJECT FOLDER IN ASSET HUB
+    try {
+        await Folder.create({
+            name: project.name,
+            linkedProject: project._id,
+            isPrivate: true,
+            authorizedUsers: [project.lead, ...(project.assignedEmployees || [])].filter(Boolean),
+            createdBy: '000000000000000000000000' // Admin Ghost ID
+        });
+        if (global.io) global.io.emit('asset_update');
+    } catch (folderErr) {
+        console.error('[AUTO_FOLDER_CREATE_ERROR]:', folderErr);
+    }
+
     res.status(201).json(project);
   } catch (err) {
     console.error('[PROJECT_CREATE_ERROR]:', err);

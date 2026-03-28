@@ -6,6 +6,7 @@ const ProjectSchema = new mongoose.Schema({
   client: { type: mongoose.Schema.Types.ObjectId, ref: 'Client' },
   lead: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   members: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  assignedEmployees: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   status: { 
     type: String, 
     enum: ['active', 'on-hold', 'completed', 'archived'], 

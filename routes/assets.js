@@ -66,7 +66,19 @@ router.get('/', async (req, res) => {
     const mongoose = require('mongoose');
 
     // 1. USE .lean() TO BYPASS MONGOOSE STRICT MODE
-    let folders = await Folder.find({ parentFolder, isTrashed: false }).sort({ name: 1 }).lean();
+    let folderQuery = { parentFolder, isTrashed: false };
+    
+    // Privacy Filter: Employees only see public folders OR those they are authorized for
+    if (req.user && req.user.role !== 'ADMIN') {
+        const userId = req.user.id || req.user._id;
+        folderQuery.$or = [
+            { isPrivate: false },
+            { isPrivate: { $exists: false } }, // Fallback for old data
+            { authorizedUsers: userId }
+        ];
+    }
+
+    let folders = await Folder.find(folderQuery).sort({ name: 1 }).lean();
     let assets = await Asset.find({ parentFolder, isTrashed: false }).sort({ createdAt: -1 }).lean();
 
     // 2. NATIVE DATABASE LOOKUP

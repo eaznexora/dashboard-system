@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Task = require('../models/Task');
+const Project = require('../models/Project');
+const Folder = require('../models/Folder');
 
 // GET all tasks (admin) or assigned tasks (employee)
 router.get('/', async (req, res) => {
@@ -28,6 +30,27 @@ router.get('/', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const task = await Task.create(req.body);
+
+    // SMART LINKING: Add employee to Project and Private Folder
+    if (task.assignedTo && task.project) {
+        try {
+            // 1. Sync with Project
+            await Project.findByIdAndUpdate(task.project, {
+                $addToSet: { assignedEmployees: task.assignedTo }
+            });
+
+            // 2. Sync with Private Asset Folder
+            await Folder.findOneAndUpdate(
+                { linkedProject: task.project, isPrivate: true },
+                { $addToSet: { authorizedUsers: task.assignedTo } }
+            );
+
+            if (global.io) global.io.emit('asset_update');
+        } catch (syncErr) {
+            console.error('[TASK_SYNC_ERROR]:', syncErr);
+        }
+    }
+
     res.status(201).json(task);
   } catch (err) {
     console.error('[TASK_CREATE_ERROR]:', err);
