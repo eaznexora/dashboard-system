@@ -141,14 +141,19 @@ router.post('/admin-login', async (req, res) => {
   }
 });
 
-// 5. GET CURRENT USER FROM JWT
-router.get('/me', (req, res) => {
+// 5. GET CURRENT USER FROM DB (REAL-TIME SYNC)
+router.get('/me', async (req, res) => {
   const token = req.cookies?.eaz_token;
   if (!token) return res.status(401).json({ message: 'Not authenticated' });
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    res.json({ id: decoded.id, name: decoded.name, email: decoded.email, role: decoded.role });
+    
+    // Fetch latest user info from DB to ensure profile image is always real-time
+    const user = await User.findById(decoded.id).select('name email role image');
+    if (!user) return res.status(404).json({ message: 'User deleted' });
+
+    res.json({ id: user._id, name: user.name, email: user.email, role: user.role, image: user.image });
   } catch (err) {
     res.status(401).json({ message: 'Invalid or expired token' });
   }

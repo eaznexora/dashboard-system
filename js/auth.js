@@ -7,19 +7,38 @@ function getCurrentUser() {
   try {
     const payload = JSON.parse(atob(token.split('.')[1]));
     
-    // Support real-time Local Storage Overrides for SPA Reactivity
-    const localOverride = localStorage.getItem('user');
-    if (localOverride) {
-      const localSess = JSON.parse(localOverride);
-      // Merge reactive properties only if the IDs match
-      if (localSess.id === payload.id) {
-        return { ...payload, ...localSess };
+    // Support real-time Backend Sync (eaz_active_session)
+    const activeSession = localStorage.getItem('eaz_active_session');
+    if (activeSession) {
+      const sess = JSON.parse(activeSession);
+      if (sess.id === payload.id || sess._id === payload.id) {
+        return { ...payload, ...sess };
       }
     }
     return payload;
   } catch(e) {
     return null;
   }
+}
+
+// --- BACKGROUND SYNC WITH DB ---
+async function syncUserSession() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      const userData = await res.json();
+      localStorage.setItem('eaz_active_session', JSON.stringify(userData));
+      
+      // Update header if exists
+      const headerTitle = document.querySelector('.page-title')?.innerText || 'Dashboard';
+      const headerContainer = document.querySelector('.top-header');
+      if (headerContainer && typeof renderHeader === 'function') {
+        const temp = document.createElement('div');
+        temp.innerHTML = renderHeader(headerTitle);
+        headerContainer.replaceWith(temp.firstElementChild);
+      }
+    }
+  } catch(e) { console.warn('[SESSION_SYNC_FAILED]:', e); }
 }
 
 // --- AUTH GUARD (redirect to login if no session) ---
@@ -29,6 +48,10 @@ function requireAuth() {
     window.location.replace('login.html');
     return false;
   }
+  
+  // Trigger background sync to ensure profile is always freshest from backend
+  syncUserSession();
+  
   return user;
 }
 

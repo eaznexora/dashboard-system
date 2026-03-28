@@ -485,10 +485,10 @@ const EmployeePortal = {
       });
 
       if (res.ok) {
-        // Global Sync Logic
+        // Unified Backend Sync Logic
         const updatedUser = { ...this.user, image: payload.image };
         this.user = updatedUser;
-        localStorage.setItem('eaz_user_override', JSON.stringify(updatedUser));
+        localStorage.setItem('eaz_active_session', JSON.stringify(updatedUser));
         
         // Refresh Header instantly
         const headerTitle = document.querySelector('.page-title')?.innerText || 'My Profile';
@@ -547,7 +547,7 @@ const EmployeePortal = {
         
         // SYNC LOCAL STATE FOR INSTANT FEEDBACK
         const updatedUser = { ...this.user, image: data.url };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        localStorage.setItem('eaz_active_session', JSON.stringify(updatedUser));
         this.user = updatedUser;
 
         // Refresh Header
