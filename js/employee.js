@@ -197,7 +197,12 @@ const EmployeePortal = {
       return;
     }
 
-    container.innerHTML = data.logs.slice(0, 5).map(l => `
+    // Add scroll styles if not present
+    container.style.maxHeight = '300px';
+    container.style.overflowY = 'auto';
+    container.style.paddingRight = '5px';
+
+    container.innerHTML = data.logs.map(l => `
       <div class="history-row" style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0; border-bottom:1px solid #f8fafc; font-size:0.875rem;">
         <div>
           <div style="font-weight:600; font-size:0.8rem;">${new Date(l.clockIn).toLocaleDateString()}</div>
@@ -206,7 +211,7 @@ const EmployeePortal = {
             ${l.clockOut ? new Date(l.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}
           </div>
         </div>
-        <span style="font-weight:700; color:var(--accent-color);">${l.totalHours || 0} hrs</span>
+        <span class="${l.clockOut ? '' : 'history-row-active-total'}" style="font-weight:700; color:var(--accent-color);">${l.totalHours || 0} hrs</span>
       </div>
     `).join('');
   },

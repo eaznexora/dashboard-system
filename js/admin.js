@@ -3081,7 +3081,19 @@ const AdminPanel = {
     try {
       const res = await fetch('/api/reports');
       const data = await res.json();
-      
+
+      // Auto-refresh logic (only if we are still on the reports view)
+      if (this.reportInterval) clearInterval(this.reportInterval);
+      this.reportInterval = setInterval(() => {
+          const title = document.querySelector('.view-title')?.innerText;
+          if (title === 'Agency Intelligence') {
+              console.log('Refreshing Intelligence Data...');
+              this.loadReports();
+          } else {
+              clearInterval(this.reportInterval);
+          }
+      }, 30000); // 30s auto-refresh
+
       let html = `
         <div class="view-header">
           <div>
