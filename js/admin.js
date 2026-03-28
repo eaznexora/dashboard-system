@@ -1049,76 +1049,80 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Launch New Project</h3>
             <button onclick="document.getElementById('proj-add-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; gap:1.25rem;">
-            <div class="form-group">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group" style="grid-column: span 2;">
                <label>Project Name</label>
                <input type="text" id="np-name" class="form-control" placeholder="e.g. Q4 Growth Strategy">
              </div>
              
-             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
-                <div class="form-group">
-                   <label>Budget (₹)</label>
-                   <input type="number" id="np-budget" class="form-control" placeholder="Project Budget">
-                </div>
-                <div class="form-group">
-                   <label>Status</label>
-                   <select id="np-status" class="form-control">
-                     <option value="active" selected>ACTIVE</option>
-                     <option value="on-hold">ON HOLD</option>
-                     <option value="completed">COMPLETED</option>
-                     <option value="archived">ARCHIVED</option>
-                   </select>
-                </div>
-             </div>
- 
-             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
-                <div class="form-group">
-                   <label>Start Date</label>
-                   <input type="date" id="np-start" class="form-control">
-                </div>
-                <div class="form-group">
-                   <label>End Date (Deadline)</label>
-                   <input type="date" id="np-end" class="form-control">
-                </div>
-             </div>
- 
-             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
-                <div class="form-group">
-                   <label>Link to Client</label>
-                   <select id="np-client" class="form-control">
-                     ${clients.map(c => `<option value="${c._id}">${c.company}</option>`).join('')}
-                   </select>
-                </div>
-                <div class="form-group">
-                   <label>Lead Manager</label>
-                   <select id="np-lead" class="form-control">
-                     <option value="">-- No Lead --</option>
-                     ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
-                   </select>
-                </div>
-             </div>
- 
              <div class="form-group">
-               <label>Project Objective / Description</label>
-               <textarea id="np-desc" class="form-control" style="min-height:80px;" placeholder="Detailed project scope..."></textarea>
+                <label>Budget (₹)</label>
+                <input type="number" id="np-budget" class="form-control" placeholder="Project Budget">
+             </div>
+             <div class="form-group">
+                <label>Status</label>
+                <select id="np-status" class="form-control">
+                  <option value="active" selected>ACTIVE</option>
+                  <option value="on-hold">ON HOLD</option>
+                  <option value="completed">COMPLETED</option>
+                  <option value="archived">ARCHIVED</option>
+                </select>
              </div>
 
              <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="np-start" class="form-control">
+             </div>
+             <div class="form-group">
+                <label>End Date (Deadline)</label>
+                <input type="date" id="np-end" class="form-control">
+             </div>
+
+             <div class="form-group" style="grid-column: span 2;">
+                <label>Link to Client</label>
+                <select id="np-client" class="form-control">
+                  ${clients.map(c => `<option value="${c._id}">${c.company}</option>`).join('')}
+                </select>
+             </div>
+
+             <div class="form-group" style="grid-column: span 2;">
+               <label>Project Objective / Description</label>
+               <textarea id="np-desc" class="form-control" style="min-height:70px; border-radius:12px;" placeholder="Detailed project scope..."></textarea>
+             </div>
+
+             <!-- Searchable Lead Manager -->
+             <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>Lead Manager</span>
+                  <input type="text" placeholder="Search..." oninput="AdminPanel.filterEmployees(this.value, 'np-lead-list')" style="font-size:0.65rem; padding:0.15rem 0.4rem; border-radius:6px; border:1px solid var(--border-color); outline:none; max-width:100px;">
+                </label>
+                <div id="np-lead-list" class="custom-checkbox-group" style="max-height:100px; overflow-y:auto; border:1px solid var(--border-color); border-radius:12px; padding:0.5rem; margin-top:0.3rem; background:#fff;">
+                   ${emps.filter(e => e.isActive).map(e => `
+                      <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.25rem; cursor:pointer; font-size:0.8rem;" data-name="${e.name.toLowerCase()}">
+                        <input type="radio" name="np-lead" value="${e._id}" style="accent-color:var(--accent-color);">
+                        <span style="font-weight:600; color:var(--text-primary);">${e.name.toUpperCase()}</span>
+                      </label>
+                   `).join('')}
+                </div>
+             </div>
+
+             <!-- Searchable Team Members -->
+             <div class="form-group">
                 <label style="display:flex; justify-content:space-between; align-items:center;">
                   <span>Assign Team Members</span>
-                  <input type="text" placeholder="Search employees..." oninput="AdminPanel.filterEmployees(this.value, 'np-emps-list')" style="font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:4px; border:1px solid var(--border-color); outline:none;">
+                  <input type="text" placeholder="Search..." oninput="AdminPanel.filterEmployees(this.value, 'np-emps-list')" style="font-size:0.65rem; padding:0.15rem 0.4rem; border-radius:6px; border:1px solid var(--border-color); outline:none; max-width:100px;">
                 </label>
-                <div id="np-emps-list" class="custom-checkbox-group" style="max-height:120px; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px; padding:0.5rem; margin-top:0.5rem; background:#f9fafb;">
+                <div id="np-emps-list" class="custom-checkbox-group" style="max-height:100px; overflow-y:auto; border:1px solid var(--border-color); border-radius:12px; padding:0.5rem; margin-top:0.3rem; background:#fff;">
                    ${emps.filter(e => e.isActive).map(e => `
-                      <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem; cursor:pointer; font-size:0.85rem;" data-name="${e.name.toLowerCase()}">
-                        <input type="checkbox" name="np-assigned" value="${e._id}">
-                        <span>${e.name}</span>
+                      <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.25rem; cursor:pointer; font-size:0.8rem;" data-name="${e.name.toLowerCase()}">
+                        <input type="checkbox" name="np-assigned" value="${e._id}" style="accent-color:var(--accent-color);">
+                        <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
                       </label>
                    `).join('')}
                 </div>
              </div>
  
-             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveProject()">Start Project</button>
+             <button class="btn btn-primary" style="grid-column: span 2; justify-content:center; padding:0.85rem; border-radius:12px;" onclick="AdminPanel.saveProject()">Start Project</button>
           </div>
         </div>
       </div>
@@ -1142,11 +1146,15 @@ const AdminPanel = {
     const assignedCheckboxes = document.querySelectorAll('input[name="np-assigned"]:checked');
     const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
 
+    // Get selected Lead Manager from radio buttons
+    const leadRadio = document.querySelector('input[name="np-lead"]:checked');
+    const leadId = leadRadio ? leadRadio.value : undefined;
+
     const body = {
       name: document.getElementById('np-name').value,
       client: document.getElementById('np-client').value,
       budget: Number(document.getElementById('np-budget').value),
-      lead: document.getElementById('np-lead').value || undefined,
+      lead: leadId,
       assignedEmployees: assignedIds,
       status: document.getElementById('np-status').value,
       startDate: document.getElementById('np-start').value || undefined,
@@ -1286,79 +1294,82 @@ const AdminPanel = {
             <h3 style="font-weight:800;">Modify Project: ${p.name}</h3>
             <button onclick="document.getElementById('proj-edit-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
-          <div style="display:grid; gap:1.25rem;">
-            <div class="form-group">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-group" style="grid-column: span 2;">
               <label>Project Name</label>
               <input type="text" id="ep-name" class="form-control" value="${p.name}">
             </div>
             
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
-               <div class="form-group">
-                  <label>Budget (₹)</label>
-                  <input type="number" id="ep-budget" class="form-control" value="${p.budget || 0}">
-               </div>
-               <div class="form-group">
-                  <label>Status</label>
-                  <select id="ep-status" class="form-control">
-                    <option value="active" ${p.status==='active'?'selected':''}>ACTIVE</option>
-                    <option value="on-hold" ${p.status==='on-hold'?'selected':''}>ON HOLD</option>
-                    <option value="completed" ${p.status==='completed'?'selected':''}>COMPLETED</option>
-                    <option value="archived" ${p.status==='archived'?'selected':''}>ARCHIVED</option>
-                  </select>
-               </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
-               <div class="form-group">
-                  <label>Start Date</label>
-                  <input type="date" id="ep-start" class="form-control" value="${p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
-               </div>
-               <div class="form-group">
-                  <label>End Date (Deadline)</label>
-                  <input type="date" id="ep-end" class="form-control" value="${p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
-               </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
-               <div class="form-group">
-                  <label>Client</label>
-                  <select id="ep-client" class="form-control">
-                    ${clients.map(c => `<option value="${c._id}" ${p.client?._id===c._id?'selected':''}>${c.company}</option>`).join('')}
-                  </select>
-               </div>
-               <div class="form-group">
-                  <label>Lead Manager</label>
-                  <select id="ep-lead" class="form-control">
-                    <option value="">-- No Lead --</option>
-                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}" ${p.lead?._id===e._id?'selected':''}>${e.name}</option>`).join('')}
-                  </select>
-               </div>
-            </div>
-
             <div class="form-group">
+                <label>Budget (₹)</label>
+                <input type="number" id="ep-budget" class="form-control" value="${p.budget || 0}">
+             </div>
+             <div class="form-group">
+                <label>Status</label>
+                <select id="ep-status" class="form-control">
+                  <option value="active" ${p.status==='active'?'selected':''}>ACTIVE</option>
+                  <option value="on-hold" ${p.status==='on-hold'?'selected':''}>ON HOLD</option>
+                  <option value="completed" ${p.status==='completed'?'selected':''}>COMPLETED</option>
+                  <option value="archived" ${p.status==='archived'?'selected':''}>ARCHIVED</option>
+                </select>
+             </div>
+
+             <div class="form-group">
+                <label>Start Date</label>
+                <input type="date" id="ep-start" class="form-control" value="${p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
+             </div>
+             <div class="form-group">
+                <label>End Date (Deadline)</label>
+                <input type="date" id="ep-end" class="form-control" value="${p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
+             </div>
+
+             <div class="form-group" style="grid-column: span 2;">
+                <label>Client</label>
+                <select id="ep-client" class="form-control">
+                  ${clients.map(c => `<option value="${c._id}" ${p.client?._id===c._id?'selected':''}>${c.company}</option>`).join('')}
+                </select>
+             </div>
+
+             <div class="form-group" style="grid-column: span 2;">
               <label>Project Objective / Description</label>
-              <textarea id="ep-desc" class="form-control" style="min-height:80px;">${p.description || ''}</textarea>
+              <textarea id="ep-desc" class="form-control" style="min-height:70px; border-radius:12px;">${p.description || ''}</textarea>
             </div>
+
+            <!-- Searchable Lead Manager -->
+             <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>Lead Manager</span>
+                  <input type="text" placeholder="Search..." oninput="AdminPanel.filterEmployees(this.value, 'ep-lead-list')" style="font-size:0.65rem; padding:0.15rem 0.4rem; border-radius:6px; border:1px solid var(--border-color); outline:none; max-width:100px;">
+                </label>
+                <div id="ep-lead-list" class="custom-checkbox-group" style="max-height:100px; overflow-y:auto; border:1px solid var(--border-color); border-radius:12px; padding:0.5rem; margin-top:0.3rem; background:#fff;">
+                   ${emps.filter(e => e.isActive).map(e => `
+                      <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.25rem; cursor:pointer; font-size:0.8rem;" data-name="${e.name.toLowerCase()}">
+                        <input type="radio" name="ep-lead" value="${e._id}" style="accent-color:var(--accent-color);" ${p.lead?._id===e._id?'checked':''}>
+                        <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
+                      </label>
+                   `).join('')}
+                </div>
+             </div>
 
             <div class="form-group">
                 <label style="display:flex; justify-content:space-between; align-items:center;">
                   <span>Team Members (Multi-Assignment)</span>
-                  <input type="text" placeholder="Search employees..." oninput="AdminPanel.filterEmployees(this.value, 'ep-emps-list')" style="font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:4px; border:1px solid var(--border-color); outline:none;">
+                  <input type="text" placeholder="Search..." oninput="AdminPanel.filterEmployees(this.value, 'ep-emps-list')" style="font-size:0.65rem; padding:0.15rem 0.4rem; border-radius:6px; border:1px solid var(--border-color); outline:none; max-width:100px;">
                 </label>
-                <div id="ep-emps-list" class="custom-checkbox-group" style="max-height:120px; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px; padding:0.5rem; margin-top:0.5rem; background:#f9fafb;">
+                <div id="ep-emps-list" class="custom-checkbox-group" style="max-height:100px; overflow-y:auto; border:1px solid var(--border-color); border-radius:12px; padding:0.5rem; margin-top:0.3rem; background:#fff;">
                    ${emps.filter(e => e.isActive).map(e => {
                       const isAssigned = (p.assignedEmployees || []).includes(e._id);
                       return `
-                        <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem; cursor:pointer; font-size:0.85rem;" data-name="${e.name.toLowerCase()}">
-                          <input type="checkbox" name="ep-assigned" value="${e._id}" ${isAssigned ? 'checked' : ''}>
-                          <span>${e.name}</span>
+                        <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.25rem; cursor:pointer; font-size:0.8rem;" data-name="${e.name.toLowerCase()}">
+                          <input type="checkbox" name="ep-assigned" value="${e._id}" style="accent-color:var(--accent-color);" ${isAssigned ? 'checked' : ''}>
+                          <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
                         </label>
                       `;
                    }).join('')}
                 </div>
             </div>
 
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateProject('${p._id}')">Update Project Details</button>
+            <button class="btn btn-primary" style="grid-column: span 2; justify-content:center; padding:0.85rem; border-radius:12px;" onclick="AdminPanel.updateProject('${p._id}')">Update Project Details</button>
           </div>
         </div>
       </div>
@@ -1371,6 +1382,10 @@ const AdminPanel = {
     const assignedCheckboxes = document.querySelectorAll('input[name="ep-assigned"]:checked');
     const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
 
+    // Get selected Lead Manager from radio buttons
+    const leadRadio = document.querySelector('input[name="ep-lead"]:checked');
+    const leadId = leadRadio ? leadRadio.value : undefined;
+
     const body = {
       name: document.getElementById('ep-name').value,
       budget: Number(document.getElementById('ep-budget').value),
@@ -1378,7 +1393,7 @@ const AdminPanel = {
       startDate: document.getElementById('ep-start').value || undefined,
       endDate: document.getElementById('ep-end').value || undefined,
       client: document.getElementById('ep-client').value,
-      lead: document.getElementById('ep-lead').value || undefined,
+      lead: leadId,
       assignedEmployees: assignedIds,
       description: document.getElementById('ep-desc').value
     };
