@@ -131,7 +131,7 @@ router.post('/admin-login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid admin credentials.' });
     }
 
-    const token = jwt.sign({ id: 'admin', role: 'ADMIN', name: 'EazNexora Admin', email: 'admin@eaznexora.com' }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: 'admin', role: 'ADMIN', name: 'Eaz Nexora', email: 'admin@eaznexora.com' }, JWT_SECRET, { expiresIn: '7d' });
     setAuthCookie(res, token);
 
     res.status(200).json({ message: 'Admin authenticated', role: 'ADMIN' });

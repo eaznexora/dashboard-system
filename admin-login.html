@@ -1,59 +1,137 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Eaz Nexora Login</title>
-  
+  <title>Eaz Nexora Admin Login</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  
+
   <link rel="stylesheet" href="css/globals.css?version=1.0.1">
   <style>
     body {
       background-color: var(--bg-color);
-      display: flex; align-items: center; justify-content: center;
-      min-height: 100vh; font-family: var(--font-family);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: var(--font-family);
     }
+
     .login-container {
-      background-color: var(--card-bg); border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg); width: 100%; max-width: 420px;
-      padding: 2.5rem 2rem; border: 1px solid var(--border-color);
-      text-align: center; margin: 1rem;
+      background-color: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 100%;
+      max-width: 420px;
+      padding: 2.5rem 2rem;
+      border: 1px solid var(--border-color);
+      text-align: center;
+      margin: 1rem;
     }
+
     .login-logo {
-      font-size: 2rem; font-weight: 800; color: var(--accent-color);
-      display: flex; align-items: center; justify-content: center;
-      gap: 0.5rem; margin-bottom: 0.5rem; letter-spacing: -0.5px;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--accent-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.5px;
     }
-    .login-header h2 { font-size: 1.5rem; color: var(--text-primary); margin-bottom: 0.25rem; }
-    .login-header p { color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 2rem; }
-    .input-group { text-align: left; margin-bottom: 1.25rem; }
-    .input-group label { display: block; font-size: 0.875rem; font-weight: 600; color: var(--text-primary); margin-bottom: 0.5rem; }
+
+    .login-header h2 {
+      font-size: 1.5rem;
+      color: var(--text-primary);
+      margin-bottom: 0.25rem;
+    }
+
+    .login-header p {
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      margin-bottom: 2rem;
+    }
+
+    .input-group {
+      text-align: left;
+      margin-bottom: 1.25rem;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.5rem;
+    }
+
     .input-box {
-      width: 100%; padding: 0.75rem 1rem; border: 1px solid var(--border-color);
-      border-radius: var(--radius-md); font-size: 1rem; font-family: inherit; color: var(--text-primary);
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-family: inherit;
+      color: var(--text-primary);
     }
-    .input-box:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px var(--accent-light); }
+
+    .input-box:focus {
+      outline: none;
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
     .login-btn {
-      width: 100%; padding: 0.875rem; background-color: var(--accent-color); color: #fff;
-      font-weight: 600; font-size: 1rem; border: none; border-radius: var(--radius-md);
-      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.875rem;
+      background-color: var(--accent-color);
+      color: #fff;
+      font-weight: 600;
+      font-size: 1rem;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
     }
-    .error-msg { color: var(--danger-color); font-size: 0.875rem; margin-top: 1rem; display: none; }
-    .back-btn { margin-top: 1.5rem; display: inline-flex; align-items: center; gap: 0.25rem; color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; font-weight: 500; }
+
+    .error-msg {
+      color: var(--danger-color);
+      font-size: 0.875rem;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .back-btn {
+      margin-top: 1.5rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
   </style>
-<link rel="icon" type="image/png" href="assets/N.png">
+  <link rel="icon" type="image/png" href="assets/N.png">
 </head>
+
 <body class="theme-blue">
 
   <div class="login-container">
     <div class="login-logo"><i class="ph-fill ph-circles-four"></i> EazDash</div>
     <div class="login-header">
       <h2>Agency Control</h2>
-      <p>Log in as Eaz Nexora</p>
+      <p>Log in as Eaz Nexora Admin</p>
     </div>
 
     <form id="login-form">
@@ -64,20 +142,22 @@
       <div class="input-group">
         <label for="password">Password</label>
         <div style="position: relative;">
-          <input type="password" id="password" class="input-box" placeholder="••••••••" required style="padding-right: 2.5rem;">
-          <button type="button" id="toggle-pwd" style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.25rem; display: flex;">
+          <input type="password" id="password" class="input-box" placeholder="••••••••" required
+            style="padding-right: 2.5rem;">
+          <button type="button" id="toggle-pwd"
+            style="position: absolute; right: 0.75rem; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.25rem; display: flex;">
             <i class="ph ph-eye" id="eye-icon"></i>
           </button>
         </div>
       </div>
-      
+
       <div class="error-msg" id="error-msg"></div>
-      
+
       <button type="submit" class="login-btn">
         <span>Authenticate</span> <i class="ph ph-shield-check"></i>
       </button>
     </form>
-    
+
     <a href="marketing.html" class="back-btn"><i class="ph ph-arrow-left"></i> Return to Dashboards</a>
   </div>
 
@@ -85,7 +165,7 @@
     const togglePwd = document.getElementById('toggle-pwd');
     const pwdInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eye-icon');
-    
+
     togglePwd.addEventListener('click', () => {
       if (pwdInput.type === 'password') {
         pwdInput.type = 'text';
@@ -112,19 +192,19 @@
           body: JSON.stringify({ username: u, password: p })
         });
         const data = await res.json();
-        
+
         if (res.ok) {
           window.location.replace('admin-panel.html');
         } else {
           err.textContent = data.message || 'Invalid Agent Credentials';
           err.style.display = 'block';
         }
-      } catch(e) {
+      } catch (e) {
         err.textContent = 'Server unreachable. Is Node running?';
         err.style.display = 'block';
       }
     });
   </script>
 </body>
-</html>
 
+</html>
