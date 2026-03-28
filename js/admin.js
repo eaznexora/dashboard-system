@@ -1100,7 +1100,22 @@ const AdminPanel = {
  
              <div class="form-group">
                <label>Project Objective / Description</label>
-               <textarea id="np-desc" class="form-control" style="min-height:100px;" placeholder="Detailed project scope..."></textarea>
+               <textarea id="np-desc" class="form-control" style="min-height:80px;" placeholder="Detailed project scope..."></textarea>
+             </div>
+
+             <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>Assign Team Members</span>
+                  <input type="text" placeholder="Search employees..." oninput="AdminPanel.filterEmployees(this.value, 'np-emps-list')" style="font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:4px; border:1px solid var(--border-color); outline:none;">
+                </label>
+                <div id="np-emps-list" class="custom-checkbox-group" style="max-height:120px; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px; padding:0.5rem; margin-top:0.5rem; background:#f9fafb;">
+                   ${emps.filter(e => e.isActive).map(e => `
+                      <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem; cursor:pointer; font-size:0.85rem;" data-name="${e.name.toLowerCase()}">
+                        <input type="checkbox" name="np-assigned" value="${e._id}">
+                        <span>${e.name}</span>
+                      </label>
+                   `).join('')}
+                </div>
              </div>
  
              <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveProject()">Start Project</button>
@@ -1112,12 +1127,27 @@ const AdminPanel = {
     window.initCustomSelects();
   },
 
+  filterEmployees(query, containerId) {
+    const list = document.getElementById(containerId);
+    if (!list) return;
+    const items = list.querySelectorAll('.emp-checkbox-item');
+    const q = query.toLowerCase();
+    items.forEach(item => {
+      const name = item.dataset.name;
+      item.style.display = name.includes(q) ? 'flex' : 'none';
+    });
+  },
+
   async saveProject() {
+    const assignedCheckboxes = document.querySelectorAll('input[name="np-assigned"]:checked');
+    const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
+
     const body = {
       name: document.getElementById('np-name').value,
       client: document.getElementById('np-client').value,
       budget: Number(document.getElementById('np-budget').value),
       lead: document.getElementById('np-lead').value || undefined,
+      assignedEmployees: assignedIds,
       status: document.getElementById('np-status').value,
       startDate: document.getElementById('np-start').value || undefined,
       endDate: document.getElementById('np-end').value || undefined,
@@ -1307,7 +1337,25 @@ const AdminPanel = {
 
             <div class="form-group">
               <label>Project Objective / Description</label>
-              <textarea id="ep-desc" class="form-control" style="min-height:100px;">${p.description || ''}</textarea>
+              <textarea id="ep-desc" class="form-control" style="min-height:80px;">${p.description || ''}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>Team Members (Multi-Assignment)</span>
+                  <input type="text" placeholder="Search employees..." oninput="AdminPanel.filterEmployees(this.value, 'ep-emps-list')" style="font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:4px; border:1px solid var(--border-color); outline:none;">
+                </label>
+                <div id="ep-emps-list" class="custom-checkbox-group" style="max-height:120px; overflow-y:auto; border:1px solid var(--border-color); border-radius:8px; padding:0.5rem; margin-top:0.5rem; background:#f9fafb;">
+                   ${emps.filter(e => e.isActive).map(e => {
+                      const isAssigned = (p.assignedEmployees || []).includes(e._id);
+                      return `
+                        <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.3rem; cursor:pointer; font-size:0.85rem;" data-name="${e.name.toLowerCase()}">
+                          <input type="checkbox" name="ep-assigned" value="${e._id}" ${isAssigned ? 'checked' : ''}>
+                          <span>${e.name}</span>
+                        </label>
+                      `;
+                   }).join('')}
+                </div>
             </div>
 
             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.updateProject('${p._id}')">Update Project Details</button>
@@ -1320,6 +1368,9 @@ const AdminPanel = {
   },
 
   async updateProject(id) {
+    const assignedCheckboxes = document.querySelectorAll('input[name="ep-assigned"]:checked');
+    const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
+
     const body = {
       name: document.getElementById('ep-name').value,
       budget: Number(document.getElementById('ep-budget').value),
@@ -1328,6 +1379,7 @@ const AdminPanel = {
       endDate: document.getElementById('ep-end').value || undefined,
       client: document.getElementById('ep-client').value,
       lead: document.getElementById('ep-lead').value || undefined,
+      assignedEmployees: assignedIds,
       description: document.getElementById('ep-desc').value
     };
 
