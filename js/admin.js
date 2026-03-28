@@ -1576,15 +1576,9 @@ const AdminPanel = {
                 <option value="active">Active</option>
               </select>
             </div>
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveClient()">Add Client</button>
-          </div>
-                <option value="in progress">In Progress</option>
-                <option value="active">Active</option>
-                <option value="completed">Completed</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveClient()">Save Client</button>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1.25rem; font-size:1rem; font-weight:700; border-radius:12px; margin-top:0.5rem;" onclick="AdminPanel.saveClient()">
+              <i class="ph ph-user-plus" style="margin-right:0.5rem;"></i> Save Client
+            </button>
           </div>
         </div>
       </div>
