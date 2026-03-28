@@ -1140,7 +1140,7 @@ const AdminPanel = {
         </div>
 
         <div style="margin-top:1.5rem; display:flex; justify-content:flex-end;">
-           <button class="btn btn-primary" style="padding:0.9rem 3.5rem; font-size:1rem; font-weight:700; border-radius:12px;" onclick="id ? AdminPanel.handleUpdateProject('${id}') : AdminPanel.handleSaveProject()">
+           <button class="btn btn-primary" style="padding:0.9rem 3.5rem; font-size:1rem; font-weight:700; border-radius:12px;" onclick="${id ? `AdminPanel.handleUpdateProject('${id}')` : 'AdminPanel.handleSaveProject()'}">
               <i class="ph ph-rocket-launch" style="margin-right:0.5rem;"></i> ${id ? 'Update Project Details' : 'Launch New Project'}
            </button>
         </div>
