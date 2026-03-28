@@ -990,30 +990,39 @@ const AdminPanel = {
     });
   },
 
-  async showAddTask(projectId = null, taskId = null) {
-    const empsRes = await fetch('/api/employees');
+  async showAddTask(projectId = null, task = null) {
+    const [empsRes, projsRes] = await Promise.all([
+      fetch('/api/employees'),
+      fetch('/api/projects')
+    ]);
     const emps = await empsRes.json();
-    const projectsRes = await fetch('/api/projects');
-    const projects = await projectsRes.json();
+    const projects = await projsRes.json();
+    
+    // Determine if we are editing
+    const isEdit = !!task;
+    const taskId = isEdit ? task._id : null;
 
     const modalHtml = `
       <div class="modal-overlay" id="task-modal">
         <div class="modal-content">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <h3 style="font-weight:800;">${taskId ? 'Edit Task' : 'Create New Task'}</h3>
+            <h3 style="font-weight:800;">${isEdit ? 'Edit Operation Task' : 'Create New Task'}</h3>
             <button onclick="document.getElementById('task-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
           <div style="display:grid; gap:1.25rem;">
             <div class="form-group">
               <label>Task Title</label>
-              <input type="text" id="t-title" class="form-control" placeholder="What needs to be done?">
+              <input type="text" id="t-title" class="form-control" value="${isEdit ? task.title : ''}" placeholder="What needs to be done?">
             </div>
 
             <div class="form-group">
                <label>Project</label>
                <select id="t-project" class="form-control">
                  <option value="">-- No Project (Admin Task) --</option>
-                 ${projects.map(p => `<option value="${p._id}" ${projectId === p._id ? 'selected' : ''}>${p.name}</option>`).join('')}
+                 ${projects.map(p => {
+                   const selId = isEdit ? task.project?._id : projectId;
+                   return `<option value="${p._id}" ${selId === p._id ? 'selected' : ''}>${p.name}</option>`;
+                 }).join('')}
                </select>
             </div>
             
@@ -1022,42 +1031,47 @@ const AdminPanel = {
                   <label>Assignee</label>
                   <select id="t-assign" class="form-control">
                     <option value="">-- Unassigned --</option>
-                    ${emps.filter(e => e.isActive).map(e => `<option value="${e._id}">${e.name}</option>`).join('')}
+                    ${emps.filter(e => e.isActive).map(e => {
+                      const sel = isEdit && task.assignedTo?._id === e._id ? 'selected' : '';
+                      return `<option value="${e._id}" ${sel}>${e.name}</option>`;
+                    }).join('')}
                   </select>
                </div>
                <div class="form-group">
                   <label>Priority</label>
                   <select id="t-priority" class="form-control">
-                    <option value="low">LOW</option>
-                    <option value="medium" selected>MEDIUM</option>
-                    <option value="high">HIGH</option>
-                    <option value="urgent">URGENT</option>
+                    <option value="low" ${isEdit && task.priority==='low'?'selected':''}>LOW</option>
+                    <option value="medium" ${!isEdit || task.priority==='medium'?'selected':''}>MEDIUM</option>
+                    <option value="high" ${isEdit && task.priority==='high'?'selected':''}>HIGH</option>
+                    <option value="urgent" ${isEdit && task.priority==='urgent'?'selected':''}>URGENT</option>
                   </select>
                </div>
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                <div class="form-group">
-                <label>Status</label>
-                <select id="t-status" class="form-control">
-                  <option value="pending">PENDING</option>
-                  <option value="in-progress">IN PROGRESS</option>
-                  <option value="review">IN REVIEW</option>
-                  <option value="completed">COMPLETED</option>
-                </select>
+                  <label>Status</label>
+                  <select id="t-status" class="form-control">
+                    <option value="pending" ${isEdit && task.status==='pending'?'selected':''}>PENDING</option>
+                    <option value="in progress" ${isEdit && task.status==='in progress'?'selected':''}>IN PROGRESS</option>
+                    <option value="in review" ${isEdit && task.status==='in review'?'selected':''}>IN REVIEW</option>
+                    <option value="completed" ${isEdit && task.status==='completed'?'selected':''}>COMPLETED</option>
+                  </select>
                </div>
                <div class="form-group">
-                 <label>Deadline</label>
-                 <input type="date" id="t-deadline" class="form-control">
+                  <label>Deadline</label>
+                  <input type="date" id="t-deadline" class="form-control" value="${isEdit && task.deadline ? new Date(task.deadline).toISOString().split('T')[0] : ''}">
                </div>
             </div>
 
             <div class="form-group">
               <label>Detailed Description</label>
-              <textarea id="t-desc" class="form-control" style="min-height:100px;" placeholder="Provide additional context..."></textarea>
+              <textarea id="t-desc" class="form-control" style="min-height:100px;" placeholder="Provide additional context...">${isEdit ? task.description || '' : ''}</textarea>
             </div>
 
-            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1rem;" onclick="AdminPanel.saveTask('${taskId || ''}')">${taskId ? 'Update Task' : 'Create Task'}</button>
+            <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1.1rem; font-weight:700; border-radius:12px;" onclick="AdminPanel.saveTask('${taskId || ''}')">
+               ${isEdit ? 'Update Task Details' : 'Create Agency Task'}
+            </button>
           </div>
         </div>
       </div>
@@ -1072,25 +1086,7 @@ const AdminPanel = {
     const t = tasks.find(x => x._id === id);
     if(!t) return;
 
-    this.showAddTask(t.project?._id, id);
-    // After a slight delay to let the modal render, we fill the values
-    setTimeout(() => {
-      const modal = document.getElementById('task-modal');
-      if(modal) {
-        modal.querySelector('h3').innerText = 'Edit Task';
-        document.getElementById('t-title').value = t.title;
-        document.getElementById('t-desc').value = t.description || '';
-        document.getElementById('t-project').value = t.project?._id || '';
-        document.getElementById('t-assign').value = t.assignedTo?._id || '';
-        document.getElementById('t-priority').value = t.priority;
-        if(t.deadline) document.getElementById('t-deadline').value = new Date(t.deadline).toISOString().split('T')[0];
-        
-        // Update the button for saving
-        const btn = modal.querySelector('.btn-primary');
-        btn.innerText = 'Update Task';
-        btn.onclick = () => this.saveTask(id);
-      }
-    }, 100);
+    this.showAddTask(t.project?._id, t);
   },
 
   // --- PROJECTS MODULE ---
