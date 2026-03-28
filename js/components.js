@@ -82,7 +82,11 @@ function renderHeader(title) {
   const userRole = user ? user.role : 'Viewer';
   const isAdmin = userRole === 'ADMIN';
 
-  const userImg = user && user.image ? user.image : 'https://lh3.googleusercontent.com/a/default-user=s256-c';
+  let userImg = user && user.image ? user.image : 'https://lh3.googleusercontent.com/a/default-user=s256-c';
+  // Admin Branding Overwrite: Use Logo instead of Face
+  if (isAdmin) {
+    userImg = 'assets/N.png';
+  }
   const profileUrl = user && user.role === 'EMPLOYEE' ? 'employee-profile.html' : '#';
 
   return `
