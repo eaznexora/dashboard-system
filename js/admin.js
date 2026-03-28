@@ -1116,9 +1116,7 @@ const AdminPanel = {
           </div>
 
           <!-- RIGHT COLUMN: Personnel Selection -->
-          <div style="display:grid; gap:1.5rem;">
-          <!-- RIGHT COLUMN: Personnel Selection -->
-          <div style="display:grid; gap:1.5rem;">
+          <div style="display:grid; gap:1.25rem;">
             <!-- Lead Manager Selection (Restored Dropdown UI) -->
              <div class="form-group">
                 <label>Lead Manager</label>
@@ -1141,10 +1139,11 @@ const AdminPanel = {
                 </select>
              </div>
 
-             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1.25rem; font-size:1rem; font-weight:700; border-radius:12px; margin-top:2.5rem;" onclick="id ? AdminPanel.handleUpdateProject('${id}') : AdminPanel.handleSaveProject()">
-                <i class="ph ph-rocket-launch" style="margin-right:0.5rem;"></i> ${id ? 'Update Project Details' : 'Launch New Project'}
-             </button>
-          </div>
+             <div style="margin-top:0.5rem;">
+               <button class="btn btn-primary" style="float:right; padding:0.85rem 2.5rem; font-size:1rem; font-weight:700; border-radius:12px;" onclick="id ? AdminPanel.handleUpdateProject('${id}') : AdminPanel.handleSaveProject()">
+                  <i class="ph ph-rocket-launch" style="margin-right:0.5rem;"></i> ${id ? 'Update Project' : 'Launch Project'}
+               </button>
+             </div>
           </div>
         </div>
       </div>

@@ -293,6 +293,9 @@ window.initCustomSelects = function() {
         customOption.style.display = 'flex';
         customOption.style.alignItems = 'center';
         customOption.style.gap = '0.75rem';
+        customOption.style.margin = '2px 6px';
+        customOption.style.borderRadius = '8px';
+        customOption.style.transition = 'all 0.2s';
         
         if (isMulti) {
           customOption.innerHTML = `
