@@ -241,10 +241,6 @@ const EmployeePortal = {
     const container = document.getElementById('dashboard-content');
     if (!container) return;
 
-    // SPA Navigation Highlighting Fix
-    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-    document.querySelector('.nav-item[onclick*="loadMyProfile"]')?.classList.add('active');
-
     try {
       const res = await fetch(`/api/employees/profile/${this.user.id}`);
       const emp = await res.json();
@@ -265,12 +261,9 @@ const EmployeePortal = {
       };
 
       const html = `
-      <div class="fade-in" style="max-width: 1400px; margin: 0 auto; padding: 1rem 2rem 5rem;">
-          <!-- Page Header -->
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-              <button onclick="EmployeePortal.init(${JSON.stringify(this.user).replace(/"/g, '&quot;')})" class="btn btn-secondary" style="font-weight: 700;">
-                  <i class="ph ph-arrow-left"></i> Back to Workspace
-              </button>
+      <div class="fade-in" style="max-width: 1400px; margin: 0 auto; padding: 0 2rem 5rem;">
+          <!-- Page Header Controls -->
+          <div style="display: flex; justify-content: flex-end; align-items: center; margin-bottom: 2rem;">
               <div style="display: flex; gap: 1rem;">
                   <button type="button" onclick="EmployeePortal.saveMyProfile(event)" class="btn btn-primary" style="font-weight: 800; padding: 0.75rem 1.75rem;">
                       <i class="ph ph-floppy-disk"></i> Save Changes

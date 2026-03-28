@@ -14,7 +14,7 @@ const PHO_ICONS = {
 const NAV_ITEMS = [
   // User Personal Workspace
   { id: 'employee', name: 'My Workspace', href: 'employee.html', icon: '<i class="ph ph-desktop"></i>', employeeOnly: true },
-  { id: 'profile', name: 'My Profile', href: '#', icon: '<i class="ph ph-user-circle"></i>', employeeOnly: true, onclick: 'EmployeePortal.loadMyProfile()' },
+  { id: 'profile', name: 'My Profile', href: 'employee-profile.html', icon: '<i class="ph ph-user-circle"></i>', employeeOnly: true },
 
   // Analytics Dashboards (Admin Only)
   { id: 'marketing', name: 'Marketing', href: 'marketing.html', icon: '<i class="ph ph-trend-up"></i>', adminOnly: true },
@@ -83,7 +83,7 @@ function renderHeader(title) {
   const isAdmin = userRole === 'ADMIN';
 
   const userImg = user && user.image ? user.image : 'https://lh3.googleusercontent.com/a/default-user=s256-c';
-  const profileAction = user && user.role === 'EMPLOYEE' ? 'onclick="EmployeePortal.loadMyProfile()"' : '';
+  const profileUrl = user && user.role === 'EMPLOYEE' ? 'employee-profile.html' : '#';
 
   return `
     <header class="top-header">
@@ -97,8 +97,8 @@ function renderHeader(title) {
         <span id="user-status-badge" style="font-size:0.8rem; color: ${isAdmin ? '#fff' : 'var(--text-secondary)'}; background: ${isAdmin ? 'var(--success-color)' : 'var(--bg-color)'}; padding: 0.25rem 0.75rem; border-radius: 2rem; font-weight:600; white-space: nowrap; display: flex; align-items: center; gap: 0.25rem;">
           <i class="ph ${isAdmin ? 'ph-shield-check' : 'ph-user'}"></i> ${userRole}
         </span>
-        <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary); cursor:pointer;" ${profileAction}>${userName}</div>
-        <div class="avatar" style="cursor:pointer; overflow:hidden;" ${profileAction}>
+        <div style="font-size:0.875rem; font-weight:600; color:var(--text-primary); cursor:pointer;" onclick="window.location.href='${profileUrl}'">${userName}</div>
+        <div class="avatar" style="cursor:pointer; overflow:hidden;" onclick="window.location.href='${profileUrl}'">
            <img src="${userImg}" style="width:100%; height:100%; object-fit:cover;">
         </div>
       </div>
