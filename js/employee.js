@@ -291,7 +291,7 @@ const EmployeePortal = {
                              onclick="EmployeePortal.viewFullImage('${profileImg}')"
                              style="width: 100%; height: 100%; object-fit: cover; border: 6px solid white; border-radius: 50%; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); cursor: zoom-in;">
                         <button type="button" onclick="EmployeePortal.triggerProfileUpload()" style="position: absolute; bottom: 5px; right: 5px; width: 40px; height: 40px; background: #2563eb; color: white; border: none; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); transition: transform 0.2s;">
-                            <i class="ph ph-camera" style="font-size: 1.25rem;"></i>
+                            <i class="ph ph-pencil-simple" style="font-size: 1.25rem;"></i>
                         </button>
                         <input type="file" id="profile-upload-input" accept="image/*" style="display: none;" onchange="EmployeePortal.handleImageUpload()">
                         <input type="hidden" name="image" id="profile-image-value" value="${emp.image || ''}">
@@ -305,15 +305,39 @@ const EmployeePortal = {
                         
                         <div style="padding-top: 1.5rem; border-top: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 1rem; text-align: left;">
                             <div>
-                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Work Email</label>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Direct Email</label>
                                 <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="ph ph-envelope-simple" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.email}
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Phone Number</label>
+                                <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-phone" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.phone || '—'}
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Age</label>
+                                <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-calendar" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.age || '—'} years old
                                 </div>
                             </div>
                             <div>
                                 <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Department</label>
                                 <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
                                     <i class="ph ph-buildings" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.department || 'General'}
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Experience Tier</label>
+                                <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-briefcase" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.experience || 'Fresher (Entry)'}
+                                </div>
+                            </div>
+                            <div>
+                                <label style="display: block; font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.25rem;">Internal ID</label>
+                                <div style="font-size: 0.875rem; font-weight: 700; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="ph ph-identification-badge" style="font-size: 1.1rem; color: #2563eb;"></i> ${emp.employeeId || 'NOT ASSIGNED'}
                                 </div>
                             </div>
                         </div>
@@ -336,11 +360,11 @@ const EmployeePortal = {
                       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
                           <div class="form-group">
                               <label>Full Name</label>
-                              <input type="text" value="${emp.name}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                              <input type="text" value="${emp.name || ''}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
                           </div>
                           <div class="form-group">
                               <label>Work Email</label>
-                              <input type="email" value="${emp.email}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                              <input type="email" value="${emp.email || ''}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
                           </div>
                           <div class="form-group">
                               <label>Phone Number (Editable)</label>
@@ -348,7 +372,23 @@ const EmployeePortal = {
                           </div>
                           <div class="form-group">
                               <label>Employee ID</label>
-                              <input type="text" value="${emp.employeeId || '—'}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                              <input type="text" value="${emp.employeeId || ''}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                          </div>
+                          <div class="form-group">
+                              <label>Date of Joining</label>
+                              <input type="text" value="${emp.joiningDate ? new Date(emp.joiningDate).toLocaleDateString('en-GB') : '—'}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                          </div>
+                          <div class="form-group">
+                              <label>Experience Tier</label>
+                              <input type="text" value="${emp.experience || 'Fresher (Entry)'}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                          </div>
+                          <div class="form-group">
+                              <label>Department</label>
+                              <input type="text" value="${emp.department || 'Creative'}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
+                          </div>
+                          <div class="form-group">
+                              <label>Functional Designation</label>
+                              <input type="text" value="${emp.designation || 'Team Member'}" disabled class="form-control" style="background:#f8fafc; cursor:not-allowed;">
                           </div>
                       </div>
                   </div>
@@ -453,6 +493,19 @@ const EmployeePortal = {
 
       if (res.ok) {
         toast('Profile updated successfully!', 'success');
+        
+        // SYNC LOCAL STORAGE FOR HEADER REAL-TIME UPDATE
+        const updatedUser = { ...this.user, image: payload.image, phone: payload.phone };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        this.user = updatedUser;
+
+        // Force Header Re-render (Shared components logic)
+        const headerTitle = document.querySelector('.page-title')?.innerText || 'Employee Portal';
+        const headerContainer = document.querySelector('.top-header');
+        if (headerContainer && typeof renderHeader === 'function') {
+           headerContainer.outerHTML = renderHeader(headerTitle);
+        }
+
         this.loadMyProfile(); // Reload to refresh Sidebar and UI
       } else {
         const data = await res.json();
