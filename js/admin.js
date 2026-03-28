@@ -1037,133 +1037,141 @@ const AdminPanel = {
   },
 
   async showAddProject() {
+    this.renderProjectForm(null);
+  },
+
+  async renderProjectForm(id = null) {
     const clientsRes = await fetch('/api/clients');
     const clients = await clientsRes.json();
     const empsRes = await fetch('/api/employees');
     const emps = await empsRes.json();
+    
+    let p = null;
+    if (id) {
+      const projRes = await fetch('/api/projects');
+      const projs = await projRes.json();
+      p = projs.find(x => x._id === id);
+    }
 
-    const modalHtml = `
-      <div class="modal-overlay" id="proj-add-modal">
-        <div class="modal-content" style="max-width:850px; width:95%; max-height:90vh; overflow-y:auto; padding:2.5rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
-            <h3 style="font-weight:800; font-size:1.5rem; color:var(--text-primary);">Launch New Project</h3>
-            <button onclick="document.getElementById('proj-add-modal').remove()" style="background:none; border:none; font-size:1.8rem; cursor:pointer; color:var(--text-secondary);"><i class="ph ph-x"></i></button>
+    const container = document.getElementById('dashboard-content');
+    container.innerHTML = `
+      <div class="view-header">
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <button class="btn btn-icon" onclick="AdminPanel.loadProjects()"><i class="ph ph-arrow-left"></i></button>
+          <div>
+            <h2 class="view-title">${id ? 'Modify Project' : 'Launch New Project'}</h2>
+            <p class="view-subtitle">${id ? `ID: ${id}` : 'Fill in the details below to start a new project'}</p>
           </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:2.5rem; max-width:1050px; margin:0 auto; border-radius:16px;">
+        <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:2rem;">
           
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-            <!-- Row 1: Name & Client -->
+          <!-- LEFT COLUMN: Basic Details -->
+          <div style="display:grid; gap:1.5rem;">
             <div class="form-group">
                <label>Project Name</label>
-               <input type="text" id="np-name" class="form-control" placeholder="e.g. Q4 Growth Strategy">
+               <input type="text" id="np-name" class="form-control" value="${p ? p.name : ''}" placeholder="e.g. Q4 Growth Strategy">
             </div>
+
             <div class="form-group">
                 <label>Link to Client</label>
                 <select id="np-client" class="form-control">
-                  ${clients.map(c => `<option value="${c._id}">${c.company}</option>`).join('')}
+                  ${clients.map(c => `<option value="${c._id}" ${p && p.client?._id === c._id ? 'selected' : ''}>${c.company}</option>`).join('')}
                 </select>
             </div>
 
-            <!-- Row 2: Four-Column Horizontal Row -->
-            <div style="grid-column: span 2; display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem;">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                 <div class="form-group">
                     <label>Budget (₹)</label>
-                    <input type="number" id="np-budget" class="form-control" placeholder="Budget">
+                    <input type="number" id="np-budget" class="form-control" value="${p ? p.budget : ''}" placeholder="Budget">
                 </div>
                 <div class="form-group">
                     <label>Status</label>
                     <select id="np-status" class="form-control">
-                      <option value="active" selected>ACTIVE</option>
-                      <option value="on-hold">ON HOLD</option>
-                      <option value="completed">COMPLETED</option>
-                      <option value="archived">ARCHIVED</option>
+                      <option value="active" ${p && p.status === 'active' ? 'selected' : ''}>ACTIVE</option>
+                      <option value="on-hold" ${p && p.status === 'on-hold' ? 'selected' : ''}>ON HOLD</option>
+                      <option value="completed" ${p && p.status === 'completed' ? 'selected' : ''}>COMPLETED</option>
+                      <option value="archived" ${p && p.status === 'archived' ? 'selected' : ''}>ARCHIVED</option>
                     </select>
                 </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.25rem;">
                 <div class="form-group">
                     <label>Start Date</label>
-                    <input type="date" id="np-start" class="form-control">
+                    <input type="date" id="np-start" class="form-control" value="${p && p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
                 </div>
                 <div class="form-group">
                     <label>End Date</label>
-                    <input type="date" id="np-end" class="form-control">
+                    <input type="date" id="np-end" class="form-control" value="${p && p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
                 </div>
             </div>
 
-            <!-- Row 3: Full Description -->
-            <div class="form-group" style="grid-column: span 2;">
+            <div class="form-group">
                <label>Project Objective / Description</label>
-               <textarea id="np-desc" class="form-control" style="min-height:60px; border-radius:12px;" placeholder="Detailed project scope..."></textarea>
+               <textarea id="np-desc" class="form-control" style="min-height:100px; border-radius:12px;">${p ? p.description : ''}</textarea>
             </div>
+          </div>
 
-            <!-- Row 4: Searchable Selection Section -->
-            <!-- Searchable Lead Manager (Dropdown style) -->
-            <div class="form-group">
-                <label>Lead Manager</label>
-                <div class="custom-searchable-dropdown" id="np-lead-container" style="position:relative;">
-                  <div class="form-control dropdown-trigger" onclick="AdminPanel.toggleSearchable('np-lead-options')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                    <span id="np-lead-selected">-- Select Lead Manager --</span>
-                    <i class="ph ph-caret-down"></i>
-                  </div>
-                  <div id="np-lead-options" class="dropdown-options-list" style="display:none; position:absolute; top:105%; left:0; right:0; background:#fff; border:1px solid var(--border-color); border-radius:12px; box-shadow:var(--shadow-lg); z-index:100; padding:0.75rem;">
-                    <input type="text" placeholder="Search employees..." oninput="AdminPanel.filterEmployees(this.value, 'np-lead-items')" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-color); margin-bottom:0.5rem; font-size:0.8rem; outline:none;">
-                    <div id="np-lead-items" style="max-height:150px; overflow-y:auto;">
-                      <div class="emp-checkbox-item" style="padding:0.5rem; cursor:pointer;" onclick="AdminPanel.selectLead('', 'np-lead', 'np-lead-selected', 'np-lead-options')" data-name="none">-- No Lead --</div>
-                      ${emps.filter(e => e.isActive).map(e => `
-                        <div class="emp-checkbox-item" data-id="${e._id}" data-name="${e.name.toLowerCase()}" onclick="AdminPanel.selectLead('${e._id}', '${e.name}', 'np-lead-selected', 'np-lead-options')" style="padding:0.5rem; border-radius:6px; cursor:pointer; font-weight:600; color:var(--text-primary);">
-                          ${e.name.toUpperCase()}
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                  <input type="hidden" id="np-lead-value" value="">
+          <!-- RIGHT COLUMN: Personnel Selection -->
+          <div style="display:grid; gap:1.5rem;">
+            <!-- Lead Manager Selection -->
+             <div class="form-group">
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                  <span>Lead Manager (Search & Select)</span>
+                  <input type="text" placeholder="Search..." oninput="AdminPanel.filterEmployees(this.value, 'np-lead-list')" style="font-size:0.75rem; padding:0.3rem 0.6rem; border-radius:8px; border:1px solid var(--border-color); outline:none; max-width:150px;">
+                </label>
+                <div id="np-lead-list" class="form-control" style="height:140px; overflow-y:auto; padding:0.5rem; display:block; background:#fff; margin-top:0.5rem;">
+                    ${emps.filter(e => e.isActive).map(e => {
+                        const isSelected = p && p.lead?._id === e._id;
+                        return `
+                          <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.75rem; padding:0.4rem; cursor:pointer; font-size:0.875rem; border-radius:6px; transition:all 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                            <input type="radio" name="np-lead" value="${e._id}" ${isSelected ? 'checked' : ''} style="accent-color:var(--accent-color);">
+                            <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
+                          </label>
+                        `;
+                    }).join('')}
                 </div>
-            </div>
+             </div>
 
-            <div class="form-group">
+             <!-- Team Member Selection -->
+             <div class="form-group">
                 <label style="display:flex; justify-content:space-between; align-items:center;">
                   <span>Assign Team Members</span>
-                  <input type="text" placeholder="Search team..." oninput="AdminPanel.filterEmployees(this.value, 'np-emps-list')" style="font-size:0.65rem; padding:0.15rem 0.4rem; border-radius:6px; border:1px solid var(--border-color); outline:none; max-width:100px;">
+                  <input type="text" placeholder="Search team..." oninput="AdminPanel.filterEmployees(this.value, 'np-emps-list')" style="font-size:0.75rem; padding:0.3rem 0.6rem; border-radius:8px; border:1px solid var(--border-color); outline:none; max-width:150px;">
                 </label>
-                <div id="np-emps-list" class="form-control" style="max-height:100px; overflow-y:auto; padding:0.5rem; display:block; height:auto;">
-                   ${emps.filter(e => e.isActive).map(e => `
-                      <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.25rem; cursor:pointer; font-size:0.8rem;" data-name="${e.name.toLowerCase()}">
-                        <input type="checkbox" name="np-assigned" value="${e._id}" style="accent-color:var(--accent-color);">
-                        <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
-                      </label>
-                   `).join('')}
+                <div id="np-emps-list" class="form-control" style="height:190px; overflow-y:auto; padding:0.5rem; display:block; background:#fff; margin-top:0.5rem;">
+                   ${emps.filter(e => e.isActive).map(e => {
+                      const isAssigned = p && (p.assignedEmployees || []).includes(e._id);
+                      return `
+                        <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.75rem; padding:0.4rem; cursor:pointer; font-size:0.875rem; border-radius:6px; transition:all 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'">
+                          <input type="checkbox" name="np-assigned" value="${e._id}" ${isAssigned ? 'checked' : ''} style="accent-color:var(--accent-color);">
+                          <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
+                        </label>
+                      `;
+                   }).join('')}
                 </div>
-            </div>
+             </div>
 
-            <button class="btn btn-primary" style="grid-column: span 2; justify-content:center; padding:1rem; border-radius:12px; margin-top:0.5rem;" onclick="AdminPanel.saveProject()">Start Project</button>
+             <button class="btn btn-primary" style="width:100%; justify-content:center; padding:1.25rem; font-size:1rem; font-weight:700; border-radius:12px; margin-top:1rem;" onclick="id ? AdminPanel.handleUpdateProject('${id}') : AdminPanel.handleSaveProject()">
+                <i class="ph ph-rocket-launch" style="margin-right:0.5rem;"></i> ${id ? 'Update Project Details' : 'Launch New Project'}
+             </button>
           </div>
         </div>
       </div>
     `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     window.initCustomSelects();
   },
 
-  toggleSearchable(id) {
-    const el = document.getElementById(id);
-    const isVisible = el.style.display === 'block';
-    
-    // Close other dropdowns
-    document.querySelectorAll('.dropdown-options-list').forEach(d => d.style.display = 'none');
-    
-    el.style.display = isVisible ? 'none' : 'block';
-  },
-
-  selectLead(id, name, displayId, dropdownId) {
-    document.getElementById(displayId).innerText = name || '-- No Lead --';
-    document.getElementById(displayId.replace('selected', 'value')).value = id;
-    document.getElementById(dropdownId).style.display = 'none';
-  },
-
-  async saveProject() {
+  async handleSaveProject() {
     const assignedCheckboxes = document.querySelectorAll('input[name="np-assigned"]:checked');
     const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
 
-    // Get selected Lead Manager from hidden input
-    const leadId = document.getElementById('np-lead-value').value || undefined;
+    const leadRadio = document.querySelector('input[name="np-lead"]:checked');
+    const leadId = leadRadio ? leadRadio.value : undefined;
 
     const body = {
       name: document.getElementById('np-name').value,
@@ -1184,10 +1192,55 @@ const AdminPanel = {
         body: JSON.stringify(body)
       });
       if(res.ok) {
-        document.getElementById('proj-add-modal').remove();
+        toast('Project launched successfully!', 'success');
         this.loadProjects();
       }
     } catch(err) { toast('Failed to save project', 'error'); }
+  },
+
+  async handleUpdateProject(id) {
+    const assignedCheckboxes = document.querySelectorAll('input[name="np-assigned"]:checked');
+    const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
+
+    const leadRadio = document.querySelector('input[name="np-lead"]:checked');
+    const leadId = leadRadio ? leadRadio.value : undefined;
+
+    const body = {
+      name: document.getElementById('np-name').value,
+      budget: Number(document.getElementById('np-budget').value),
+      status: document.getElementById('np-status').value,
+      startDate: document.getElementById('np-start').value || undefined,
+      endDate: document.getElementById('np-end').value || undefined,
+      client: document.getElementById('np-client').value,
+      lead: leadId,
+      assignedEmployees: assignedIds,
+      description: document.getElementById('np-desc').value
+    };
+
+    try {
+      const res = await fetch(`/api/projects/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        toast('Project updated successfully', 'success');
+        this.viewProjectDetails(id);
+      }
+    } catch (err) {
+      toast('Failed to update project', 'error');
+    }
+  },
+
+  filterEmployees(query, containerId) {
+    const list = document.getElementById(containerId);
+    if (!list) return;
+    const items = list.querySelectorAll('.emp-checkbox-item');
+    const q = query.toLowerCase();
+    items.forEach(item => {
+      const name = item.dataset.name || item.innerText.toLowerCase();
+      item.style.display = name.includes(q) ? 'flex' : 'none';
+    });
   },
 
   renderProjectCard(p) {
@@ -1293,150 +1346,8 @@ const AdminPanel = {
     window.initCustomSelects();
   },
 
-  async showEditProject(id) {
-    const clientsRes = await fetch('/api/clients');
-    const clients = await clientsRes.json();
-    const empsRes = await fetch('/api/employees');
-    const emps = await empsRes.json();
-    const projRes = await fetch('/api/projects');
-    const projs = await projRes.json();
-    const p = projs.find(x => x._id === id);
-
-    const modalHtml = `
-      <div class="modal-overlay" id="proj-edit-modal">
-        <div class="modal-content" style="max-width:850px; width:95%; max-height:90vh; overflow-y:auto; padding:2.5rem;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
-            <h3 style="font-weight:800; font-size:1.5rem; color:var(--text-primary);">Modify Project: ${p.name}</h3>
-            <button onclick="document.getElementById('proj-edit-modal').remove()" style="background:none; border:none; font-size:1.8rem; cursor:pointer; color:var(--text-secondary);"><i class="ph ph-x"></i></button>
-          </div>
-          
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.5rem;">
-            <!-- Row 1: Name & Client -->
-            <div class="form-group">
-              <label>Project Name</label>
-              <input type="text" id="ep-name" class="form-control" value="${p.name}">
-            </div>
-            <div class="form-group">
-                <label>Client</label>
-                <select id="ep-client" class="form-control">
-                  ${clients.map(c => `<option value="${c._id}" ${p.client?._id===c._id?'selected':''}>${c.company}</option>`).join('')}
-                </select>
-            </div>
-            
-            <!-- Row 2 -->
-             <div style="grid-column: span 2; display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem;">
-                <div class="form-group">
-                    <label>Budget (₹)</label>
-                    <input type="number" id="ep-budget" class="form-control" value="${p.budget || 0}">
-                </div>
-                <div class="form-group">
-                    <label>Status</label>
-                    <select id="ep-status" class="form-control">
-                      <option value="active" ${p.status==='active'?'selected':''}>ACTIVE</option>
-                      <option value="on-hold" ${p.status==='on-hold'?'selected':''}>ON HOLD</option>
-                      <option value="completed" ${p.status==='completed'?'selected':''}>COMPLETED</option>
-                      <option value="archived" ${p.status==='archived'?'selected':''}>ARCHIVED</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Start Date</label>
-                    <input type="date" id="ep-start" class="form-control" value="${p.startDate ? new Date(p.startDate).toISOString().split('T')[0] : ''}">
-                </div>
-                <div class="form-group">
-                    <label>End Date</label>
-                    <input type="date" id="ep-end" class="form-control" value="${p.endDate ? new Date(p.endDate).toISOString().split('T')[0] : ''}">
-                </div>
-             </div>
-
-             <!-- Row 3 -->
-             <div class="form-group" style="grid-column: span 2;">
-              <label>Project Objective / Description</label>
-              <textarea id="ep-desc" class="form-control" style="min-height:60px; border-radius:12px;">${p.description || ''}</textarea>
-            </div>
-
-            <!-- Row 4 -->
-             <div class="form-group">
-                <label>Lead Manager</label>
-                <div class="custom-searchable-dropdown" id="ep-lead-container" style="position:relative;">
-                  <div class="form-control dropdown-trigger" onclick="AdminPanel.toggleSearchable('ep-lead-options')" style="cursor:pointer; display:flex; justify-content:space-between; align-items:center;">
-                    <span id="ep-lead-selected">${p.lead?.name || '-- Select Lead Manager --'}</span>
-                    <i class="ph ph-caret-down"></i>
-                  </div>
-                  <div id="ep-lead-options" class="dropdown-options-list" style="display:none; position:absolute; top:105%; left:0; right:0; background:#fff; border:1px solid var(--border-color); border-radius:12px; box-shadow:var(--shadow-lg); z-index:100; padding:0.75rem;">
-                    <input type="text" placeholder="Search employees..." oninput="AdminPanel.filterEmployees(this.value, 'ep-lead-items')" style="width:100%; padding:0.5rem; border-radius:8px; border:1px solid var(--border-color); margin-bottom:0.5rem; font-size:0.8rem; outline:none;">
-                    <div id="ep-lead-items" style="max-height:150px; overflow-y:auto;">
-                      <div class="emp-checkbox-item" style="padding:0.5rem; cursor:pointer;" onclick="AdminPanel.selectLead('', 'ep-lead', 'ep-lead-selected', 'ep-lead-options')" data-name="none">-- No Lead --</div>
-                      ${emps.filter(e => e.isActive).map(e => `
-                        <div class="emp-checkbox-item" data-id="${e._id}" data-name="${e.name.toLowerCase()}" onclick="AdminPanel.selectLead('${e._id}', '${e.name}', 'ep-lead-selected', 'ep-lead-options')" style="padding:0.5rem; border-radius:6px; cursor:pointer; font-weight:600; color:var(--text-primary);">
-                          ${e.name.toUpperCase()}
-                        </div>
-                      `).join('')}
-                    </div>
-                  </div>
-                  <input type="hidden" id="ep-lead-value" value="${p.lead?._id || ''}">
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label style="display:flex; justify-content:space-between; align-items:center;">
-                  <span>Team Members (Multi-Assignment)</span>
-                  <input type="text" placeholder="Search team..." oninput="AdminPanel.filterEmployees(this.value, 'ep-emps-list')" style="font-size:0.65rem; padding:0.15rem 0.4rem; border-radius:6px; border:1px solid var(--border-color); outline:none; max-width:100px;">
-                </label>
-                <div id="ep-emps-list" class="form-control" style="max-height:100px; overflow-y:auto; padding:0.5rem; display:block; height:auto;">
-                   ${emps.filter(e => e.isActive).map(e => {
-                      const isAssigned = (p.assignedEmployees || []).includes(e._id);
-                      return `
-                        <label class="emp-checkbox-item" style="display:flex; align-items:center; gap:0.5rem; padding:0.25rem; cursor:pointer; font-size:0.8rem;" data-name="${e.name.toLowerCase()}">
-                          <input type="checkbox" name="ep-assigned" value="${e._id}" style="accent-color:var(--accent-color);" ${isAssigned ? 'checked' : ''}>
-                          <span style="font-weight:600; color:var(--text-primary); text-transform:uppercase;">${e.name}</span>
-                        </label>
-                      `;
-                   }).join('')}
-                </div>
-            </div>
-
-            <button class="btn btn-primary" style="grid-column: span 2; justify-content:center; padding:1rem; border-radius:12px; margin-top:0.5rem;" onclick="AdminPanel.updateProject('${p._id}')">Update Project Details</button>
-          </div>
-        </div>
-      </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    window.initCustomSelects();
-  },
-
-  async updateProject(id) {
-    const assignedCheckboxes = document.querySelectorAll('input[name="ep-assigned"]:checked');
-    const assignedIds = Array.from(assignedCheckboxes).map(cb => cb.value);
-
-    // Get selected Lead Manager from hidden input
-    const leadId = document.getElementById('ep-lead-value').value || undefined;
-
-    const body = {
-      name: document.getElementById('ep-name').value,
-      budget: Number(document.getElementById('ep-budget').value),
-      status: document.getElementById('ep-status').value,
-      startDate: document.getElementById('ep-start').value || undefined,
-      endDate: document.getElementById('ep-end').value || undefined,
-      client: document.getElementById('ep-client').value,
-      lead: leadId,
-      assignedEmployees: assignedIds,
-      description: document.getElementById('ep-desc').value
-    };
-
-    try {
-      const res = await fetch(`/api/projects/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (res.ok) {
-        document.getElementById('proj-edit-modal').remove();
-        toast('Project updated successfully');
-        this.viewProjectDetails(id);
-      }
-    } catch (err) {
-      toast('Failed to update project', 'error');
-    }
+  showEditProject(id) {
+    this.renderProjectForm(id);
   },
 
   async saveTask(taskId = null) {
