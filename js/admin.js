@@ -7,20 +7,31 @@ const AdminPanel = {
   // --- EMPLOYEE MODULE ---
   async loadEmployees() {
     const container = document.getElementById('dashboard-content');
-    container.innerHTML = `<div class="loading">Loading team data...</div>`;
+    container.innerHTML = `<div class="loading">Loading team health data...</div>`;
     
     try {
-      const res = await fetch('/api/employees');
-      const emps = await res.json();
-      this.employees = emps; // Ensure employees are stored for modal lookup
+      const [empsRes, projsRes, tasksRes] = await Promise.all([
+        fetch('/api/employees'),
+        fetch('/api/projects'),
+        fetch('/api/tasks')
+      ]);
+      const emps = await empsRes.json();
+      const projs = await projsRes.json();
+      const tasks = await tasksRes.json();
+      
+      this.employees = emps; 
+      this.projects = projs;
+      this.tasks = tasks;
+
       const activeEmps = emps.filter(e => e.isActive);
       const inactiveEmps = emps.filter(e => !e.isActive);
+      const activeProjs = projs.filter(p => p.status === 'active');
       
       let html = `
         <div class="view-header">
           <div>
             <h2 class="view-title">Team Management</h2>
-            <p class="view-subtitle">${activeEmps.length} Active Members · ${inactiveEmps.length} Terminated</p>
+            <p class="view-subtitle">${activeEmps.length} Active Members · ${activeProjs.length} Active Projects</p>
           </div>
           <div style="display:flex; gap:0.75rem; align-items:center;">
             <button onclick="AdminPanel.loadProfilesList()" class="btn btn-secondary"><i class="ph ph-users-three"></i> All Profiles</button>
@@ -32,6 +43,14 @@ const AdminPanel = {
         <div class="grid-cols-3" style="margin-bottom:2.5rem;">
           ${activeEmps.length === 0 ? '<p style="grid-column:1/-1; padding:2rem; text-align:center; color:var(--text-secondary);">No active employees.</p>' : 
             activeEmps.map(emp => this.renderEmployeeCard(emp)).join('')}
+        </div>
+
+        <div style="margin-bottom:2.5rem;">
+          <h3 style="font-size:0.875rem; font-weight:700; color:var(--text-secondary); margin-bottom:1rem; text-transform:uppercase; letter-spacing:0.05em;">Active Projects Overview</h3>
+          <div class="grid-cols-3" style="gap:1rem;">
+             ${activeProjs.length === 0 ? '<p style="grid-column:1/-1; padding:2rem; text-align:center; color:var(--text-secondary);">No active projects currently tracking team health.</p>' : 
+               activeProjs.map(proj => this.renderProjectHealthCard(proj)).join('')}
+          </div>
         </div>
 
         ${inactiveEmps.length > 0 ? `
@@ -67,8 +86,77 @@ const AdminPanel = {
       `;
       container.innerHTML = html;
     } catch (err) {
-      container.innerHTML = `<div class="error">Failed to load employees.</div>`;
+      console.error(err);
+      container.innerHTML = `<div class="error">Failed to load team health data.</div>`;
     }
+  },
+
+  renderProjectHealthCard(p) {
+    const assignedCount = p.assignedEmployees ? p.assignedEmployees.length : 0;
+    return `
+      <div class="card" style="padding:1.25rem; border-left:4px solid ${p.color || 'var(--accent-color)'}; cursor:pointer; transition:transform 0.2s;" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='translateY(0)'" onclick="AdminPanel.showProjectTaskMatrix('${p._id}')">
+        <div style="font-size:0.65rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.4rem; letter-spacing:0.05em;">Project Health Card</div>
+        <h4 style="font-weight:800; font-size:1.1rem; margin-bottom:0.75rem; color:var(--text-primary);">${p.name}</h4>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="font-size:0.8rem; font-weight:600; color:var(--text-secondary);">
+             <i class="ph ph-user-focus"></i> ${p.lead?.name || 'Unassigned'}
+          </div>
+          <div style="font-size:0.75rem; font-weight:800; background:var(--accent-light); color:var(--accent-color); padding:0.2rem 0.6rem; border-radius:6px;">
+             ${assignedCount} STAFFED
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  async showProjectTaskMatrix(projectId) {
+    const p = this.projects.find(x => x._id === projectId);
+    const assignedIds = p.assignedEmployees || [];
+    const matrixData = assignedIds.map(id => {
+       const emp = this.employees.find(e => e._id === id);
+       const empTasks = this.tasks.filter(t => t.project === projectId && t.assignedTo?._id === id);
+       return {
+         empName: emp?.name || 'Unknown',
+         total: empTasks.length,
+         pending: empTasks.filter(t => t.status === 'pending').length,
+         progress: empTasks.filter(t => t.status === 'in progress').length,
+         review: empTasks.filter(t => t.status === 'in review').length,
+         done: empTasks.filter(t => t.status === 'completed').length
+       };
+    });
+
+    const modalHtml = `
+      <div class="modal-overlay" id="project-health-modal">
+        <div class="modal-content" style="max-width:750px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
+            <div>
+              <h3 style="font-weight:900; font-size:1.5rem; color:var(--text-primary); text-transform:uppercase; letter-spacing:-0.01em;">${p.name} Health Matrix</h3>
+              <p style="font-size:0.875rem; color:var(--text-secondary);">Live workload distribution for all assigned team members</p>
+            </div>
+            <button onclick="document.getElementById('project-health-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
+          </div>
+
+          <div style="display:grid; gap:1.5rem;">
+             ${matrixData.length === 0 ? '<p style="padding:4rem; text-align:center; color:var(--text-secondary);">No team members explicitly assigned to this project.</p>' : 
+               matrixData.map(d => `
+                 <div style="background:#f8fafc; border-radius:12px; padding:1.25rem; border:1px solid #f1f5f9;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+                       <span style="font-weight:800; font-size:1rem; color:var(--text-primary);">${d.empName.toUpperCase()}</span>
+                       <span style="font-size:0.75rem; font-weight:900; color:var(--accent-color); letter-spacing:0.05em;">TOTAL LOAD: ${d.total} TASKS</span>
+                    </div>
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                       <span style="font-size:0.65rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:4px; background:#fee2e2; color:#b91c1c;">PENDING: ${d.pending}</span>
+                       <span style="font-size:0.65rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:4px; background:#fef3c7; color:#92400e;">IN PROGRESS: ${d.progress}</span>
+                       <span style="font-size:0.65rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:4px; background:#dbeafe; color:#1d4ed8;">IN REVIEW: ${d.review}</span>
+                       <span style="font-size:0.65rem; font-weight:800; padding:0.3rem 0.6rem; border-radius:4px; background:#dcfce7; color:#15803d;">COMPLETED: ${d.done}</span>
+                    </div>
+                 </div>
+               `).join('')}
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
   showAddEmployee() {
