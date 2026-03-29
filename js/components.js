@@ -60,7 +60,7 @@ function renderSidebar(activeId) {
       <div class="sidebar-header">
         <div class="logo" style="display:flex; align-items:center; gap:0.75rem;">
           <img src="assets/logo.png" style="width:40px; height:40px; object-fit:contain;" alt="Logo">
-          Eaz Dash
+          Eazly
         </div>
         <button class="mobile-toggle" id="close-sidebar">
           <i class="ph ph-x"></i>
@@ -355,3 +355,4 @@ document.addEventListener('click', () => {
     container.classList.remove('open');
   });
 });
+

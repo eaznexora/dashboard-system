@@ -248,3 +248,4 @@ window.renderAdminControls = function(sidebarElement) {
     footerContainer.innerHTML = footerHtml;
   }
 };
+

@@ -591,3 +591,4 @@ const EmployeePortal = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   }
 };
+

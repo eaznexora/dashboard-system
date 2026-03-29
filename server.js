@@ -134,3 +134,4 @@ server.listen(PORT, () => {
     console.log('  ADMIN_USERNAME:', process.env.ADMIN_USERNAME || '❌ MISSING');
     console.log('  ADMIN_PASSWORD_HASH:', process.env.ADMIN_PASSWORD_HASH ? '✅ SET (' + process.env.ADMIN_PASSWORD_HASH.length + ' chars)' : '❌ MISSING');
 });
+

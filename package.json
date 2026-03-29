@@ -10,7 +10,7 @@
   "keywords": [],
   "author": "EazNexora",
   "license": "ISC",
-  "description": "Eaz Dash Agency Dashboard System",
+  "description": "Eazly Agency Dashboard System",
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
@@ -25,3 +25,4 @@
     "socket.io": "^4.8.3"
   }
 }
+

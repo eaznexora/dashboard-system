@@ -10,3 +10,4 @@ const ActivitySchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('Activity', ActivitySchema);
+

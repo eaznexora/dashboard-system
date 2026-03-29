@@ -1194,3 +1194,4 @@ const AssetHub = {
     setPeopleFilter(id) { this.selectedPeopleFilter = id; this.showPeopleDropdown = false; this.render(); },
     togglePeopleDropdown(e) { e.stopPropagation(); this.showPeopleDropdown = !this.showPeopleDropdown; this.render(); }
 };
+

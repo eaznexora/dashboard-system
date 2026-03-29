@@ -301,3 +301,4 @@ const AssetHub = {
         this.render();
     }
 };
+

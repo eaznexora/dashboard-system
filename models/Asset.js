@@ -13,3 +13,4 @@ const AssetSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model('Asset', AssetSchema);
+
