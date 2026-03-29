@@ -58,9 +58,9 @@ function renderSidebar(activeId) {
   return `
     <nav class="sidebar" id="sidebar">
       <div class="sidebar-header">
-        <div class="logo">
-          <i class="ph-fill ph-circles-four"></i>
-          EazDash
+        <div class="logo" style="display:flex; align-items:center; gap:0.6rem;">
+          <img src="assets/logo.png" style="width:32px; height:32px; object-fit:contain;" alt="Logo">
+          Eaz Dash
         </div>
         <button class="mobile-toggle" id="close-sidebar">
           <i class="ph ph-x"></i>
