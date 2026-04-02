@@ -7,6 +7,7 @@ const EmployeePortal = {
   user: null,
   timerInterval: null,
   pingInterval: null,
+  todayRefreshInterval: null,
 
   init(user) {
     this.user = user;
@@ -48,16 +49,21 @@ const EmployeePortal = {
       if (btnPause) btnPause.style.display = 'flex';
       status.innerHTML = '<span style="color:var(--success-color); font-weight:700;">● WORKING NOW</span>';
       this.startTimer(data.log.clockIn, data.log.breaks);
+      this._startTodayRefresh();
     } else if (data.isClockedIn && data.status === 'on_break') {
       btnOut.style.display = 'flex';
       if (btnResume) btnResume.style.display = 'flex';
       status.innerHTML = '<span style="color:#f59e0b; font-weight:700;">☕ ON BREAK</span>';
       this.freezeTimer(data.log.clockIn, data.log.breaks);
+      this._startTodayRefresh();
     } else {
       btnIn.style.display = 'flex';
       status.innerHTML = '<span style="color:var(--text-secondary); font-weight:500;">○ OFFLINE</span>';
       this.stopTimer();
+      this._stopTodayRefresh();
     }
+    // Always refresh today's total on status change
+    this.loadHistory();
   },
 
   // Calculate total break duration in ms from breaks array
@@ -125,6 +131,30 @@ const EmployeePortal = {
     clearInterval(this.pingInterval);
     this.pingInterval = null;
     document.getElementById('timer').textContent = '00:00:00';
+  },
+
+  // Live "Today: X hrs" badge refresh
+  _startTodayRefresh() {
+    if (this.todayRefreshInterval) clearInterval(this.todayRefreshInterval);
+    this.todayRefreshInterval = setInterval(() => {
+      this._refreshTodayBadge();
+    }, 30000); // Every 30s
+  },
+
+  _stopTodayRefresh() {
+    if (this.todayRefreshInterval) {
+      clearInterval(this.todayRefreshInterval);
+      this.todayRefreshInterval = null;
+    }
+  },
+
+  async _refreshTodayBadge() {
+    try {
+      const res = await fetch(`/api/employees/history/${this.user.id}`);
+      const data = await res.json();
+      const todayDisplay = document.getElementById('today-hrs-total');
+      if (todayDisplay) todayDisplay.textContent = `Today: ${parseFloat((data.todayHours || 0).toFixed(2))} hrs`;
+    } catch (e) {}
   },
 
   async clockIn() {
@@ -285,7 +315,7 @@ const EmployeePortal = {
     const data = await res.json();
     const container = document.getElementById('history-list');
     const todayDisplay = document.getElementById('today-hrs-total');
-    if (todayDisplay) todayDisplay.textContent = `Today: ${data.todayHours || 0} hrs`;
+    if (todayDisplay) todayDisplay.textContent = `Today: ${parseFloat((data.todayHours || 0).toFixed(2))} hrs`;
     
     if (!container) return;
 

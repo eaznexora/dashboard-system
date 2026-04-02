@@ -194,14 +194,29 @@ router.get('/history/:userId', async (req, res) => {
   try {
     const logs = await TimeLog.find({ userId: req.params.userId }).sort({ clockIn: -1 }).limit(30);
     
-    // Calculate today's hours
+    // Calculate today's hours (including active sessions)
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayLogs = await TimeLog.find({ 
       userId: req.params.userId, 
       clockIn: { $gte: today } 
     });
-    const todayHours = todayLogs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
+    const now = new Date();
+    const todayHours = todayLogs.reduce((sum, l) => {
+      if (l.clockOut) {
+        // Completed session — use stored totalHours
+        return sum + (l.totalHours || 0);
+      } else {
+        // Active session — calculate live net hours (subtract breaks)
+        const breakMs = (l.breaks || []).reduce((bSum, b) => {
+          const start = new Date(b.pauseStart).getTime();
+          const end = b.pauseEnd ? new Date(b.pauseEnd).getTime() : now.getTime();
+          return bSum + (end - start);
+        }, 0);
+        const netMs = (now - new Date(l.clockIn)) - breakMs;
+        return sum + (netMs / (1000 * 60 * 60));
+      }
+    }, 0);
     
     const totalHours = logs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
     res.json({ 
