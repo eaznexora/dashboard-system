@@ -62,6 +62,7 @@ const autoClockOutIdleUsers = async () => {
 
     const idleLogs = await TimeLog.find({
       clockOut: null,
+      status: 'working',  // Only sweep actively working sessions, not intentional breaks
       lastPingTime: { $lt: cutoff }
     });
 

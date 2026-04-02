@@ -33,33 +33,56 @@ const EmployeePortal = {
     const data = await res.json();
     const btnIn = document.getElementById('btn-clock-in');
     const btnOut = document.getElementById('btn-clock-out');
+    const btnPause = document.getElementById('btn-pause');
+    const btnResume = document.getElementById('btn-resume');
     const status = document.getElementById('clock-status');
-    const timer = document.getElementById('timer');
 
-    if (data.isClockedIn) {
-      btnIn.style.display = 'none';
+    // Hide all buttons first
+    btnIn.style.display = 'none';
+    btnOut.style.display = 'none';
+    if (btnPause) btnPause.style.display = 'none';
+    if (btnResume) btnResume.style.display = 'none';
+
+    if (data.isClockedIn && data.status === 'working') {
       btnOut.style.display = 'flex';
+      if (btnPause) btnPause.style.display = 'flex';
       status.innerHTML = '<span style="color:var(--success-color); font-weight:700;">● WORKING NOW</span>';
-      this.startTimer(data.log.clockIn);
+      this.startTimer(data.log.clockIn, data.log.breaks);
+    } else if (data.isClockedIn && data.status === 'on_break') {
+      btnOut.style.display = 'flex';
+      if (btnResume) btnResume.style.display = 'flex';
+      status.innerHTML = '<span style="color:#f59e0b; font-weight:700;">☕ ON BREAK</span>';
+      this.freezeTimer(data.log.clockIn, data.log.breaks);
     } else {
       btnIn.style.display = 'flex';
-      btnOut.style.display = 'none';
       status.innerHTML = '<span style="color:var(--text-secondary); font-weight:500;">○ OFFLINE</span>';
       this.stopTimer();
     }
   },
 
-  startTimer(startDate) {
+  // Calculate total break duration in ms from breaks array
+  _calcBreakMs(breaks) {
+    if (!breaks || breaks.length === 0) return 0;
+    return breaks.reduce((sum, b) => {
+      const start = new Date(b.pauseStart).getTime();
+      const end = b.pauseEnd ? new Date(b.pauseEnd).getTime() : Date.now();
+      return sum + (end - start);
+    }, 0);
+  },
+
+  startTimer(startDate, breaks) {
     const clockInTime = new Date(startDate);
     const timer = document.getElementById('timer');
     if (this.timerInterval) clearInterval(this.timerInterval);
     if (this.pingInterval) clearInterval(this.pingInterval);
     
+    const pastBreakMs = this._calcBreakMs(breaks ? breaks.filter(b => b.pauseEnd) : []);
+
     this.timerInterval = setInterval(() => {
-      const diff = Date.now() - clockInTime.getTime();
-      const h = String(Math.floor(diff / 3600000)).padStart(2, '0');
-      const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, '0');
-      const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
+      const netMs = (Date.now() - clockInTime.getTime()) - pastBreakMs;
+      const h = String(Math.floor(netMs / 3600000)).padStart(2, '0');
+      const m = String(Math.floor((netMs % 3600000) / 60000)).padStart(2, '0');
+      const s = String(Math.floor((netMs % 60000) / 1000)).padStart(2, '0');
       timer.textContent = `${h}:${m}:${s}`;
     }, 1000);
 
@@ -78,6 +101,23 @@ const EmployeePortal = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: this.user.id })
     }).catch(() => {});
+  },
+
+  // Freeze timer display at current net work time (for on_break state)
+  freezeTimer(startDate, breaks) {
+    if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.pingInterval) clearInterval(this.pingInterval);
+    this.pingInterval = null;
+
+    const clockInTime = new Date(startDate).getTime();
+    const totalBreakMs = this._calcBreakMs(breaks || []);
+    const netMs = (Date.now() - clockInTime) - totalBreakMs;
+
+    const timer = document.getElementById('timer');
+    const h = String(Math.floor(netMs / 3600000)).padStart(2, '0');
+    const m = String(Math.floor((netMs % 3600000) / 60000)).padStart(2, '0');
+    const s = String(Math.floor((netMs % 60000) / 1000)).padStart(2, '0');
+    timer.textContent = `${h}:${m}:${s}`;
   },
 
   stopTimer() {
@@ -107,6 +147,31 @@ const EmployeePortal = {
       this.stopTimer();
       this.loadClockStatus();
       this.loadHistory();
+    }
+  },
+
+  async pauseWork() {
+    const res = await fetch('/api/employees/pause', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: this.user.id })
+    });
+    if (res.ok) {
+      clearInterval(this.timerInterval);
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+      this.loadClockStatus();
+    }
+  },
+
+  async resumeWork() {
+    const res = await fetch('/api/employees/resume', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: this.user.id })
+    });
+    if (res.ok) {
+      this.loadClockStatus();
     }
   },
 

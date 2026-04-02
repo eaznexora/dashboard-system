@@ -42,9 +42,11 @@
                    <div id="today-hrs-total" style="font-size:0.7rem; font-weight:800; background:rgba(255,255,255,0.15); padding:0.15rem 0.5rem; border-radius:4px; letter-spacing:0.5px; text-transform:uppercase;">Today: 0.00 hrs</div>
                 </div>
               </div>
-              <div>
+              <div style="display:flex; flex-direction:column; gap:0.5rem;">
                 <button class="btn btn-primary" id="btn-clock-in" onclick="EmployeePortal.clockIn()" style="padding:1rem 2rem; font-size:1.1rem; width:100%; justify-content:center; border-radius:12px;">Clock In</button>
                 <button class="btn btn-danger" id="btn-clock-out" onclick="EmployeePortal.clockOut()" style="padding:1rem 2rem; font-size:1.1rem; width:100%; justify-content:center; border-radius:12px; display:none;">Clock Out</button>
+                <button class="btn" id="btn-pause" onclick="EmployeePortal.pauseWork()" style="padding:0.75rem 1.5rem; font-size:0.9rem; width:100%; justify-content:center; border-radius:12px; display:none; background:rgba(255,255,255,0.2); color:#fff; border:1px solid rgba(255,255,255,0.3); cursor:pointer;"><i class="ph ph-coffee"></i> Take Break</button>
+                <button class="btn" id="btn-resume" onclick="EmployeePortal.resumeWork()" style="padding:0.75rem 1.5rem; font-size:0.9rem; width:100%; justify-content:center; border-radius:12px; display:none; background:#10b981; color:#fff; border:none; cursor:pointer; animation: pulse 1.5s infinite;"><i class="ph ph-play"></i> Resume Work</button>
               </div>
             </div>
           </div>

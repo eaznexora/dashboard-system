@@ -90,13 +90,73 @@ router.post('/clock-out', async (req, res) => {
     const log = await TimeLog.findOne({ userId, clockOut: null });
     if (!log) return res.status(400).json({ message: 'No active clock-in found.' });
 
-    log.clockOut = new Date();
-    log.totalHours = parseFloat(((log.clockOut - log.clockIn) / (1000 * 60 * 60)).toFixed(2));
+    const now = new Date();
+
+    // Auto-close any open break
+    if (log.status === 'on_break' && log.breaks.length > 0) {
+      const lastBreak = log.breaks[log.breaks.length - 1];
+      if (!lastBreak.pauseEnd) {
+        lastBreak.pauseEnd = now;
+      }
+    }
+
+    log.clockOut = now;
+    log.status = 'completed';
+
+    // Calculate total break duration in ms
+    const totalBreakMs = log.breaks.reduce((sum, b) => {
+      const start = new Date(b.pauseStart).getTime();
+      const end = b.pauseEnd ? new Date(b.pauseEnd).getTime() : now.getTime();
+      return sum + (end - start);
+    }, 0);
+
+    const grossMs = log.clockOut - log.clockIn;
+    const netMs = grossMs - totalBreakMs;
+    log.totalHours = parseFloat((netMs / (1000 * 60 * 60)).toFixed(2));
     await log.save();
 
     res.json({ message: 'Clocked out successfully', totalHours: log.totalHours });
   } catch (err) {
     res.status(500).json({ message: 'Clock-out failed' });
+  }
+});
+
+// PAUSE (Take Break)
+router.post('/pause', async (req, res) => {
+  try {
+    const userId = req.body.userId;
+    const log = await TimeLog.findOne({ userId, clockOut: null, status: 'working' });
+    if (!log) return res.status(400).json({ message: 'No active working session found.' });
+
+    log.status = 'on_break';
+    log.breaks.push({ pauseStart: new Date() });
+    await log.save();
+
+    res.json({ message: 'Break started', log });
+  } catch (err) {
+    res.status(500).json({ message: 'Pause failed' });
+  }
+});
+
+// RESUME (End Break)
+router.post('/resume', async (req, res) => {
+  try {
+    const userId = req.body.userId;
+    const log = await TimeLog.findOne({ userId, clockOut: null, status: 'on_break' });
+    if (!log) return res.status(400).json({ message: 'No active break found.' });
+
+    const lastBreak = log.breaks[log.breaks.length - 1];
+    if (lastBreak && !lastBreak.pauseEnd) {
+      lastBreak.pauseEnd = new Date();
+    }
+
+    log.status = 'working';
+    log.lastPingTime = new Date();
+    await log.save();
+
+    res.json({ message: 'Break ended, back to work', log });
+  } catch (err) {
+    res.status(500).json({ message: 'Resume failed' });
   }
 });
 
@@ -119,7 +179,11 @@ router.post('/ping', async (req, res) => {
 router.get('/status/:userId', async (req, res) => {
   try {
     const activeLog = await TimeLog.findOne({ userId: req.params.userId, clockOut: null });
-    res.json({ isClockedIn: !!activeLog, log: activeLog });
+    res.json({ 
+      isClockedIn: !!activeLog, 
+      status: activeLog ? activeLog.status : null,
+      log: activeLog 
+    });
   } catch (err) {
     res.status(500).json({ message: 'Failed to check status' });
   }
