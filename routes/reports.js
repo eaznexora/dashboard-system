@@ -54,10 +54,14 @@ router.get('/', async (req, res) => {
             
             // If project is active during this month
             if (pStart <= monthEnd && pEnd >= monthStart) {
-                // Calculate duration in months (min 1)
-                const monthDiff = (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1;
+                // Calculate duration in months (ensure minimum 1 to avoid division by zero)
+                const monthDiff = Math.max(1, (pEnd.getFullYear() - pStart.getFullYear()) * 12 + (pEnd.getMonth() - pStart.getMonth()) + 1);
                 const monthlyWeight = p.budget / monthDiff;
-                revenueHistory[i] += monthlyWeight;
+                
+                // Add to history (prevent Infinity/NaN)
+                if (isFinite(monthlyWeight)) {
+                    revenueHistory[i] += monthlyWeight;
+                }
             }
         });
         revenueHistory[i] = Math.round(revenueHistory[i]);
@@ -79,22 +83,28 @@ router.get('/', async (req, res) => {
         let breakMs = 0;
 
         empLogs.forEach(l => {
-            const clockIn = new Date(l.clockIn);
-            const clockOut = l.clockOut ? new Date(l.clockOut) : now;
-            const sessionMs = clockOut - clockIn;
-            
-            const logBreakMs = (l.breaks || []).reduce((sum, b) => {
-                const bStart = new Date(b.pauseStart);
-                const bEnd = b.pauseEnd ? new Date(b.pauseEnd) : (l.clockOut ? new Date(l.clockOut) : now);
-                return sum + (bEnd - bStart);
-            }, 0);
+            try {
+                const clockIn = new Date(l.clockIn);
+                const clockOut = l.clockOut ? new Date(l.clockOut) : now;
+                const sessionMs = Math.max(0, clockOut - clockIn);
+                
+                const logBreakMs = (l.breaks || []).reduce((sum, b) => {
+                    const bStart = new Date(b.pauseStart);
+                    const bEnd = b.pauseEnd ? new Date(b.pauseEnd) : (l.clockOut ? new Date(l.clockOut) : now);
+                    const duration = Math.max(0, bEnd - bStart);
+                    return sum + (isNaN(duration) ? 0 : duration);
+                }, 0);
 
-            breakMs += logBreakMs;
-            workMs += (sessionMs - logBreakMs);
+                const sessionWorkMs = Math.max(0, sessionMs - logBreakMs);
+                breakMs += (isNaN(logBreakMs) ? 0 : logBreakMs);
+                workMs += (isNaN(sessionWorkMs) ? 0 : sessionWorkMs);
+            } catch (logErr) {
+                console.error('[REPORT_LOG_PROCESSING_ERROR]:', logErr);
+            }
         });
 
-        employeeWorkHours.push(parseFloat((workMs / 3600000).toFixed(1)));
-        employeeBreakHours.push(parseFloat((breakMs / 3600000).toFixed(1)));
+        employeeWorkHours.push(parseFloat((workMs / 3600000).toFixed(1)) || 0);
+        employeeBreakHours.push(parseFloat((breakMs / 3600000).toFixed(1)) || 0);
     });
 
     res.json({
@@ -109,8 +119,11 @@ router.get('/', async (req, res) => {
       employeeNames: activeEmployees.map(e => e.name)
     });
   } catch (err) {
-    console.error('[REPORTS_API_ERROR]:', err);
-    res.status(500).json({ message: 'Failed to generate report data' });
+    console.error('[REPORTS_API_CRITICAL_ERROR]:', err);
+    res.status(500).json({ 
+      message: 'Failed to generate report data',
+      error: err.message
+    });
   }
 });
 
