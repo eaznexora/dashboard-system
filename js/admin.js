@@ -198,8 +198,35 @@ const AdminPanel = {
   },
 
   _renderMatrixItem(d) {
-    const statusIndicator = d.empStatus === 'on_break' ? 
-      '<span style="font-size:0.65rem; color:#f59e0b; font-weight:800; margin-left:0.5rem; background:rgba(245,158,11,0.1); padding:0.1rem 0.4rem; border-radius:4px; animation: pulse 1.5s infinite;">☕ ON BREAK</span>' : '';
+    const statusConfig = {
+      'working': { 
+        text: 'WORKING', 
+        color: 'var(--success-color)', 
+        bg: 'rgba(16,185,129,0.1)', 
+        pulse: false 
+      },
+      'on_break': { 
+        text: 'ON BREAK', 
+        color: '#f59e0b', 
+        bg: 'rgba(245,158,11,0.1)', 
+        pulse: true 
+      },
+      'offline': { 
+        text: 'OFFLINE', 
+        color: 'var(--text-secondary)', 
+        bg: 'rgba(100,116,139,0.1)', 
+        pulse: false 
+      }
+    };
+    
+    const cfg = statusConfig[d.empStatus] || statusConfig['offline'];
+    
+    const statusIndicator = `
+      <span style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.65rem; color:${cfg.color}; font-weight:800; margin-left:0.5rem; background:${cfg.bg}; padding:0.15rem 0.5rem; border-radius:6px; text-transform:uppercase; letter-spacing:0.02em;">
+        <span style="width:7px; height:7px; border-radius:50%; background:${cfg.color}; ${cfg.pulse ? 'animation: pulse 1.5s infinite;' : ''}"></span>
+        ${cfg.text}
+      </span>
+    `;
 
     return `
       <div style="background:#f8fafc; border-radius:16px; padding:1.5rem; border:1px solid #f1f5f9;">

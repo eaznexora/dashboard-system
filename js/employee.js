@@ -54,7 +54,7 @@ const EmployeePortal = {
     } else if (data.isClockedIn && data.status === 'on_break') {
       btnOut.style.display = 'flex';
       if (btnResume) btnResume.style.display = 'flex';
-      status.innerHTML = '<span style="color:#f59e0b; font-weight:700;">☕ ON BREAK</span>';
+      status.innerHTML = '<span style="color:#f59e0b; font-weight:700;">● ON BREAK</span>';
       this.freezeTimer(data.log.clockIn, data.log.breaks);
       this._startTodayRefresh();
     } else {
