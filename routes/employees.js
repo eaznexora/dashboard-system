@@ -75,7 +75,8 @@ router.post('/clock-in', async (req, res) => {
     const existing = await TimeLog.findOne({ userId, clockOut: null });
     if (existing) return res.status(400).json({ message: 'Already clocked in.' });
 
-    const log = await TimeLog.create({ userId, clockIn: new Date() });
+    const now = new Date();
+    const log = await TimeLog.create({ userId, clockIn: now, lastPingTime: now });
     res.status(201).json({ message: 'Clocked in successfully', log });
   } catch (err) {
     res.status(500).json({ message: 'Clock-in failed' });
@@ -96,6 +97,21 @@ router.post('/clock-out', async (req, res) => {
     res.json({ message: 'Clocked out successfully', totalHours: log.totalHours });
   } catch (err) {
     res.status(500).json({ message: 'Clock-out failed' });
+  }
+});
+
+// HEARTBEAT PING — Frontend sends every 30s to prove browser is alive
+router.post('/ping', async (req, res) => {
+  try {
+    const userId = req.body.userId;
+    const activeLog = await TimeLog.findOne({ userId, clockOut: null });
+    if (!activeLog) return res.status(400).json({ message: 'No active session.' });
+
+    activeLog.lastPingTime = new Date();
+    await activeLog.save();
+    res.json({ message: 'Ping received' });
+  } catch (err) {
+    res.status(500).json({ message: 'Ping failed' });
   }
 });
 

@@ -6,12 +6,25 @@
 const EmployeePortal = {
   user: null,
   timerInterval: null,
+  pingInterval: null,
 
   init(user) {
     this.user = user;
     this.loadClockStatus();
     this.loadKanban();
     this.loadHistory();
+
+    // Instant Disconnect: clock-out via keepalive beacon when tab closes
+    window.addEventListener('beforeunload', () => {
+      if (document.getElementById('btn-clock-out')?.style.display !== 'none') {
+        fetch('/api/employees/clock-out', {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: this.user.id })
+        });
+      }
+    });
   },
 
   // --- TIME TRACKING ---
@@ -40,6 +53,7 @@ const EmployeePortal = {
     const clockInTime = new Date(startDate);
     const timer = document.getElementById('timer');
     if (this.timerInterval) clearInterval(this.timerInterval);
+    if (this.pingInterval) clearInterval(this.pingInterval);
     
     this.timerInterval = setInterval(() => {
       const diff = Date.now() - clockInTime.getTime();
@@ -48,10 +62,28 @@ const EmployeePortal = {
       const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, '0');
       timer.textContent = `${h}:${m}:${s}`;
     }, 1000);
+
+    // Heartbeat: ping server every 30s to prove browser is alive
+    this.pingInterval = setInterval(() => {
+      fetch('/api/employees/ping', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: this.user.id })
+      }).catch(() => {});
+    }, 30000);
+
+    // Send first ping immediately
+    fetch('/api/employees/ping', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: this.user.id })
+    }).catch(() => {});
   },
 
   stopTimer() {
     clearInterval(this.timerInterval);
+    clearInterval(this.pingInterval);
+    this.pingInterval = null;
     document.getElementById('timer').textContent = '00:00:00';
   },
 

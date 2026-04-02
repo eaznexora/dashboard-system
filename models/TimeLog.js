@@ -5,6 +5,7 @@ const TimeLogSchema = new mongoose.Schema({
   clockIn: { type: Date, required: true },
   clockOut: { type: Date, default: null },
   totalHours: { type: Number, default: 0 },
+  lastPingTime: { type: Date, default: Date.now },
   taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', default: null },
   note: { type: String, default: '' }
 }, { timestamps: true });

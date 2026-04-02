@@ -2,6 +2,7 @@ const Task = require('../models/Task');
 const Invoice = require('../models/Invoice');
 const Activity = require('../models/Activity');
 const Project = require('../models/Project');
+const TimeLog = require('../models/TimeLog');
 
 const logActivity = async (actorId, action, target, targetId, metadata) => {
   try {
@@ -54,9 +55,35 @@ const checkOverdueInvoices = async () => {
   }
 };
 
+const autoClockOutIdleUsers = async () => {
+  try {
+    const IDLE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
+    const cutoff = new Date(Date.now() - IDLE_THRESHOLD_MS);
+
+    const idleLogs = await TimeLog.find({
+      clockOut: null,
+      lastPingTime: { $lt: cutoff }
+    });
+
+    for (const log of idleLogs) {
+      log.clockOut = log.lastPingTime; // Fair: only count time until last known alive
+      log.totalHours = parseFloat(((log.clockOut - log.clockIn) / (1000 * 60 * 60)).toFixed(2));
+      await log.save();
+      console.log(`[SWEEPER]: Auto-clocked out userId ${log.userId} — idle since ${log.lastPingTime.toISOString()}`);
+    }
+
+    if (idleLogs.length > 0) {
+      console.log(`[SWEEPER]: Total auto-clockouts this cycle: ${idleLogs.length}`);
+    }
+  } catch (err) {
+    console.error('[SWEEPER_ERROR]:', err);
+  }
+};
+
 module.exports = {
   logActivity,
   createOnboardingTasks,
-  checkOverdueInvoices
+  checkOverdueInvoices,
+  autoClockOutIdleUsers
 };
 

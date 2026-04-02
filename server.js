@@ -61,7 +61,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Database Connection
 const MONGODB_URI = process.env.MONGODB_URI;
-const { checkOverdueInvoices } = require('./utils/automation');
+const { checkOverdueInvoices, autoClockOutIdleUsers } = require('./utils/automation');
 
 mongoose.connect(MONGODB_URI, {
     serverSelectionTimeoutMS: 5000
@@ -73,6 +73,10 @@ mongoose.connect(MONGODB_URI, {
     // Start automation workers
     setInterval(checkOverdueInvoices, 60 * 60 * 1000); // Every hour
     checkOverdueInvoices(); // Run once on start
+
+    // Heartbeat Sweeper — auto-clockout idle employees every 60s
+    setInterval(autoClockOutIdleUsers, 60 * 1000); // Every minute
+    autoClockOutIdleUsers(); // Run once on start
 }).catch(err => {
     console.error("\n❌ FAILED TO REACH MONGODB! ❌");
     console.error("1. Did you add 0.0.0.0/0 to the Atlas Network Access Whitelist?");
