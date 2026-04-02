@@ -149,6 +149,17 @@ router.get('/me', async (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
+    // Handle Hardcoded Admin Session (Bypass DB lookup)
+    if (decoded.id === 'admin') {
+      return res.json({ 
+        id: 'admin', 
+        name: decoded.name || 'Eaz Nexora', 
+        email: decoded.email || 'admin@eaznexora.com', 
+        role: 'ADMIN',
+        image: null 
+      });
+    }
+
     // Fetch latest user info from DB to ensure profile image is always real-time
     const user = await User.findById(decoded.id).select('name email role image');
     if (!user) return res.status(404).json({ message: 'User deleted' });
