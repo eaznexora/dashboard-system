@@ -46,6 +46,7 @@ router.post('/', async (req, res) => {
             );
 
             if (global.io) global.io.emit('asset_update');
+            if (global.io) global.io.emit('agency_data_updated');
         } catch (syncErr) {
             console.error('[TASK_SYNC_ERROR]:', syncErr);
         }
@@ -66,6 +67,8 @@ router.patch('/:id', async (req, res) => {
     
     const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!task) return res.status(404).json({ message: 'Task not found' });
+    
+    if (global.io) global.io.emit('agency_data_updated');
     res.json(task);
   } catch (err) {
     console.error('[TASK_UPDATE_ERROR]:', err);
@@ -82,6 +85,8 @@ router.post('/:id/comments', async (req, res) => {
       { $push: { comments: { userId, text } } },
       { new: true }
     ).populate('comments.userId', 'name image');
+    
+    if (global.io) global.io.emit('agency_data_updated');
     res.json(task);
   } catch (err) {
     res.status(500).json({ message: 'Failed to add comment' });
@@ -92,6 +97,7 @@ router.post('/:id/comments', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await Task.findByIdAndDelete(req.params.id);
+    if (global.io) global.io.emit('agency_data_updated');
     res.json({ message: 'Task deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete task' });

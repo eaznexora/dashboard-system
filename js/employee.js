@@ -8,12 +8,14 @@ const EmployeePortal = {
   timerInterval: null,
   pingInterval: null,
   todayRefreshInterval: null,
+  socket: null,
 
   init(user) {
     this.user = user;
     this.loadClockStatus();
     this.loadKanban();
     this.loadHistory();
+    this.initSync();
 
     // Instant Disconnect: clock-out via keepalive beacon when tab closes
     window.addEventListener('beforeunload', () => {
@@ -25,6 +27,17 @@ const EmployeePortal = {
           body: JSON.stringify({ userId: this.user.id })
         });
       }
+    });
+  },
+
+  initSync() {
+    if (typeof io === 'undefined') return;
+    this.socket = io();
+    this.socket.on('agency_data_updated', () => {
+      console.log('⚡ Data sync received: Refreshing workspace...');
+      this.loadClockStatus();
+      this.loadKanban();
+      this.loadHistory();
     });
   },
 

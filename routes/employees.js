@@ -24,14 +24,19 @@ router.get('/', async (req, res) => {
   try {
     const employees = await User.find({ role: 'EMPLOYEE' }).select('-password').sort({ name: 1 });
     
-    // Check who is currently clocked in
+    // Check who is currently clocked in and what is their status
     const activeTimeLogs = await TimeLog.find({ clockOut: null });
-    const activeIds = activeTimeLogs.map(t => t.userId.toString());
+    const statusMap = {};
+    activeTimeLogs.forEach(t => { statusMap[t.userId.toString()] = t.status || 'working'; });
 
-    const result = employees.map(emp => ({
-      ...emp.toObject(),
-      isCurrentlyWorking: activeIds.includes(emp._id.toString())
-    }));
+    const result = employees.map(emp => {
+      const status = statusMap[emp._id.toString()] || 'offline';
+      return {
+        ...emp.toObject(),
+        isCurrentlyWorking: status !== 'offline',
+        currentStatus: status
+      };
+    });
 
     res.json(result);
   } catch (err) {
@@ -77,6 +82,7 @@ router.post('/clock-in', async (req, res) => {
 
     const now = new Date();
     const log = await TimeLog.create({ userId, clockIn: now, lastPingTime: now });
+    if (global.io) global.io.emit('agency_data_updated');
     res.status(201).json({ message: 'Clocked in successfully', log });
   } catch (err) {
     res.status(500).json({ message: 'Clock-in failed' });
@@ -115,6 +121,7 @@ router.post('/clock-out', async (req, res) => {
     log.totalHours = parseFloat((netMs / (1000 * 60 * 60)).toFixed(2));
     await log.save();
 
+    if (global.io) global.io.emit('agency_data_updated');
     res.json({ message: 'Clocked out successfully', totalHours: log.totalHours });
   } catch (err) {
     res.status(500).json({ message: 'Clock-out failed' });
@@ -132,6 +139,7 @@ router.post('/pause', async (req, res) => {
     log.breaks.push({ pauseStart: new Date() });
     await log.save();
 
+    if (global.io) global.io.emit('agency_data_updated');
     res.json({ message: 'Break started', log });
   } catch (err) {
     res.status(500).json({ message: 'Pause failed' });
@@ -154,6 +162,7 @@ router.post('/resume', async (req, res) => {
     log.lastPingTime = new Date();
     await log.save();
 
+    if (global.io) global.io.emit('agency_data_updated');
     res.json({ message: 'Break ended, back to work', log });
   } catch (err) {
     res.status(500).json({ message: 'Resume failed' });

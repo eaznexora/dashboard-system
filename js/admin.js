@@ -4,10 +4,43 @@
  */
 
 const AdminPanel = {
+  socket: null,
+  currentView: 'Employees',
+  employees: [],
+  projects: [],
+  tasks: [],
+
+  // --- SYNC ENGINE ---
+  initSync() {
+    if (typeof io === 'undefined') return;
+    this.socket = io();
+    this.socket.on('agency_data_updated', () => {
+      console.log('⚡ Agency sync received: Updating DOM silently...');
+      this._silentRefresh();
+    });
+  },
+
+  async _silentRefresh() {
+    // Refresh only if we are in a main dashboard view
+    if (this.currentView === 'Employees') {
+      await this.loadEmployees(true); // true = silent refresh
+      
+      // If Project Matrix is open, refresh its data too
+      const matrixModal = document.getElementById('project-health-modal');
+      if (matrixModal) {
+         const pId = matrixModal.getAttribute('data-project-id');
+         if (pId) this.showProjectTaskMatrix(pId, this.tasks);
+      }
+    } else if (this.currentView === 'Reports') {
+      this.loadReports(true);
+    }
+  },
+
   // --- EMPLOYEE MODULE ---
-  async loadEmployees() {
+  async loadEmployees(isSilent = false) {
+    this.currentView = 'Employees';
     const container = document.getElementById('dashboard-content');
-    container.innerHTML = `<div class="loading">Loading team health data...</div>`;
+    if (!isSilent) container.innerHTML = `<div class="loading">Loading team health data...</div>`;
     
     try {
       const [empsRes, projsRes, tasksRes] = await Promise.all([
@@ -112,13 +145,10 @@ const AdminPanel = {
   async showProjectTaskMatrix(projectId, tasksArr = null) {
     const p = this.projects.find(x => x._id === projectId);
     const assignedIds = p.assignedEmployees || [];
-    
-    // Choose tasks source: passed-in live data OR global this.tasks
     const tasksToScan = tasksArr || this.tasks || [];
 
     const matrixData = assignedIds.map(id => {
        const emp = this.employees.find(e => e._id === id);
-       // Robust Filtering: handle both string IDs and populated objects
        const empTasks = tasksToScan.filter(t => {
           const pId = (t.project?._id || t.project);
           const aId = (t.assignedTo?._id || t.assignedTo);
@@ -127,6 +157,7 @@ const AdminPanel = {
 
        return {
          empName: emp?.name || 'Unknown',
+         empStatus: emp?.currentStatus || 'offline',
          total: empTasks.length,
          pending: empTasks.filter(t => t.status.toLowerCase().includes('pending')).length,
          progress: empTasks.filter(t => t.status.toLowerCase().includes('progress')).length,
@@ -135,8 +166,18 @@ const AdminPanel = {
        };
     });
 
+    const existingModal = document.getElementById('project-health-modal');
+    if (existingModal) {
+       // Silent update of inner grid only
+       const gridContainer = existingModal.querySelector('.matrix-grid');
+       if (gridContainer) {
+          gridContainer.innerHTML = matrixData.map(d => this._renderMatrixItem(d)).join('');
+       }
+       return;
+    }
+
     const modalHtml = `
-      <div class="modal-overlay" id="project-health-modal">
+      <div class="modal-overlay" id="project-health-modal" data-project-id="${projectId}">
         <div class="modal-content" style="max-width:750px;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem;">
             <div>
@@ -146,27 +187,37 @@ const AdminPanel = {
             <button onclick="document.getElementById('project-health-modal').remove()" style="background:none; border:none; font-size:1.5rem; cursor:pointer;"><i class="ph ph-x"></i></button>
           </div>
 
-          <div style="display:grid; gap:1.5rem;">
+          <div class="matrix-grid" style="display:grid; gap:1.5rem;">
              ${matrixData.length === 0 ? '<p style="padding:4rem; text-align:center; color:var(--text-secondary);">No team members explicitly assigned to this project.</p>' : 
-               matrixData.map(d => `
-                 <div style="background:#f8fafc; border-radius:16px; padding:1.5rem; border:1px solid #f1f5f9;">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-                       <span style="font-weight:800; font-size:1.1rem; color:var(--text-primary); letter-spacing:-0.01em;">${d.empName.toUpperCase()}</span>
-                       <span style="font-size:0.75rem; font-weight:900; color:var(--accent-color); letter-spacing:0.05em; background:var(--accent-light); padding:0.3rem 0.75rem; border-radius:10px;">TOTAL LOAD: ${d.total} TASKS</span>
-                    </div>
-                    <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-                       <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#fee2e2; color:#b91c1c; min-width:110px; text-align:center;">PENDING: ${d.pending}</span>
-                       <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#fef3c7; color:#92400e; min-width:110px; text-align:center;">IN PROGRESS: ${d.progress}</span>
-                       <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#dbeafe; color:#1d4ed8; min-width:110px; text-align:center;">IN REVIEW: ${d.review}</span>
-                       <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#dcfce7; color:#15803d; min-width:110px; text-align:center;">COMPLETED: ${d.done}</span>
-                    </div>
-                 </div>
-               `).join('')}
+               matrixData.map(d => this._renderMatrixItem(d)).join('')}
           </div>
         </div>
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  _renderMatrixItem(d) {
+    const statusIndicator = d.empStatus === 'on_break' ? 
+      '<span style="font-size:0.65rem; color:#f59e0b; font-weight:800; margin-left:0.5rem; background:rgba(245,158,11,0.1); padding:0.1rem 0.4rem; border-radius:4px; animation: pulse 1.5s infinite;">☕ ON BREAK</span>' : '';
+
+    return `
+      <div style="background:#f8fafc; border-radius:16px; padding:1.5rem; border:1px solid #f1f5f9;">
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <span style="font-weight:800; font-size:1.1rem; color:var(--text-primary); letter-spacing:-0.01em;">
+              ${d.empName.toUpperCase()}
+              ${statusIndicator}
+            </span>
+            <span style="font-size:0.75rem; font-weight:900; color:var(--accent-color); letter-spacing:0.05em; background:var(--accent-light); padding:0.3rem 0.75rem; border-radius:10px;">TOTAL LOAD: ${d.total} TASKS</span>
+         </div>
+         <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+            <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#fee2e2; color:#b91c1c; min-width:110px; text-align:center;">PENDING: ${d.pending}</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#fef3c7; color:#92400e; min-width:110px; text-align:center;">IN PROGRESS: ${d.progress}</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#dbeafe; color:#1d4ed8; min-width:110px; text-align:center;">IN REVIEW: ${d.review}</span>
+            <span style="font-size:0.7rem; font-weight:800; padding:0.4rem 0.8rem; border-radius:8px; background:#dcfce7; color:#15803d; min-width:110px; text-align:center;">COMPLETED: ${d.done}</span>
+         </div>
+      </div>
+    `;
   },
 
   showAddEmployee() {
@@ -240,8 +291,19 @@ const AdminPanel = {
   },
 
   renderEmployeeCard(emp) {
-    const statusText = emp.isCurrentlyWorking ? 'Working Now' : 'Offline';
-    const statusColor = emp.isCurrentlyWorking ? 'var(--success-color)' : 'var(--text-secondary)';
+    const statusTextMap = {
+      'working': 'Working Now',
+      'on_break': 'On Break',
+      'offline': 'Offline'
+    };
+    const statusColorMap = {
+      'working': 'var(--success-color)',
+      'on_break': '#f59e0b', // Amber
+      'offline': 'var(--text-secondary)'
+    };
+    
+    const statusText = statusTextMap[emp.currentStatus] || 'Offline';
+    const statusColor = statusColorMap[emp.currentStatus] || 'var(--text-secondary)';
     
     // Professional gradients for initial placeholders
     const gradients = [
@@ -264,10 +326,11 @@ const AdminPanel = {
         <!-- Header: Identity -->
         <div style="display:flex; gap:1.25rem; align-items:center; margin-bottom:1.5rem;" onclick="AdminPanel.viewEmployeeDetails('${emp._id}')">
           <div class="avatar-wrapper" style="position:relative; flex-shrink:0;">
-            <div class="avatar" style="width:64px; height:64px; border-radius:50%; font-size:1.5rem; overflow:hidden; border:3px solid ${emp.isCurrentlyWorking ? 'var(--success-color)' : 'white'}; background:${userGradient}; color:white; display:flex; align-items:center; justify-content:center; font-weight:800; box-shadow:var(--shadow-sm);">
+            <div class="avatar" style="width:64px; height:64px; border-radius:50%; font-size:1.5rem; overflow:hidden; border:3px solid ${statusColor}; background:${userGradient}; color:white; display:flex; align-items:center; justify-content:center; font-weight:800; box-shadow:var(--shadow-sm);">
               <img src="${emp.image || 'https://lh3.googleusercontent.com/a/default-user=s256-c'}" style="width:100%; height:100%; object-fit:cover;" alt="">
             </div>
-            ${emp.isCurrentlyWorking ? `<div style="position:absolute; bottom:2px; right:2px; width:14px; height:14px; background:var(--success-color); border:2px solid white; border-radius:50%; box-shadow:0 0 5px rgba(16,185,129,0.5);"></div>` : ''}
+            ${emp.currentStatus === 'working' ? `<div style="position:absolute; bottom:2px; right:2px; width:14px; height:14px; background:var(--success-color); border:2px solid white; border-radius:50%; box-shadow:0 0 5px rgba(16,185,129,0.5);"></div>` : ''}
+            ${emp.currentStatus === 'on_break' ? `<div style="position:absolute; bottom:2px; right:2px; width:14px; height:14px; background:#f59e0b; border:2px solid white; border-radius:50%; box-shadow:0 0 5px rgba(245,158,11,0.5); animation: pulse 1.5s infinite;"></div>` : ''}
           </div>
           <div style="min-width:0;">
             <div style="font-size:1.15rem; font-weight:900; color:var(--text-primary); margin-bottom:0.2rem; letter-spacing:-0.01em;">${emp.name}</div>
@@ -3173,44 +3236,32 @@ const AdminPanel = {
   },
 
   // --- REPORTS MODULE ---
-  async loadReports() {
-    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
+  async loadReports(isSilent = false) {
+    this.currentView = 'Reports';
     const container = document.getElementById('dashboard-content');
-    
-    if (user && user.role === 'EMPLOYEE') {
-      return this.loadEmployeeReportingView();
-    }
-
-    container.innerHTML = `<div class="loading">Generating agency intelligence...</div>`;
+    if (!isSilent) container.innerHTML = `<div class="loading">Generating agency intelligence...</div>`;
     
     try {
       const res = await fetch('/api/reports');
       const data = await res.json();
-
-      // Auto-refresh logic (only if we are still on the reports view)
-      if (this.reportInterval) clearInterval(this.reportInterval);
-      this.reportInterval = setInterval(() => {
-          const title = document.querySelector('.view-title')?.innerText;
-          if (title === 'Agency Intelligence') {
-              console.log('Refreshing Intelligence Data...');
-              this.loadReports();
-          } else {
-              clearInterval(this.reportInterval);
-          }
-      }, 30000); // 30s auto-refresh
-
+      
       let html = `
         <div class="view-header">
           <div>
-            <h2 class="view-title">Agency Intelligence</h2>
-            <p class="view-subtitle">Real-time performance metrics and financial tracking</p>
+            <h2 class="view-title">Reports & Intelligence</h2>
+            <p class="view-subtitle">Data-driven insights for enterprise growth</p>
           </div>
-          <button class="btn btn-primary" onclick="AdminPanel.loadReports()"><i class="ph ph-arrows-clockwise"></i> Refresh Data</button>
+          <button onclick="AdminPanel.loadReports()" class="btn btn-primary"><i class="ph ph-arrow-clockwise"></i> Refresh Data</button>
         </div>
         
-        <div class="grid-cols-3" style="margin-bottom:2rem;">
+        <div class="grid-cols-4" style="margin-bottom:2rem;">
+          <div class="card stat-card">
+            <div class="stat-icon" style="background:#e0e7ff; color:#4338ca;"><i class="ph ph-currency-circle-dollar"></i></div>
+            <div class="stat-label">Total Value</div>
+            <div class="stat-value" id="total-revenue">₹${data.totalRevenue?.toLocaleString() || 0}</div>
+          </div>
            <div class="card">
-              <div class="metric-title">Total Revenue <i class="ph ph-chart-line-up"></i></div>
+              <div class="metric-title">Total Value <i class="ph ph-chart-line-up"></i></div>
               <div class="metric-value" style="font-size:1.5rem; font-weight:800; color:var(--accent-color);">₹${data.totalRevenue?.toLocaleString() || 0}</div>
            </div>
            <div class="card">
@@ -3261,7 +3312,37 @@ const AdminPanel = {
   initCharts(data) {
     if (!window.ApexCharts) return console.error('ApexCharts not loaded');
     
-    // 1. Revenue Area Chart (Forecast)
+    // 1. Capacity stacked Chart
+    const utilOptions = {
+        series: [
+          { name: 'Work Hours', data: data.employeeWorkHours },
+          { name: 'Break Hours', data: data.employeeBreakHours }
+        ],
+        chart: {
+            type: 'bar',
+            height: 350,
+            stacked: true,
+            toolbar: { show: false }
+        },
+        plotOptions: {
+            bar: {
+                horizontal: false,
+                columnWidth: '45%',
+                borderRadius: 8
+            },
+        },
+        colors: ['#4f46e5', '#f59e0b'],
+        xaxis: { categories: data.employeeNames },
+        yaxis: { title: { text: 'Hours Today' } },
+        fill: { opacity: 1 },
+        legend: { position: 'top' },
+        tooltip: {
+            y: { formatter: (val) => val + " hrs" }
+        }
+    };
+    new ApexCharts(document.querySelector("#util-chart"), utilOptions).render();
+
+    // 2. Revenue Area Chart (Forecast)
     new ApexCharts(document.querySelector("#revenue-chart"), {
       series: [{ name: 'Projected Revenue', data: data.revenueHistory }],
       chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
