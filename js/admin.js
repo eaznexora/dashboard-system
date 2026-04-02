@@ -3261,10 +3261,6 @@ const AdminPanel = {
             <div class="stat-value" id="total-revenue">₹${data.totalRevenue?.toLocaleString() || 0}</div>
           </div>
            <div class="card">
-              <div class="metric-title">Total Value <i class="ph ph-chart-line-up"></i></div>
-              <div class="metric-value" style="font-size:1.5rem; font-weight:800; color:var(--accent-color);">₹${data.totalRevenue?.toLocaleString() || 0}</div>
-           </div>
-           <div class="card">
               <div class="metric-title">Avg Productivity <i class="ph ph-lightning"></i></div>
               <div class="metric-value" style="font-size:1.5rem; font-weight:800; color:var(--accent-color);">${data.avgProductivity || 0}%</div>
            </div>
