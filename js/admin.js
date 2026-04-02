@@ -3379,46 +3379,6 @@ const AdminPanel = {
       colors: ['#f59e0b', '#2563eb', '#8b5cf6', '#10b981'],
       legend: { position: 'bottom' }
     }).render();
-
-    // 3. Employee Utilization (Professional Linear Style)
-    new ApexCharts(document.querySelector("#util-chart"), {
-      series: [{ name: 'Hours Worked Today', data: data.employeeHours }],
-      chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
-      plotOptions: { 
-        bar: { 
-          borderRadius: 6, 
-          horizontal: true,
-          distributed: true,
-          barHeight: '60%',
-          dataLabels: { position: 'top' }
-        } 
-      },
-      colors: data.employeeHours.map(h => {
-        if (h >= 7) return '#10b981'; // Green (Highly Productive)
-        if (h >= 4) return '#3b82f6'; // Blue (Standard)
-        if (h >= 2) return '#f59e0b'; // Amber (Low)
-        return '#ef4444'; // Red (Critical)
-      }),
-      dataLabels: {
-        enabled: true,
-        formatter: (val) => val + " hrs",
-        offsetX: 35,
-        style: { fontSize: '11px', fontWeight: 700, colors: ['#475569'] }
-      },
-      xaxis: { 
-        categories: data.employeeNames,
-        labels: { style: { fontWeight: 600 } }
-      },
-      grid: {
-        borderColor: '#f1f5f9',
-        xaxis: { lines: { show: true } }
-      },
-      tooltip: {
-        theme: 'dark',
-        y: { formatter: (val) => val + " hours today" }
-      },
-      legend: { show: false }
-    }).render();
   },
 
   async loadAdminIssues() {

@@ -37,6 +37,11 @@ async function syncUserSession() {
         temp.innerHTML = renderHeader(headerTitle);
         headerContainer.replaceWith(temp.firstElementChild);
       }
+    } else if (res.status === 401) {
+      // Session expired or invalid — clear and redirect
+      document.cookie = 'eaz_token=; Max-Age=0; path=/';
+      localStorage.removeItem('eaz_active_session');
+      window.location.replace('login.html');
     }
   } catch(e) { console.warn('[SESSION_SYNC_FAILED]:', e); }
 }

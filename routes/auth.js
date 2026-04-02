@@ -149,11 +149,6 @@ router.get('/me', async (req, res) => {
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
     
-    // IF GHOST ADMIN: Skip DB query since 'admin' is a virtual ID
-    if (decoded.id === 'admin') {
-      return res.json({ id: 'admin', name: 'Eazly Admin', email: 'admin@eazly.in', role: 'ADMIN', image: 'assets/N.png' });
-    }
-
     // Fetch latest user info from DB to ensure profile image is always real-time
     const user = await User.findById(decoded.id).select('name email role image');
     if (!user) return res.status(404).json({ message: 'User deleted' });
