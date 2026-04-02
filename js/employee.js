@@ -16,18 +16,6 @@ const EmployeePortal = {
     this.loadKanban();
     this.loadHistory();
     this.initSync();
-
-    // Instant Disconnect: clock-out via keepalive beacon when tab closes
-    window.addEventListener('beforeunload', () => {
-      if (document.getElementById('btn-clock-out')?.style.display !== 'none') {
-        fetch('/api/employees/clock-out', {
-          method: 'POST',
-          keepalive: true,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: this.user.id })
-        });
-      }
-    });
   },
 
   initSync() {
