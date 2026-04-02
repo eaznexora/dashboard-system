@@ -3236,30 +3236,30 @@ const AdminPanel = {
   },
 
   // --- REPORTS MODULE ---
-  async loadReports(isSilent = false) {
-    this.currentView = 'Reports';
+  async loadReports() {
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : null;
     const container = document.getElementById('dashboard-content');
-    if (!isSilent) container.innerHTML = `<div class="loading">Generating agency intelligence...</div>`;
+    
+    if (user && user.role === 'EMPLOYEE') {
+      return this.loadEmployeeReportingView();
+    }
+
+    container.innerHTML = `<div class="loading">Generating agency intelligence...</div>`;
     
     try {
       const res = await fetch('/api/reports');
       const data = await res.json();
-      
+
       let html = `
         <div class="view-header">
           <div>
-            <h2 class="view-title">Reports & Intelligence</h2>
-            <p class="view-subtitle">Data-driven insights for enterprise growth</p>
+            <h2 class="view-title">Agency Intelligence</h2>
+            <p class="view-subtitle">Real-time performance metrics and financial tracking</p>
           </div>
-          <button onclick="AdminPanel.loadReports()" class="btn btn-primary"><i class="ph ph-arrow-clockwise"></i> Refresh Data</button>
+          <button class="btn btn-primary" onclick="AdminPanel.loadReports()"><i class="ph ph-arrows-clockwise"></i> Refresh Data</button>
         </div>
         
-        <div class="grid-cols-4" style="margin-bottom:2rem;">
-          <div class="card stat-card">
-            <div class="stat-icon" style="background:#e0e7ff; color:#4338ca;"><i class="ph ph-currency-circle-dollar"></i></div>
-            <div class="stat-label">Total Value</div>
-            <div class="stat-value" id="total-revenue">₹${data.totalRevenue?.toLocaleString() || 0}</div>
-          </div>
+        <div class="grid-cols-3" style="margin-bottom:2rem;">
            <div class="card">
               <div class="metric-title">Total Value <i class="ph ph-chart-line-up"></i></div>
               <div class="metric-value" style="font-size:1.5rem; font-weight:800; color:var(--accent-color);">₹${data.totalRevenue?.toLocaleString() || 0}</div>
@@ -3312,37 +3312,7 @@ const AdminPanel = {
   initCharts(data) {
     if (!window.ApexCharts) return console.error('ApexCharts not loaded');
     
-    // 1. Capacity stacked Chart
-    const utilOptions = {
-        series: [
-          { name: 'Work Hours', data: data.employeeWorkHours },
-          { name: 'Break Hours', data: data.employeeBreakHours }
-        ],
-        chart: {
-            type: 'bar',
-            height: 350,
-            stacked: true,
-            toolbar: { show: false }
-        },
-        plotOptions: {
-            bar: {
-                horizontal: false,
-                columnWidth: '45%',
-                borderRadius: 8
-            },
-        },
-        colors: ['#4f46e5', '#f59e0b'],
-        xaxis: { categories: data.employeeNames },
-        yaxis: { title: { text: 'Hours Today' } },
-        fill: { opacity: 1 },
-        legend: { position: 'top' },
-        tooltip: {
-            y: { formatter: (val) => val + " hrs" }
-        }
-    };
-    new ApexCharts(document.querySelector("#util-chart"), utilOptions).render();
-
-    // 2. Revenue Area Chart (Forecast)
+    // 1. Revenue Area Chart (Forecast)
     new ApexCharts(document.querySelector("#revenue-chart"), {
       series: [{ name: 'Projected Revenue', data: data.revenueHistory }],
       chart: { height: 350, type: 'area', toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
@@ -3365,10 +3335,10 @@ const AdminPanel = {
       yaxis: {
         labels: { 
           style: { colors: '#64748b' },
-          formatter: (val) => '$' + val.toLocaleString()
+          formatter: (val) => '₹' + val.toLocaleString()
         }
       },
-      tooltip: { theme: 'light', y: { formatter: (val) => '$' + val.toLocaleString() } }
+      tooltip: { theme: 'light', y: { formatter: (val) => '₹' + val.toLocaleString() } }
     }).render();
 
     // 2. Task Pie Chart
@@ -3378,6 +3348,46 @@ const AdminPanel = {
       labels: ['Pending', 'Working', 'Review', 'Done'],
       colors: ['#f59e0b', '#2563eb', '#8b5cf6', '#10b981'],
       legend: { position: 'bottom' }
+    }).render();
+
+    // 3. Employee Utilization (Professional Linear Style)
+    new ApexCharts(document.querySelector("#util-chart"), {
+      series: [{ name: 'Hours Worked Today', data: data.employeeHours }],
+      chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      plotOptions: { 
+        bar: { 
+          borderRadius: 6, 
+          horizontal: true,
+          distributed: true,
+          barHeight: '60%',
+          dataLabels: { position: 'top' }
+        } 
+      },
+      colors: data.employeeHours.map(h => {
+        if (h >= 7) return '#10b981'; // Green (Highly Productive)
+        if (h >= 4) return '#3b82f6'; // Blue (Standard)
+        if (h >= 2) return '#f59e0b'; // Amber (Low)
+        return '#ef4444'; // Red (Critical)
+      }),
+      dataLabels: {
+        enabled: true,
+        formatter: (val) => val + " hrs",
+        offsetX: 35,
+        style: { fontSize: '11px', fontWeight: 700, colors: ['#475569'] }
+      },
+      xaxis: { 
+        categories: data.employeeNames,
+        labels: { style: { fontWeight: 600 } }
+      },
+      grid: {
+        borderColor: '#f1f5f9',
+        xaxis: { lines: { show: true } }
+      },
+      tooltip: {
+        theme: 'dark',
+        y: { formatter: (val) => val + " hours today" }
+      },
+      legend: { show: false }
     }).render();
   },
 

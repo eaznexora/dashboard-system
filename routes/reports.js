@@ -63,38 +63,25 @@ router.get('/', async (req, res) => {
         revenueHistory[i] = Math.round(revenueHistory[i]);
     }
 
-    // 6. Employee Utilization (Today's Working/Break Hours)
+    // 6. Employee Utilization (Today's Working Hours - Only Active Employees)
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     
     const activeEmployees = await User.find({ role: 'EMPLOYEE', isActive: true });
     const todayLogs = await TimeLog.find({ clockIn: { $gte: todayStart } });
 
-    const employeeWorkHours = [];
-    const employeeBreakHours = [];
-
-    activeEmployees.forEach(e => {
+    const employeeHours = activeEmployees.map(e => {
         const empLogs = todayLogs.filter(l => l.userId.toString() === e._id.toString());
-        let workMs = 0;
-        let breakMs = 0;
-
-        empLogs.forEach(l => {
-            const clockIn = new Date(l.clockIn);
-            const clockOut = l.clockOut ? new Date(l.clockOut) : now;
-            const sessionMs = clockOut - clockIn;
-            
-            const logBreakMs = (l.breaks || []).reduce((sum, b) => {
-                const bStart = new Date(b.pauseStart);
-                const bEnd = b.pauseEnd ? new Date(b.pauseEnd) : (l.clockOut ? new Date(l.clockOut) : now);
-                return sum + (bEnd - bStart);
-            }, 0);
-
-            breakMs += logBreakMs;
-            workMs += (sessionMs - logBreakMs);
-        });
-
-        employeeWorkHours.push(parseFloat((workMs / 3600000).toFixed(1)));
-        employeeBreakHours.push(parseFloat((breakMs / 3600000).toFixed(1)));
+        const hoursToday = empLogs.reduce((sum, l) => {
+            if (l.clockOut) {
+                return sum + (l.totalHours || 0);
+            } else {
+                // Currently clocked in - calculate live hours (subtracting pause time if active)
+                const liveHours = (new Date() - new Date(l.clockIn)) / (1000 * 60 * 60);
+                return sum + liveHours;
+            }
+        }, 0);
+        return parseFloat(hoursToday.toFixed(1));
     });
 
     res.json({
@@ -104,8 +91,7 @@ router.get('/', async (req, res) => {
       revenueHistory,
       revenueCategories: categories,
       taskStats: [taskStats.todo, taskStats.working, taskStats.review, taskStats.done],
-      employeeWorkHours,
-      employeeBreakHours,
+      employeeHours,
       employeeNames: activeEmployees.map(e => e.name)
     });
   } catch (err) {
