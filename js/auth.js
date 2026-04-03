@@ -1,5 +1,12 @@
 // Authentication and Session Management
 
+// --- GLOBAL DATE FORMATTER (Standard DD/MM/YYYY) ---
+window.formatEazDate = function(dateInput) {
+  if (!dateInput) return '-';
+  const d = new Date(dateInput);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleDateString('en-GB'); // Forces DD/MM/YYYY
+};
 // --- CURRENT USER FROM JWT ---
 function getCurrentUser() {
   const token = document.cookie.split('; ').find(c => c.startsWith('eaz_token='));

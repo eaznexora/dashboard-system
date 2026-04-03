@@ -519,7 +519,7 @@ const AdminPanel = {
                     <tbody>
                       ${history.logs.map(log => `
                         <tr style="border-bottom:1px solid #f8fafc;">
-                          <td style="padding:0.75rem; font-weight:600;">${new Date(log.clockIn).toLocaleDateString()}</td>
+                          <td style="padding:0.75rem; font-weight:600;">${window.formatEazDate(log.clockIn)}</td>
                           <td style="padding:0.75rem; color:var(--text-secondary);">${new Date(log.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</td>
                           <td style="padding:0.75rem; color:var(--text-secondary);">${log.clockOut ? new Date(log.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}</td>
                           <td style="padding:0.75rem; font-weight:700; color:var(--accent-color); text-align:right;">${log.totalHours || 0}h</td>
@@ -1048,7 +1048,7 @@ const AdminPanel = {
                       ${t.status.toUpperCase()}
                     </span>
                   </td>
-                  <td style="padding:1rem; color:var(--text-secondary);">${t.deadline ? new Date(t.deadline).toLocaleDateString() : 'No date'}</td>
+                  <td style="padding:1rem; color:var(--text-secondary);">${t.deadline ? window.formatEazDate(t.deadline) : 'No date'}</td>
                   <td style="padding:1rem;">
                     <div style="display:flex; gap:0.5rem;">
                       <button class="btn-action" title="View Details" onclick="AdminPanel.viewTaskDetails('${t._id}')"><i class="ph ph-eye"></i></button>
@@ -1478,6 +1478,7 @@ const AdminPanel = {
                 <div style="padding:1rem 1.25rem; border-bottom:1px solid #f8fafc; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'" onclick="AdminPanel.viewTaskDetails('${t._id}')">
                    <div>
                      <div style="font-weight:600; font-size:0.9rem;">${t.title}</div>
+                     <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.25rem;">Due: ${window.formatEazDate(t.dueDate)}</div>
                      <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:0.2rem;">
                         <i class="ph ph-user"></i> ${t.assignedTo?.name || 'Unassigned'} · 
                         <span style="color:${t.priority === 'high' ? 'var(--danger-color)' : 'var(--text-secondary)'}">${t.priority.toUpperCase()}</span>
@@ -1655,7 +1656,7 @@ const AdminPanel = {
                 <tr style="border-bottom:1px solid #f1f5f9; transition: background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                   <td style="padding:1rem;">
                     <div style="font-weight:700; color:var(--text-primary); font-size:1rem;">${c.company}</div>
-                    <div style="font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.02em;">${c.industry || 'General Service'}</div>
+                    <div style="font-size:0.7rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.05em; font-weight:700; opacity:0.8; margin-top:0.4rem;">${window.formatEazDate(c.createdAt)}</div>
                   </td>
                   <td style="padding:1rem;">
                     <div style="font-weight:600; font-size:0.875rem;">${c.contactName}</div>
@@ -2409,7 +2410,7 @@ const AdminPanel = {
                       ${inv.status.toUpperCase()}
                     </span>
                   </td>
-                  <td style="padding:1rem; color:var(--text-secondary); font-size:0.875rem;">${new Date(inv.dueDate).toLocaleDateString()}</td>
+                  <td class="py-4 px-4">${window.formatEazDate(inv.date)}</td>
                   <td style="padding:1rem;">
                     <div style="display:flex; gap:0.5rem;">
                        <button class="btn-action" title="Print/Download" onclick="AdminPanel.downloadInvoice('${inv._id}')"><i class="ph ph-printer"></i></button>
@@ -2630,7 +2631,7 @@ const AdminPanel = {
              <div class="inv-info">
                 <h1 style="margin:0; font-size:1.5rem;">INVOICE</h1>
                 <div style="font-weight:700;"># ${inv.invoiceNumber}</div>
-                <div style="color:#718096; font-size:0.8rem;">Date: ${new Date(inv.issueDate).toLocaleDateString()}</div>
+                <div style="color:#718096; font-size:0.8rem;">Date: ${window.formatEazDate(inv.issueDate)}</div>
              </div>
           </div>
           
@@ -2898,7 +2899,7 @@ const AdminPanel = {
             <span class="badge">Professional Proposal</span>
             <h1>${p.title}</h1>
             <p style="color: #64748b; font-size: 1.25rem;">Prepared for <strong>${p.client?.company || 'Valued Client'}</strong></p>
-            <p style="color: #94a3b8;">Proposal ID: ${p.proposalId} | Date: ${new Date(p.createdAt).toLocaleDateString()}</p>
+            <p style="color: #94a3b8;">Proposal ID: ${p.proposalId} | Date: ${window.formatEazDate(p.createdAt)}</p>
           </div>
           
           <div class="section-title">Scope of Engagement</div>
@@ -2976,7 +2977,7 @@ const AdminPanel = {
                       ${c.status.toUpperCase()}
                     </span>
                   </td>
-                  <td style="padding:1rem; font-size:0.8rem; color:var(--text-secondary);">${new Date(c.createdAt).toLocaleDateString()}</td>
+                  <td>${window.formatEazDate(c.createdAt)}</td>
                   <td style="padding:1rem;">
                     <div style="display:flex; gap:0.5rem;">
                        <button class="btn-action" title="Download" onclick="AdminPanel.downloadContract('${c._id}')"><i class="ph ph-file-pdf"></i></button>

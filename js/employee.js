@@ -248,7 +248,7 @@ const EmployeePortal = {
           <span style="font-size:0.65rem; font-weight:700; color:${t.priority==='high'?'var(--danger-color)':'var(--text-secondary)'}; background:#f8fafc; padding:0.1rem 0.4rem; border-radius:4px;">
             ${t.priority.toUpperCase()}
           </span>
-          ${t.deadline ? `<span style="font-size:0.65rem; color:var(--text-secondary);"><i class="ph ph-calendar"></i> ${new Date(t.deadline).toLocaleDateString([], {month:'short', day:'numeric'})}</span>` : ''}
+          ${t.deadline ? `<span style="font-size:0.65rem; color:var(--text-secondary);"><i class="ph ph-calendar"></i> ${window.formatEazDate(t.deadline)}</span>` : ''}
         </div>
       </div>
     `;
@@ -333,7 +333,7 @@ const EmployeePortal = {
     container.innerHTML = data.logs.map(l => `
       <div class="history-row" style="display:flex; justify-content:space-between; align-items:center; padding:0.75rem 0; border-bottom:1px solid #f8fafc; font-size:0.875rem;">
         <div>
-          <div style="font-weight:600; font-size:0.8rem;">${new Date(l.clockIn).toLocaleDateString()}</div>
+          <div style="font-weight:600; font-size:0.8rem;">${window.formatEazDate(l.clockIn)}</div>
           <div style="font-size:0.7rem; color:var(--text-secondary);">
             ${new Date(l.clockIn).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} - 
             ${l.clockOut ? new Date(l.clockOut).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '<span style="color:var(--success-color); font-weight:700;">ACTIVE</span>'}
