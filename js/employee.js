@@ -342,32 +342,6 @@ const EmployeePortal = {
     
     if (!container) return;
 
-    // --- INJECT TIME SNAPSHOT GRID ---
-    let snapshot = document.getElementById('timesheet-snapshot');
-    if (!snapshot) {
-      snapshot = document.createElement('div');
-      snapshot.id = 'timesheet-snapshot';
-      snapshot.style.display = 'grid';
-      snapshot.style.gridTemplateColumns = 'repeat(2, 1fr)';
-      snapshot.style.gap = '0.75rem';
-      snapshot.style.marginBottom = '1.5rem';
-      container.parentElement.insertBefore(snapshot, container);
-    }
-
-    const renderCard = (label, val, color) => `
-      <div style="background:var(--bg-secondary); padding:0.75rem; border-radius:12px; border:1px solid var(--border-color);">
-        <div style="font-size:0.6rem; font-weight:800; color:var(--text-secondary); text-transform:uppercase; margin-bottom:0.25rem;">${label}</div>
-        <div style="font-size:1.1rem; font-weight:800; color:${color};">${val} <span style="font-size:0.7rem; font-weight:600; opacity:0.7;">hrs</span></div>
-      </div>
-    `;
-
-    snapshot.innerHTML = `
-      ${renderCard('Today', data.todayHours || 0, 'var(--accent-color)')}
-      ${renderCard('Yesterday', data.yesterdayHours || 0, 'var(--text-primary)')}
-      ${renderCard('This Week', data.weekHours || 0, 'var(--success-color)')}
-      ${renderCard('This Month', data.monthHours || 0, 'var(--accent-color)')}
-    `;
-
     if (data.logs.length === 0) {
       container.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:1rem;">No history found.</p>';
       return;

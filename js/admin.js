@@ -502,26 +502,9 @@ const AdminPanel = {
                 <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Department</label>
                 <div style="font-weight:600;">${emp.department || 'Not set'}</div>
               </div>
-              <div style="grid-column: span 2; border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; background: var(--bg-secondary);">
-                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:800; margin-bottom:1rem; letter-spacing:0.5px;">Timesheet Summary</label>
-                <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem;">
-                  <div>
-                    <div style="font-size:0.6rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.25rem;">TODAY</div>
-                    <div style="font-weight:800; color:var(--accent-color); font-size:1.1rem;">${history.todayHours || 0} <span style="font-size:0.7rem; opacity:0.6;">h</span></div>
-                  </div>
-                  <div>
-                    <div style="font-size:0.6rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.25rem;">YESTERDAY</div>
-                    <div style="font-weight:700; font-size:1.1rem;">${history.yesterdayHours || 0} <span style="font-size:0.7rem; opacity:0.6;">h</span></div>
-                  </div>
-                  <div>
-                    <div style="font-size:0.6rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.25rem;">THIS WEEK</div>
-                    <div style="font-weight:800; color:${(history.weekHours || 0) >= 40 ? 'var(--success-color)' : 'var(--text-primary)'}; font-size:1.1rem;">${history.weekHours || 0} <span style="font-size:0.7rem; opacity:0.6;">h</span></div>
-                  </div>
-                  <div>
-                    <div style="font-size:0.6rem; font-weight:700; color:var(--text-secondary); margin-bottom:0.25rem;">MONTH</div>
-                    <div style="font-weight:800; color:var(--accent-color); font-size:1.1rem;">${history.monthHours || 0} <span style="font-size:0.7rem; opacity:0.6;">h</span></div>
-                  </div>
-                </div>
+              <div>
+                <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Today's work</label>
+                <div style="font-weight:600; color:var(--accent-color);">${history.todayHours || 0} hrs</div>
               </div>
                <div>
                 <label style="display:block; font-size:0.7rem; text-transform:uppercase; color:var(--text-secondary); font-weight:700; margin-bottom:0.4rem;">Account Status</label>
