@@ -26,6 +26,7 @@ router.post('/', async (req, res) => {
     });
     
     const saved = await proposal.save();
+    global.syncEmit('proposal', 'created', saved);
     res.status(201).json(saved);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -35,6 +36,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const updated = await Proposal.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    global.syncEmit('proposal', 'updated', updated);
     res.json(updated);
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -45,6 +47,7 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await Proposal.findByIdAndDelete(req.params.id);
+    global.syncEmit('proposal', 'deleted', { _id: req.params.id });
     res.json({ message: 'Proposal deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });

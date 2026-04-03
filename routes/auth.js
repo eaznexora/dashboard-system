@@ -31,7 +31,8 @@ router.post('/register', async (req, res) => {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    await User.create({ name, email, password: hashedPassword, role: 'EMPLOYEE' });
+    const user = await User.create({ name, email, password: hashedPassword, role: 'EMPLOYEE' });
+    global.syncEmit('employee', 'created', user);
 
     res.status(201).json({ message: 'Account successfully generated.' });
   } catch (error) {
@@ -92,6 +93,7 @@ router.post('/google', async (req, res) => {
     if (!user) {
       const dummyPassword = await bcrypt.hash(Math.random().toString(36).slice(-8), 12);
       user = await User.create({ name, email, image: picture, password: dummyPassword, role: 'EMPLOYEE' });
+      global.syncEmit('employee', 'created', user);
     }
 
     // Block deactivated employees

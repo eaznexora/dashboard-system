@@ -37,6 +37,14 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => console.log('Client disconnected'));
 });
 
+// --- CENTRALIZED SYNC EMISSION HELPER ---
+global.syncEmit = (entity, action, data) => {
+    if (global.io) {
+        global.io.emit('sync_event', { entity, action, data });
+        console.log(`[SYNC_EMIT] ${entity}:${action}`);
+    }
+};
+
 // Auth Guard Middleware — protects all HTML pages behind JWT
 const authGuard = require('./middleware/authGuard');
 

@@ -66,6 +66,7 @@ router.patch('/:id', async (req, res) => {
     Object.assign(employee, req.body);
     await employee.save();
     
+    global.syncEmit('employee', 'updated', employee);
     res.json(employee);
   } catch (err) {
     console.error('[EMPLOYEE_UPDATE_ERROR]:', err);
@@ -82,7 +83,7 @@ router.post('/clock-in', async (req, res) => {
 
     const now = new Date();
     const log = await TimeLog.create({ userId, clockIn: now, lastPingTime: now });
-    if (global.io) global.io.emit('agency_data_updated');
+    global.syncEmit('employee', 'clocked_in', log);
     res.status(201).json({ message: 'Clocked in successfully', log });
   } catch (err) {
     res.status(500).json({ message: 'Clock-in failed' });
@@ -121,7 +122,7 @@ router.post('/clock-out', async (req, res) => {
     log.totalHours = parseFloat((netMs / (1000 * 60 * 60)).toFixed(2));
     await log.save();
 
-    if (global.io) global.io.emit('agency_data_updated');
+    global.syncEmit('employee', 'clocked_out', log);
     res.json({ message: 'Clocked out successfully', totalHours: log.totalHours });
   } catch (err) {
     res.status(500).json({ message: 'Clock-out failed' });
@@ -139,7 +140,7 @@ router.post('/pause', async (req, res) => {
     log.breaks.push({ pauseStart: new Date() });
     await log.save();
 
-    if (global.io) global.io.emit('agency_data_updated');
+    global.syncEmit('employee', 'on_break', log);
     res.json({ message: 'Break started', log });
   } catch (err) {
     res.status(500).json({ message: 'Pause failed' });
@@ -162,7 +163,7 @@ router.post('/resume', async (req, res) => {
     log.lastPingTime = new Date();
     await log.save();
 
-    if (global.io) global.io.emit('agency_data_updated');
+    global.syncEmit('employee', 'resumed', log);
     res.json({ message: 'Break ended, back to work', log });
   } catch (err) {
     res.status(500).json({ message: 'Resume failed' });
@@ -243,6 +244,7 @@ router.delete('/:id', async (req, res) => {
     try {
         const { id } = req.params;
         await User.findByIdAndDelete(id);
+        global.syncEmit('employee', 'deleted', { _id: id });
         res.json({ message: 'Employee permanently removed' });
     } catch (err) {
         res.status(500).json({ message: 'Deletion failed' });
@@ -283,6 +285,7 @@ router.patch('/:id/self-update', async (req, res) => {
     if (projectLinks !== undefined) employee.projectLinks = projectLinks;
 
     await employee.save();
+    global.syncEmit('employee', 'profile_updated', employee);
     res.json({ message: 'Profile updated successfully', employee });
   } catch (err) {
     console.error('[SELF_UPDATE_ERROR]:', err);

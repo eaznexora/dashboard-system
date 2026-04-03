@@ -201,7 +201,7 @@ router.post('/folders', async (req, res) => {
     });
 
     await folder.save();
-    if (global.io) global.io.emit('asset_update');
+    global.syncEmit('asset', 'updated', folder);
     res.status(201).json(folder);
   } catch (err) {
     res.status(500).json({ error: 'Failed to create folder: ' + err.message });
@@ -243,7 +243,7 @@ router.post('/upload', upload.array('file', 1000), async (req, res) => {
       }
     }
 
-    if (global.io) global.io.emit('asset_update');
+    global.syncEmit('asset', 'updated', { count: files.length });
     return res.status(200).json(savedAssets);
   } catch (err) {
     console.error('[CRITICAL_UPLOAD_FAILURE]:', err);
@@ -260,7 +260,7 @@ router.patch('/:id/restore', async (req, res) => {
     if (type === 'folder') await Folder.findByIdAndUpdate(req.params.id, { isTrashed: false });
     else await Asset.findByIdAndUpdate(req.params.id, { isTrashed: false });
 
-    if (global.io) global.io.emit('asset_update');
+    global.syncEmit('asset', 'updated', { _id: req.params.id, type });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Restore failed: ' + err.message });
@@ -283,7 +283,7 @@ router.delete('/:id/permanent', async (req, res) => {
       }
     }
 
-    if (global.io) global.io.emit('asset_update');
+    global.syncEmit('asset', 'updated', { _id: req.params.id, type, deleted: true });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Permanent deletion failed: ' + err.message });
@@ -321,7 +321,7 @@ router.post('/:id/duplicate', async (req, res) => {
       await clone.save();
     }
 
-    if (global.io) global.io.emit('asset_update');
+    global.syncEmit('asset', 'updated', { type });
     res.status(201).json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Duplicate failed: ' + err.message });
@@ -338,7 +338,7 @@ router.patch('/:id/move', async (req, res) => {
     if (type === 'folder') await Folder.findByIdAndUpdate(req.params.id, { parentFolder: targetFolder });
     else await Asset.findByIdAndUpdate(req.params.id, { parentFolder: targetFolder });
 
-    if (global.io) global.io.emit('asset_update');
+    global.syncEmit('asset', 'updated', { _id: req.params.id, type, action: 'moved' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: 'Move failed: ' + err.message });
@@ -353,7 +353,7 @@ router.patch('/:id/trash', async (req, res) => {
     const { type } = req.query;
     if (type === 'folder') await Folder.findByIdAndUpdate(req.params.id, { isTrashed: true });
     else await Asset.findByIdAndUpdate(req.params.id, { isTrashed: true });
-    if (global.io) global.io.emit('asset_update');
+    global.syncEmit('asset', 'updated', { _id: req.params.id, type, action: 'trashed' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -365,7 +365,7 @@ router.patch('/:id/rename', async (req, res) => {
     const { name, type } = req.body;
     if (type === 'folder') await Folder.findByIdAndUpdate(req.params.id, { name });
     else await Asset.findByIdAndUpdate(req.params.id, { name });
-    if (global.io) global.io.emit('asset_update');
+    global.syncEmit('asset', 'updated', { _id: req.params.id, type, action: 'renamed', name });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -24,6 +24,7 @@ router.post('/', async (req, res) => {
     } else {
       await logActivity(req.body.actorId || client._id, 'created_client', 'Client', client._id);
     }
+    global.syncEmit('client', 'created', client);
     res.status(201).json(client);
   } catch (err) {
     console.error('[CLIENT_CREATE_ERROR]:', err);
@@ -43,6 +44,7 @@ router.patch('/:id', async (req, res) => {
       await createOnboardingTasks(client._id, req.body.actorId);
     }
 
+    global.syncEmit('client', 'updated', client);
     res.json(client);
   } catch (err) {
     res.status(500).json({ message: 'Failed to update client' });
@@ -53,6 +55,7 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await Client.findByIdAndDelete(req.params.id);
+    global.syncEmit('client', 'deleted', { _id: req.params.id });
     res.json({ message: 'Client deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete client' });

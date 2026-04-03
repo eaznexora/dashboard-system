@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
             createdBy: '000000000000000000000000' // Admin Ghost ID
         });
         if (global.io) global.io.emit('asset_update');
-        if (global.io) global.io.emit('agency_data_updated');
+        global.syncEmit('project', 'created', project);
     } catch (folderErr) {
         console.error('[AUTO_FOLDER_CREATE_ERROR]:', folderErr);
     }
@@ -64,7 +64,7 @@ router.patch('/:id', async (req, res) => {
   try {
     const project = await Project.findByIdAndUpdate(req.params.id, req.body, { new: true });
     if (!project) return res.status(404).json({ message: 'Project not found' });
-    if (global.io) global.io.emit('agency_data_updated');
+    global.syncEmit('project', 'updated', project);
     res.json(project);
   } catch (err) {
     res.status(500).json({ message: 'Failed to update project' });
@@ -75,7 +75,7 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     await Project.findByIdAndDelete(req.params.id);
-    if (global.io) global.io.emit('agency_data_updated');
+    global.syncEmit('project', 'deleted', { _id: req.params.id });
     res.json({ message: 'Project deleted' });
   } catch (err) {
     res.status(500).json({ message: 'Failed to delete project' });

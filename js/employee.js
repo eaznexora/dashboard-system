@@ -19,14 +19,19 @@ const EmployeePortal = {
   },
 
   initSync() {
-    if (typeof io === 'undefined') return;
-    this.socket = io();
-    this.socket.on('agency_data_updated', () => {
-      console.log('⚡ Data sync received: Refreshing workspace...');
-      this.loadClockStatus();
-      this.loadKanban();
-      this.loadHistory();
-    });
+    if (typeof EazlySync !== 'undefined') {
+      EazlySync.init();
+    }
+  },
+
+  async _silentRefresh(entity) {
+    console.log(`[EMPLOYEE_SILENT] Refreshing for entity: ${entity}`);
+    if (entity === 'task') {
+      await this.loadKanban(true); // true = silent
+    } else if (entity === 'employee') {
+      await this.loadClockStatus();
+      await this.loadHistory();
+    }
   },
 
   // --- TIME TRACKING ---
@@ -207,10 +212,12 @@ const EmployeePortal = {
   },
 
   // --- KANBAN BOARD ---
-  async loadKanban() {
+  async loadKanban(isSilent = false) {
     const container = document.getElementById('kanban-board');
     if (!container) return;
     
+    if (!isSilent) container.innerHTML = '<div class="loading">Fetching tasks...</div>';
+
     try {
       const res = await fetch(`/api/tasks?userId=${this.user.id}&role=EMPLOYEE`);
       const tasks = await res.json();
@@ -241,7 +248,7 @@ const EmployeePortal = {
 
   renderTaskCard(t) {
     return `
-      <div class="kanban-card" draggable="true" ondragstart="event.dataTransfer.setData('taskId', '${t._id}')" onclick="EmployeePortal.viewTaskDetails('${t._id}')">
+      <div class="kanban-card" data-task-id="${t._id}" draggable="true" ondragstart="event.dataTransfer.setData('taskId', '${t._id}')" onclick="EmployeePortal.viewTaskDetails('${t._id}')">
         <div style="font-size:0.6rem; font-weight:800; color:var(--accent-color); margin-bottom:0.4rem; text-transform:uppercase;">${t.project?.name || 'GENERAL'}</div>
         <div style="font-weight:600; font-size:0.8rem; margin-bottom:0.6rem; line-height:1.4;">${t.title}</div>
         <div style="display:flex; justify-content:space-between; align-items:center;">
@@ -259,15 +266,30 @@ const EmployeePortal = {
     const taskId = e.dataTransfer.getData('taskId');
     if (!taskId) return;
     
+    // OPTIMISTIC UI: Move the card instantly in the DOM
+    const card = document.querySelector(`.kanban-card[data-task-id="${taskId}"]`);
+    if (card) {
+      const targetCol = e.currentTarget.querySelector('.kanban-col-content');
+      if (targetCol) targetCol.appendChild(card);
+    }
+
     try {
       const res = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
-      if (res.ok) this.loadKanban();
+      if (res.ok) {
+         // Silently refresh to ensure server-side sync
+         this.loadKanban(true);
+      } else {
+         // REVERT on failure
+         toast('Failed to move task. Reverting...', 'error');
+         this.loadKanban();
+      }
     } catch (err) {
       console.error(err);
+      this.loadKanban();
     }
   },
 
@@ -277,7 +299,7 @@ const EmployeePortal = {
     const t = tasks.find(x => x._id === id);
 
     const modalHtml = `
-      <div class="modal-overlay" id="task-modal">
+      <div class="modal-overlay" id="task-modal" data-entity-id="${t._id}" data-entity-type="task">
         <div class="modal-content" style="max-width:600px;">
           <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem;">
             <div>

@@ -12,24 +12,40 @@ const AdminPanel = {
 
   // --- SYNC ENGINE ---
   initSync() {
-    if (typeof io === 'undefined') return;
-    this.socket = io();
-    this.socket.on('agency_data_updated', () => {
-      console.log('⚡ Agency sync received: Updating DOM silently...');
-      this._silentRefresh();
-    });
+    if (typeof EazlySync !== 'undefined') {
+      EazlySync.init();
+    }
   },
 
-  async _silentRefresh() {
-    // Refresh only if we are in a main dashboard view
-    if (this.currentView === 'Employees') {
-      await this.loadEmployees(true); // true = silent refresh
+  async _silentRefresh(entity) {
+    // Determine what to refresh based on the entity that changed
+    console.log(`[ADMIN_SILENT] Refreshing for entity: ${entity}`);
+    
+    if (this.currentView === 'Employees' && (entity === 'employee' || entity === 'project' || entity === 'task')) {
+      await this.loadEmployees(true);
       
       // If Project Matrix is open, refresh its data too
       const matrixModal = document.getElementById('project-health-modal');
       if (matrixModal) {
          const pId = matrixModal.getAttribute('data-project-id');
          if (pId) this.showProjectTaskMatrix(pId, this.tasks);
+      }
+    } else if (this.currentView === 'Projects' && (entity === 'project' || entity === 'employee')) {
+      this.loadProjects(true);
+    } else if (this.currentView === 'Tasks' && (entity === 'task' || entity === 'project' || entity === 'employee')) {
+      this.loadTasks(true);
+    } else if (this.currentView === 'Invoices' && entity === 'invoice') {
+      this.loadInvoices(true);
+    } else if (this.currentView === 'Clients' && entity === 'client') {
+      this.loadClients(true);
+    } else if (this.currentView === 'Proposals' && entity === 'proposal') {
+      this.loadProposals(true);
+    } else if (this.currentView === 'Contracts' && entity === 'contract') {
+      this.loadContracts(true);
+    } else if (this.currentView === 'Asset Hub' && entity === 'asset') {
+      // Asset Hub refresh logic if applicable
+      if (typeof AssetHub !== 'undefined' && AssetHub.currentFolderId !== undefined) {
+         AssetHub.loadFolder(AssetHub.currentFolderId);
       }
     } else if (this.currentView === 'Reports') {
       this.loadReports(true);
@@ -411,7 +427,7 @@ const AdminPanel = {
     const emp = emps.find(e => e._id === id);
 
     const modalHtml = `
-      <div class="modal-overlay" id="emp-edit-modal">
+      <div class="modal-overlay" id="emp-edit-modal" data-entity-id="${emp._id}" data-entity-type="employee">
         <div class="modal-content">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <h3 style="font-weight:800;">Edit Team Member</h3>
@@ -470,7 +486,7 @@ const AdminPanel = {
       const history = await historyRes.json();
 
       const modalHtml = `
-        <div class="modal-overlay" id="emp-modal">
+        <div class="modal-overlay" id="emp-modal" data-entity-id="${emp._id}" data-entity-type="employee">
           <div class="modal-content" style="max-width:600px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
               <h3 style="font-weight:800;">Employee details</h3>
@@ -1103,7 +1119,7 @@ const AdminPanel = {
     const taskId = isEdit ? task._id : null;
 
     const modalHtml = `
-      <div class="modal-overlay" id="task-modal">
+      <div class="modal-overlay" id="task-modal" data-entity-id="${taskId || ''}" data-entity-type="task">
         <div class="modal-content">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
             <h3 style="font-weight:800;">${isEdit ? 'Edit Operation Task' : 'Create New Task'}</h3>
@@ -1954,7 +1970,7 @@ const AdminPanel = {
     const p = await propRes.json();
 
     const modalHtml = `
-      <div class="modal-overlay" id="prop-edit-modal">
+      <div class="modal-overlay" id="prop-edit-modal" data-entity-id="${p._id}" data-entity-type="proposal">
         <div class="modal-content" style="max-width:600px;">
           <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
             <h3 style="font-weight:800;">Edit Proposal: ${p.proposalId}</h3>
@@ -2125,7 +2141,7 @@ const AdminPanel = {
     const c = await ctrRes.json();
 
     const modalHtml = `
-      <div class="modal-overlay" id="ctr-edit-modal">
+      <div class="modal-overlay" id="ctr-edit-modal" data-entity-id="${c._id}" data-entity-type="contract">
         <div class="modal-content" style="max-width:700px;">
           <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
             <h3 style="font-weight:800;">Modify Agreement: ${c.contractId}</h3>
@@ -2256,7 +2272,7 @@ const AdminPanel = {
     const inv = await invRes.json();
 
     const modalHtml = `
-      <div class="modal-overlay" id="inv-edit-modal">
+      <div class="modal-overlay" id="inv-edit-modal" data-entity-id="${inv._id}" data-entity-type="invoice">
         <div class="modal-content" style="max-width:650px;">
           <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem;">
             <h3 style="font-weight:800;">Edit Invoice: ${inv.invoiceNumber}</h3>

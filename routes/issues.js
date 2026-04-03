@@ -27,6 +27,7 @@ router.post('/', async (req, res) => {
             priority: priority || 'medium'
         });
         await newIssue.save();
+        global.syncEmit('issue', 'created', newIssue);
         res.status(201).json(newIssue);
     } catch (err) {
         res.status(500).json({ message: 'Failed to submit issue' });
@@ -49,6 +50,7 @@ router.patch('/:id', async (req, res) => {
         }
 
         const issue = await Issue.findByIdAndUpdate(req.params.id, updateData, { new: true });
+        global.syncEmit('issue', 'updated', issue);
         res.json(issue);
     } catch (err) {
         res.status(500).json({ message: 'Update failed' });
@@ -59,6 +61,7 @@ router.patch('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         await Issue.findByIdAndDelete(req.params.id);
+        global.syncEmit('issue', 'deleted', { _id: req.params.id });
         res.json({ message: 'Issue deleted successfully' });
     } catch (err) {
         res.status(500).json({ message: 'Delete failed' });
