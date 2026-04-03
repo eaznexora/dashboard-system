@@ -3331,7 +3331,54 @@ const AdminPanel = {
 
         <div class="card" style="margin-top:2rem;">
            <h4 style="font-weight:700; margin-bottom:1.5rem; font-size:0.875rem;">Employee Utilization (Resource Capacity)</h4>
-           <div id="util-chart" style="min-height:250px;"></div>
+           <div style="max-height: 400px; overflow-y: auto; overflow-x: hidden;">
+              <div id="util-chart" style="min-height:250px;"></div>
+           </div>
+        </div>
+
+        <!-- NEW: Timesheet & Payroll Analytics -->
+        <div class="card" style="margin-top: 2rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h4 style="font-weight:700; font-size:0.875rem;">Timesheet & Payroll Analytics</h4>
+            <div style="display:flex; gap:0.75rem;">
+               <input type="text" id="payroll-search" onkeyup="AdminPanel.filterPayroll()" placeholder="Search employee..." class="form-control" style="width:220px; padding:0.5rem 1rem;">
+               <button class="btn btn-secondary" onclick="AdminPanel.exportPayrollCSV()" style="padding:0.5rem 1rem;">
+                  <i class="ph ph-download"></i> Export CSV
+               </button>
+            </div>
+          </div>
+          
+          <div style="max-height:450px; overflow-y:auto; border:1px solid var(--border-color); border-radius:12px;">
+            <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.875rem;">
+              <thead>
+                <tr style="background:#f8fafc; border-bottom:1px solid var(--border-color); position:sticky; top:0; z-index:10;">
+                  <th style="padding:1rem; font-weight:700;">Name</th>
+                  <th style="padding:1rem; font-weight:700;">Department</th>
+                  <th style="padding:1rem; font-weight:700; text-align:right;">Today</th>
+                  <th style="padding:1rem; font-weight:700; text-align:right;">Yesterday</th>
+                  <th style="padding:1rem; font-weight:700; text-align:right;">This Week</th>
+                  <th style="padding:1rem; font-weight:700; text-align:right;">This Month</th>
+                </tr>
+              </thead>
+              <tbody id="payroll-table-body">
+                ${data.payrollData.map(p => `
+                  <tr class="payroll-row" style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:1rem;">
+                       <div style="display:flex; align-items:center; gap:0.5rem;">
+                          <div style="width:8px; height:8px; border-radius:50%; background:${p.isLive ? 'var(--success-color)' : '#cbd5e1'}"></div>
+                          <span style="font-weight:700;">${p.name}</span>
+                       </div>
+                    </td>
+                    <td style="padding:1rem; color:var(--text-secondary);">${p.department}</td>
+                    <td style="padding:1rem; text-align:right; font-weight:800; color:var(--accent-color);">${p.today}h</td>
+                    <td style="padding:1rem; text-align:right; font-weight:600;">${p.yesterday}h</td>
+                    <td style="padding:1rem; text-align:right; font-weight:700;">${p.week}h</td>
+                    <td style="padding:1rem; text-align:right; font-weight:800; background:#f8fafc;">${p.month}h</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         <!-- Issue Tracker Section -->
@@ -3394,16 +3441,22 @@ const AdminPanel = {
       legend: { position: 'bottom' }
     }).render();
 
-    // 3. Employee Utilization (Professional Linear Style)
+    // 3. Employee Utilization (Resource Capacity)
     new ApexCharts(document.querySelector("#util-chart"), {
       series: [{ name: 'Hours Worked Today', data: data.employeeHours }],
-      chart: { type: 'bar', height: 300, toolbar: { show: false }, fontFamily: 'Inter, sans-serif' },
+      chart: { 
+        type: 'bar', 
+        height: Math.max(300, (data.employeeNames?.length || 0) * 45), 
+        toolbar: { show: false }, 
+        fontFamily: 'Inter, sans-serif',
+        animations: { enabled: false } // DISABLE animation to prevent re-render lag during scrolls
+      },
       plotOptions: { 
         bar: { 
           borderRadius: 6, 
           horizontal: true,
           distributed: true,
-          barHeight: '60%',
+          barHeight: '70%',
           dataLabels: { position: 'top' }
         } 
       },
@@ -3433,6 +3486,38 @@ const AdminPanel = {
       },
       legend: { show: false }
     }).render();
+  },
+
+  filterPayroll() {
+    const query = document.getElementById('payroll-search').value.toLowerCase();
+    const rows = document.querySelectorAll('.payroll-row');
+    rows.forEach(row => {
+      const name = row.querySelector('span').innerText.toLowerCase();
+      row.style.display = name.includes(query) ? '' : 'none';
+    });
+  },
+
+  async exportPayrollCSV() {
+    try {
+      const res = await fetch('/api/reports');
+      const data = await res.json();
+      if (!data.payrollData) return toast('No data to export', 'warning');
+
+      let csv = 'Name,Department,Today (h),Yesterday (h),This Week (h),This Month (h)\n';
+      data.payrollData.forEach(p => {
+        csv += `"${p.name}","${p.department}",${p.today},${p.yesterday},${p.week},${p.month}\n`;
+      });
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.setAttribute('href', url);
+      a.setAttribute('download', `Eazly_Payroll_Report_${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.csv`);
+      a.click();
+      toast('Payroll report downloaded successfully!', 'success');
+    } catch (err) {
+      toast('Failed to export CSV', 'error');
+    }
   },
 
   async loadAdminIssues() {

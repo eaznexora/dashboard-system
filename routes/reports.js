@@ -63,25 +63,76 @@ router.get('/', async (req, res) => {
         revenueHistory[i] = Math.round(revenueHistory[i]);
     }
 
-    // 6. Employee Utilization (Today's Working Hours - Only Active Employees)
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+    // 6. Employee Utilization & Payroll Analytics Optimization
     
-    const activeEmployees = await User.find({ role: 'EMPLOYEE', isActive: true });
-    const todayLogs = await TimeLog.find({ clockIn: { $gte: todayStart } });
+    // --- TIME BOUNDARIES ---
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
 
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    const yesterdayEnd = new Date(todayStart);
+    yesterdayEnd.setMilliseconds(-1);
+
+    // Week starts on Monday (1)
+    const dayOfWeek = now.getDay(); 
+    const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(todayStart.getDate() + diffToMonday);
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const activeEmployees = await User.find({ role: 'EMPLOYEE', isActive: true });
+    
+    // FETCH ALL LOGS FOR THE CURRENT MONTH (Single Query Optimization)
+    const monthLogs = await TimeLog.find({ 
+      clockIn: { $gte: monthStart },
+      userId: { $in: activeEmployees.map(e => e._id) }
+    });
+
+    const payrollData = [];
     const employeeHours = activeEmployees.map(e => {
-        const empLogs = todayLogs.filter(l => l.userId.toString() === e._id.toString());
-        const hoursToday = empLogs.reduce((sum, l) => {
-            if (l.clockOut) {
-                return sum + (l.totalHours || 0);
-            } else {
-                // Currently clocked in - calculate live hours (subtracting pause time if active)
-                const liveHours = (new Date() - new Date(l.clockIn)) / (1000 * 60 * 60);
-                return sum + liveHours;
+        const empLogs = monthLogs.filter(l => l.userId.toString() === e._id.toString());
+        
+        let today = 0, yesterday = 0, week = 0, month = 0, liveNow = false;
+
+        empLogs.forEach(l => {
+            const clockIn = new Date(l.clockIn);
+            const clockOut = l.clockOut ? new Date(l.clockOut) : now;
+            const isLive = !l.clockOut;
+            
+            // Calculate actual work hours (subtract pause time if provided by schema)
+            let total = l.totalHours || (clockOut - clockIn) / (1000 * 60 * 60);
+            
+            // Today
+            if (clockIn >= todayStart) {
+                today += total;
+                if (isLive) liveNow = true;
             }
-        }, 0);
-        return parseFloat(hoursToday.toFixed(1));
+            // Yesterday
+            if (clockIn >= yesterdayStart && clockIn <= yesterdayEnd) {
+                yesterday += total;
+            }
+            // Week
+            if (clockIn >= weekStart) {
+                week += total;
+            }
+            // Month
+            month += total;
+        });
+
+        payrollData.push({
+            id: e._id,
+            name: e.name,
+            department: e.department || 'Creative',
+            today: parseFloat(today.toFixed(2)),
+            yesterday: parseFloat(yesterday.toFixed(2)),
+            week: parseFloat(week.toFixed(2)),
+            month: parseFloat(month.toFixed(2)),
+            isLive: liveNow
+        });
+
+        return parseFloat(today.toFixed(1));
     });
 
     res.json({
@@ -92,7 +143,8 @@ router.get('/', async (req, res) => {
       revenueCategories: categories,
       taskStats: [taskStats.todo, taskStats.working, taskStats.review, taskStats.done],
       employeeHours,
-      employeeNames: activeEmployees.map(e => e.name)
+      employeeNames: activeEmployees.map(e => e.name),
+      payrollData
     });
   } catch (err) {
     console.error('[REPORTS_API_ERROR]:', err);
