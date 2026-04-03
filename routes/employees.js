@@ -199,42 +199,71 @@ router.get('/status/:userId', async (req, res) => {
   }
 });
 
-// GET history and today's hours
+// GET history and granular metrics
 router.get('/history/:userId', async (req, res) => {
   try {
-    const logs = await TimeLog.find({ userId: req.params.userId }).sort({ clockIn: -1 }).limit(30);
-    
-    // Calculate today's hours (including active sessions)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayLogs = await TimeLog.find({ 
-      userId: req.params.userId, 
-      clockIn: { $gte: today } 
-    });
+    const { userId } = req.params;
     const now = new Date();
-    const todayHours = todayLogs.reduce((sum, l) => {
-      if (l.clockOut) {
-        // Completed session — use stored totalHours
-        return sum + (l.totalHours || 0);
-      } else {
-        // Active session — calculate live net hours (subtract breaks)
-        const breakMs = (l.breaks || []).reduce((bSum, b) => {
-          const start = new Date(b.pauseStart).getTime();
-          const end = b.pauseEnd ? new Date(b.pauseEnd).getTime() : now.getTime();
-          return bSum + (end - start);
-        }, 0);
-        const netMs = (now - new Date(l.clockIn)) - breakMs;
-        return sum + (netMs / (1000 * 60 * 60));
-      }
-    }, 0);
     
+    // --- TIME BOUNDARIES (Standard Monday Start) ---
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
+
+    const yesterdayStart = new Date(todayStart);
+    yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+    const yesterdayEnd = new Date(todayStart);
+    yesterdayEnd.setMilliseconds(-1);
+
+    const dayOfWeek = now.getDay(); 
+    const diffToMonday = (dayOfWeek === 0 ? -6 : 1) - dayOfWeek;
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(todayStart.getDate() + diffToMonday);
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Fetch logs from the start of the current month to compute metrics
+    const logs = await TimeLog.find({ userId }).sort({ clockIn: -1 });
+    
+    let todayHours = 0, yesterdayHours = 0, weekHours = 0, monthHours = 0;
+
+    logs.forEach(l => {
+      const clockIn = new Date(l.clockIn);
+      const clockOut = l.clockOut ? new Date(l.clockOut) : now;
+      
+      // Calculate work hours for this log (subtract breaks if necessary)
+      // For history metrics, we'll use totalHours if available (completed) or net duration (active)
+      let duration = l.totalHours || (clockOut - clockIn) / (1000 * 60 * 60);
+
+      // Today
+      if (clockIn >= todayStart) {
+        todayHours += duration;
+      }
+      // Yesterday
+      if (clockIn >= yesterdayStart && clockIn <= yesterdayEnd) {
+        yesterdayHours += duration;
+      }
+      // Week
+      if (clockIn >= weekStart) {
+        weekHours += duration;
+      }
+      // Month
+      if (clockIn >= monthStart) {
+        monthHours += duration;
+      }
+    });
+
     const totalHours = logs.reduce((sum, l) => sum + (l.totalHours || 0), 0);
+    
     res.json({ 
-      logs, 
+      logs: logs.slice(0, 30), // Return only 30 most recent for the UI
       totalHours: parseFloat(totalHours.toFixed(2)),
-      todayHours: parseFloat(todayHours.toFixed(2)) 
+      todayHours: parseFloat(todayHours.toFixed(2)),
+      yesterdayHours: parseFloat(yesterdayHours.toFixed(2)),
+      weekHours: parseFloat(weekHours.toFixed(2)),
+      monthHours: parseFloat(monthHours.toFixed(2))
     });
   } catch (err) {
+    console.error('[HISTORY_FETCH_ERROR]:', err);
     res.status(500).json({ message: 'Failed to fetch history' });
   }
 });
